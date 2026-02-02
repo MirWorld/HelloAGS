@@ -39,6 +39,55 @@ helloagents/              # HelloAGENTS 工作空间（知识沉淀主落点）
 
 ---
 
+## ~init / ~wiki 幂等初始化协议（必遵守）
+
+目标：把 `${PROJECT_ROOT}/helloagents/` 变成“可写可重建的项目工作区”。`~init` **只做存在性检查 + 缺失补齐 + 轻量校验**，不做全库扫描/不自动生成模块文档（避免噪声与误报）。
+
+### 1) 先定根目录（必须）
+- 先按 `../references/read-paths.md#11-确定项目根目录repo-root` 解析 `PROJECT_ROOT`
+- 后续所有路径都以 `PROJECT_ROOT` 为基准（避免在子目录生成多份 `helloagents/`）
+
+### 2) 先检测，再读/写（必须）
+- 任何 `Get-Content helloagents/...` 之前，必须先 `Test-Path`；不存在就跳过读取，转入“按模板补齐”。
+
+### 3) 初始化的最小必需集（缺什么补什么；默认不覆盖）
+
+**目录（缺失即创建）**
+- `helloagents/`
+- `helloagents/wiki/`
+- `helloagents/wiki/modules/`
+- `helloagents/scripts/`
+- `helloagents/plan/`
+- `helloagents/history/`
+
+**文件（缺失即按模板创建）**
+- `helloagents/CHANGELOG.md` ← `templates/changelog-template.md`
+- `helloagents/project.md` ← `templates/project-template.md`
+- `helloagents/active_context.md` ← `templates/active-context-template.md`
+- `helloagents/scripts/validate-active-context.ps1` ← `templates/validate-active-context.ps1`
+- `helloagents/wiki/overview.md` ← `templates/wiki-overview-template.md`
+- `helloagents/wiki/arch.md` ← `templates/wiki-arch-template.md`
+- `helloagents/wiki/api.md` ← `templates/wiki-api-template.md`
+- `helloagents/wiki/data.md` ← `templates/wiki-data-template.md`
+- `helloagents/history/index.md` ← `templates/history-index-template.md`
+
+说明：
+- `project.md` 中“项目能力画像”未知项写 `unknown`，不要凭空猜测；后续在执行域取证补齐。
+- `wiki/modules/*.md` 默认不生成；只有在用户明确要求“补全模块文档/重建 wiki”时才批量生成（并按 G4 分批）。
+
+### 4) “都在”的情况下怎么判定正常
+- 仅做轻量校验（不扫描代码）：
+  - `./helloagents/scripts/validate-active-context.ps1`（若文件存在）
+  - 核心文件存在且非空（`CHANGELOG.md/project.md/wiki/*.md/history/index.md`）
+
+### 5) 重建语义（覆盖）
+- 默认：只补齐缺失（不覆盖已有文件）
+- 只有当用户明确说“重建/覆盖/清空再生成”时，才允许覆盖；覆盖前必须让用户二选一确认：
+  - [1] 备份旧目录到 `helloagents/_backup_<timestamp>/` 再重建（推荐）
+  - [2] 直接覆盖（风险自担）
+
+---
+
 ## 核心术语详解
 
 - **SSOT（真值）** (Single Source of Truth): 用于冲突裁决的“真值层”
@@ -75,6 +124,7 @@ helloagents/              # HelloAGENTS 工作空间（知识沉淀主落点）
 
 <context_acquisition_rules>
 **步骤1: 先检查知识库（如存在）**
+- 读取前必须先 `Test-Path`；不存在则跳过，不得让 `Get-Content` 报错中断。
 - 核心文件: `project.md`, `wiki/overview.md`, `wiki/arch.md`
 - 快速续作入口（如存在）: `active_context.md`（只信带 `[SRC:CODE]` 的条目）
 - 按需选择: `wiki/modules/<module>.md`, `wiki/api.md`, `wiki/data.md`
@@ -148,21 +198,15 @@ helloagents/              # HelloAGENTS 工作空间（知识沉淀主落点）
   - 在总结中提示"知识库缺失，建议先执行 ~init 命令"
 
 方案设计/开发实施阶段:
-  - 全面扫描代码库并创建完整知识库:
-    - 根目录: CHANGELOG.md, project.md
-    - 根目录: active_context.md（模板：`templates/active-context-template.md`，协议：`references/active-context.md`）
-    - 根目录: scripts/validate-active-context.ps1（模板：`templates/validate-active-context.ps1`，可选启用）
-    - wiki/: overview.md, arch.md, api.md, data.md
-    - wiki/modules/: <module>.md（每个模块）
-    - 大型项目（按G4判定）分批处理（每批≤20个模块）
-  - 创建 `project.md` 时建议包含“协作与偏好”（模板见 `templates/project-template.md`），用于沉淀使用者偏好
-  - 创建/更新 `project.md` 时必须补齐“项目能力画像”（怎么跑/怎么测/怎么检查），细则见:
-    - `references/project-profile.md`
-    - `references/stack-detection.md`
-  - 创建 `active_context.md` 的最小要求:
-     - 文件存在且≤120行
-     - Public APIs 条目（如有）必须包含 `[SRC:CODE] path:line symbol`
-     - 推断/待确认只能写入风险区（禁止混入事实区）
+  - 默认先执行“幂等初始化协议”：按模板补齐最小骨架（不扫描模块/不跑项目门禁/不写业务代码）
+  - 只有当用户明确要求（例如“重建 wiki/补全模块文档/生成 API 文档/生成数据字典”）时，才进行扫描与批量生成，并遵循：
+    - 大型项目（按 G4 判定）分批处理（每批≤20个模块）
+    - 所有生成内容必须可回滚/可重建，且不覆盖真值层（代码事实 + 可复现验证证据 + why.md##对齐摘要）
+  - `project.md` 的“项目能力画像”未知项写 `unknown`；在执行域取证补齐（细则：`references/project-profile.md`、`references/stack-detection.md`）
+  - `active_context.md` 的最小要求（同上，且校验脚本可用）：
+    - 文件存在且≤120行
+    - Public APIs 条目（如有）必须包含 `[SRC:CODE] path:line symbol`
+    - 推断/待确认只能写入风险区（禁止混入事实区）
 ```
 
 **STEP 3: 知识库存在**
