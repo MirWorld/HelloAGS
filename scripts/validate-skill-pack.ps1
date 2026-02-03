@@ -310,6 +310,7 @@ $required = @(
   "templates/plan-task-quickfix-template.md",
   "templates/active-context-template.md",
   "templates/validate-active-context.ps1",
+  "templates/validate-plan-package.ps1",
   "references/routing.md",
   "references/plan-lifecycle.md",
   "references/command-policy.md",

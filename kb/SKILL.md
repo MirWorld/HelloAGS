@@ -14,7 +14,8 @@ helloagents/              # HelloAGENTS 工作空间（知识沉淀主落点）
 ├── project.md            # 技术约定 + 项目能力画像 + 协作偏好
 ├── active_context.md     # 派生缓存：可验证接口注册表/系统状态（非 SSOT（真值））
 ├── scripts/              # 工具脚本（派生层，可删可重建）
-│   └── validate-active-context.ps1  # Active Context 漂移校验脚本（可选）
+│   ├── validate-active-context.ps1  # Active Context 漂移校验脚本（可选）
+│   └── validate-plan-package.ps1    # 方案包完整性校验脚本（可选）
 ├── wiki/                 # 核心文档
 │   ├── overview.md       # 项目概述
 │   ├── arch.md           # 架构设计
@@ -65,6 +66,7 @@ helloagents/              # HelloAGENTS 工作空间（知识沉淀主落点）
 - `helloagents/project.md` ← `templates/project-template.md`
 - `helloagents/active_context.md` ← `templates/active-context-template.md`
 - `helloagents/scripts/validate-active-context.ps1` ← `templates/validate-active-context.ps1`
+- `helloagents/scripts/validate-plan-package.ps1` ← `templates/validate-plan-package.ps1`
 - `helloagents/wiki/overview.md` ← `templates/wiki-overview-template.md`
 - `helloagents/wiki/arch.md` ← `templates/wiki-arch-template.md`
 - `helloagents/wiki/api.md` ← `templates/wiki-api-template.md`
