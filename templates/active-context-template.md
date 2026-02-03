@@ -13,8 +13,7 @@
 - **ModuleName** (`path/to/module/`)
   - Purpose: [一句话用途]
   - Public APIs:
-    - [SRC:CODE] path/to/file.ext:123 symbol - [一句话语义/输入输出摘要]
-    - [SRC:CODE] path/to/file.ext:456 symbol - [一句话语义/输入输出摘要]
+    - [在这里列出 Public API 条目]
 
 ## Contracts Index
 
@@ -27,7 +26,7 @@
 
 > 只写“已确认承诺”（必须可追溯到代码/用户原话/工具输出）
 
-- [SRC:CODE] path/to/file.ext:123 symbol - [承诺：例如 token 写入位置/错误码语义/幂等策略]
+- [在这里列出已确认承诺条目]
 
 ## Known Gaps / Risks
 

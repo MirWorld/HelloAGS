@@ -98,6 +98,22 @@ function Assert-NotContainsAny([string]$repoRoot, [string]$relativePath, [string
   }
 }
 
+function Assert-NotMatches([string]$repoRoot, [string]$relativePath, [string]$pattern, [string]$hint) {
+  $full = Join-Path $repoRoot (Normalize-RelativePath $relativePath)
+  if (-not (Test-Path -LiteralPath $full)) {
+    Fail "File not found for regex check: $relativePath"
+  }
+
+  $text = Get-Content -LiteralPath $full -Raw
+  if ($text -match $pattern) {
+    $msg = "Unexpected pattern in ${relativePath}: ${pattern}"
+    if (-not [string]::IsNullOrWhiteSpace($hint)) {
+      $msg += "`nHint: $hint"
+    }
+    Fail $msg
+  }
+}
+
 function Assert-NoBrokenInternalReferences([string]$repoRoot, [string[]]$trackedFiles) {
   $mdFiles = $trackedFiles | Where-Object { $_.ToLowerInvariant().EndsWith(".md") }
   $pattern = '(?<!/)(?<path>(?:\.{1,2}/)*?(?:references|templates|examples|analyze|design|develop|kb|scripts)/(?:[A-Za-z0-9][A-Za-z0-9._\-]*/)*[A-Za-z0-9][A-Za-z0-9._\-]*\.(?:md|ps1))'
@@ -360,6 +376,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/active-context-t
   "## Known Gaps / Risks",
   "## Next"
 )
+
+Assert-NotMatches -repoRoot $repoRoot -relativePath "templates/active-context-template.md" -pattern '\[SRC:CODE\][^\r\n]*(?::\d+|#L\d+)\b' -hint "Don't include resolvable [SRC:CODE] pointers in the template; ~init runs before real files/line numbers exist."
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-template.md" -needles @(
   "## 上下文快照",
