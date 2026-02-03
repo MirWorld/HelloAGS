@@ -18,24 +18,24 @@ description: 文档/脚本模板集合；创建 Wiki/方案包/校验脚本时�
 
 | 模板文件 | 目标文件（建议） | 用途 |
 |---|---|---|
-| `templates/plan-why-template.md` | `helloagents/plan/.../why.md` | 变更提案与对齐摘要 |
-| `templates/plan-how-template.md` | `helloagents/plan/.../how.md` | 技术设计/ADR/质量门禁 |
-| `templates/plan-task-template.md` | `helloagents/plan/.../task.md` | 任务清单（含 Review 记录） |
-| `templates/plan-why-quickfix-template.md` | `helloagents/plan/.../why.md` | Quick Fix 极简对齐摘要（仍为完整方案包） |
-| `templates/plan-how-quickfix-template.md` | `helloagents/plan/.../how.md` | Quick Fix 极简技术说明（边界/验证/回滚） |
-| `templates/plan-task-quickfix-template.md` | `helloagents/plan/.../task.md` | Quick Fix 极简任务清单（含上下文快照/Review） |
-| `templates/project-template.md` | `helloagents/project.md` | 项目能力画像/协作偏好（栈无关） |
-| `templates/active-context-template.md` | `helloagents/active_context.md` | Active Context（可验证接口注册表/系统状态缓存） |
-| `templates/changelog-template.md` | `helloagents/CHANGELOG.md` | 变更日志（语义化版本） |
-| `templates/history-index-template.md` | `helloagents/history/index.md` | 方案包归档索引 |
-| `templates/wiki-overview-template.md` | `helloagents/wiki/overview.md` | Wiki 总览 |
-| `templates/wiki-arch-template.md` | `helloagents/wiki/arch.md` | 架构文档 |
-| `templates/wiki-api-template.md` | `helloagents/wiki/api.md` | API 文档 |
-| `templates/wiki-data-template.md` | `helloagents/wiki/data.md` | 数据模型文档 |
-| `templates/wiki-module-template.md` | `helloagents/wiki/modules/<module>.md` | 模块文档 |
+| `templates/plan-why-template.md` | `HAGWroks/plan/.../why.md` | 变更提案与对齐摘要 |
+| `templates/plan-how-template.md` | `HAGWroks/plan/.../how.md` | 技术设计/ADR/质量门禁 |
+| `templates/plan-task-template.md` | `HAGWroks/plan/.../task.md` | 任务清单（含 Review 记录） |
+| `templates/plan-why-quickfix-template.md` | `HAGWroks/plan/.../why.md` | Quick Fix 极简对齐摘要（仍为完整方案包） |
+| `templates/plan-how-quickfix-template.md` | `HAGWroks/plan/.../how.md` | Quick Fix 极简技术说明（边界/验证/回滚） |
+| `templates/plan-task-quickfix-template.md` | `HAGWroks/plan/.../task.md` | Quick Fix 极简任务清单（含上下文快照/Review） |
+| `templates/project-template.md` | `HAGWroks/project.md` | 项目能力画像/协作偏好（栈无关） |
+| `templates/active-context-template.md` | `HAGWroks/active_context.md` | Active Context（可验证接口注册表/系统状态缓存） |
+| `templates/changelog-template.md` | `HAGWroks/CHANGELOG.md` | 变更日志（语义化版本） |
+| `templates/history-index-template.md` | `HAGWroks/history/index.md` | 方案包归档索引 |
+| `templates/wiki-overview-template.md` | `HAGWroks/wiki/overview.md` | Wiki 总览 |
+| `templates/wiki-arch-template.md` | `HAGWroks/wiki/arch.md` | 架构文档 |
+| `templates/wiki-api-template.md` | `HAGWroks/wiki/api.md` | API 文档 |
+| `templates/wiki-data-template.md` | `HAGWroks/wiki/data.md` | 数据模型文档 |
+| `templates/wiki-module-template.md` | `HAGWroks/wiki/modules/<module>.md` | 模块文档 |
 | `templates/output-format.md` | （输出规范单一来源） | 统一输出格式（G6.1~G6.4） |
 | `templates/version-source-map.md` | （版本来源单一来源） | 版本号来源映射（G7） |
-| `templates/validate-active-context.ps1` | `helloagents/scripts/validate-active-context.ps1` | Active Context 漂移校验脚本 |
+| `templates/validate-active-context.ps1` | `HAGWroks/scripts/validate-active-context.ps1` | Active Context 漂移校验脚本 |
 
 ## 约束提醒
 

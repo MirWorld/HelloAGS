@@ -27,7 +27,7 @@
 4. `test`（单元/集成）→ 覆盖成功标准与核心场景  
 5. `security`（依赖/敏感信息/危险用法）→ 特别是外部输入与权限相关改动
 
-命令来源：优先 `helloagents/project.md#项目能力画像`；不足时按 `references/stack-detection.md` 推断并在允许写入时固化。
+命令来源：优先 `HAGWroks/project.md#项目能力画像`；不足时按 `references/stack-detection.md` 推断并在允许写入时固化。
 
 ---
 

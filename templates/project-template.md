@@ -55,4 +55,4 @@
 - **风险容忍度:** 允许灰度/不允许停机/必须可回滚
 - **代码风格:** 最小改动/可读性优先/性能优先
 - **上下文快照:** 触发式必做（关键决策/需求变更/阻断失败/会话可能中断/最终输出前），并为结论标注来源标签
-- **Active Context:** 变更公共接口/契约/数据流时必须更新 `helloagents/active_context.md`，每条 Public API 必须包含 `[SRC:CODE] path:line symbol`
+- **Active Context:** 变更公共接口/契约/数据流时必须更新 `HAGWroks/active_context.md`，每条 Public API 必须包含 `[SRC:CODE] path:line symbol`

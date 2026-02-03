@@ -61,7 +61,7 @@ mode: exec
 phase: develop
 status: awaiting_user_input
 awaiting_kind: choice
-package: helloagents/plan/YYYYMMDDHHMM_<feature>/   # 有方案包则填写
+package: HAGWroks/plan/YYYYMMDDHHMM_<feature>/   # 有方案包则填写
 next_unique_action: "等待用户输入序号 1-3"
 </helloagents_state>
 ```

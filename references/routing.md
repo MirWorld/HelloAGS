@@ -16,7 +16,7 @@
 2. **上一轮处于等待状态**（追问/选择/确认） → 本轮只处理用户回复；不得重开流程
 3. **用户限制写入范围**（例如“不做/只给方案/不要改代码/不要写文件/不要落盘”）→ 先确定 `write_scope`，并按写入范围阻断越界（见第 2 节）：
    - `no_write`：只允许咨询/追问/方案文字输出；**禁止写任何文件**
-   - `helloagents_only`：允许写 `helloagents/` 工作区（方案包/知识库），**禁止进入开发实施（改业务代码）**
+   - `helloagents_only`：允许写 `HAGWroks/` 工作区（方案包/知识库），**禁止进入开发实施（改业务代码）**
    - `code_write`：按正常流程推进（仍受“执行入口=完整方案包/执行域护栏/质量门禁”约束）
 4. **目标路由为开发实施/执行，但缺少可执行方案包** → 输出错误并路由回 `~plan`/方案设计
 5. **EHRB 风险信号未确认** → 必须先停下做风险确认，再决定是否继续（见 `references/safety.md`）
@@ -50,7 +50,7 @@
 ### 2.1 写入范围（write_scope）定义（无歧义）
 
 - `no_write`：**不写任何文件**（只在对话里给解释/方案/清单）；不创建方案包、不更新知识库
-- `helloagents_only`：只允许写入 `${PROJECT_ROOT}/helloagents/` 工作区（plan/wiki/history/project/active_context 等），**禁止修改业务代码/配置**
+- `helloagents_only`：只允许写入 `${PROJECT_ROOT}/HAGWroks/` 工作区（plan/wiki/history/project/active_context 等），**禁止修改业务代码/配置**
 - `code_write`：允许修改业务代码/配置；仍必须遵守“执行入口=完整方案包”与执行域/质量门禁护栏
 
 ### 2.2 写入范围判定（保守优先）
@@ -62,9 +62,9 @@
 - 用户说“去做/按你的去做/修复/实现/改代码/落地” → `code_write`
 
 歧义处理（必须阻断澄清）：
-- 用户只说“不要改文件”但未说明是否允许写 `helloagents/` 工作区 → 默认按 `no_write` 处理，并给 2 个选项让用户确认：
+- 用户只说“不要改文件”但未说明是否允许写 `HAGWroks/` 工作区 → 默认按 `no_write` 处理，并给 2 个选项让用户确认：
   - `[1] 只在对话里给方案（不写任何文件）`
-  - `[2] 允许写 helloagents/ 工作区（只写方案包/知识库，不改业务代码）`
+  - `[2] 允许写 HAGWroks/ 工作区（只写方案包/知识库，不改业务代码）`
 
 ---
 
@@ -74,7 +74,7 @@
 
 ### 3.1 结构化判定（优先，强推荐）
 
-如果上一轮输出末尾包含 `templates/output-format.md` 定义的 `<helloagents_state>...</helloagents_state>`：
+如果上一轮输出末尾包含 `templates/output-format.md` 定义的 `&lt;helloagents_state&gt;...&lt;/helloagents_state&gt;`：
 - 当 `status: awaiting_user_input`：
   - `awaiting_kind: questions` → 追问中
   - `awaiting_kind: choice` → 选择中

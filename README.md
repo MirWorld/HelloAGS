@@ -10,7 +10,7 @@
 
 ## 快速开始
 1. 安装 Skill：把本仓库放入 Codex CLI 的 skills 搜索路径（例如 `~/.codex/skills/helloagents/`）
-2. 在你的项目根目录执行一次：输入 `~init`（生成项目的 `helloagents/` 工作区/知识库）
+2. 在你的项目根目录执行一次：输入 `~init`（生成项目的 `HAGWroks/` 工作区/知识库）
 3. 正常提需求即可：默认 `~auto`（需要时可显式用 `~plan` / `~exec`）
 
 ## 目录结构（本仓库）
@@ -21,15 +21,15 @@
 - `examples/`：使用示例
 
 ## 关键产物（在具体项目中）
-- `helloagents/plan/`：方案包（why/how/task）
-- `helloagents/history/`：已完成方案包归档
-- `helloagents/active_context.md`：可验证接口注册表（每条 Public API 必须带 `[SRC:CODE] path:line symbol`）
-- `helloagents/wiki/`：项目知识库主页与模块文档
-> 建议把项目内的 `helloagents/` 提交到版本库（它是团队/项目的长期记忆落盘处），并遵循“真值分层”：代码事实 + 可复现验证证据 + `why.md##对齐摘要` 为 SSOT（真值）；与之冲突时以真值为准并回填修正文档。
+- `HAGWroks/plan/`：方案包（why/how/task）
+- `HAGWroks/history/`：已完成方案包归档
+- `HAGWroks/active_context.md`：可验证接口注册表（每条 Public API 必须带 `[SRC:CODE] path:line symbol`）
+- `HAGWroks/wiki/`：项目知识库主页与模块文档
+> 建议把项目内的 `HAGWroks/` 提交到版本库（它是团队/项目的长期记忆落盘处），并遵循“真值分层”：代码事实 + 可复现验证证据 + `why.md##对齐摘要` 为 SSOT（真值）；与之冲突时以真值为准并回填修正文档。
 
 ## 验证（推荐）
-- Active Context 漂移校验（在具体项目中）：`./helloagents/scripts/validate-active-context.ps1`
-  - 如脚本缺失：可从本仓库 `templates/validate-active-context.ps1` 生成到项目的 `helloagents/scripts/validate-active-context.ps1`
+- Active Context 漂移校验（在具体项目中）：`./HAGWroks/scripts/validate-active-context.ps1`
+  - 如脚本缺失：可从本仓库 `templates/validate-active-context.ps1` 生成到项目的 `HAGWroks/scripts/validate-active-context.ps1`
 
 ## 维护（本仓库）
 - Skill 包自检（检查引用/模板基础结构）：`./scripts/validate-skill-pack.ps1`

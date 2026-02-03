@@ -16,7 +16,7 @@
 
 ## 2) 创建新方案包
 
-- 路径：`helloagents/plan/YYYYMMDDHHMM_<feature>/`
+- 路径：`HAGWroks/plan/YYYYMMDDHHMM_<feature>/`
 - 冲突：同名目录存在则追加 `_v2/_v3/...`
 - 完整性：必须包含 `why.md` + `how.md` + `task.md` 且非空（`task.md` 至少 1 条任务）
 
@@ -25,8 +25,8 @@
 ## 3) 执行后强制迁移（开发实施结束的原子动作）
 
 1. 回写 `task.md`：所有任务标注真实状态；非 `[√]` 的任务必须写 `> 备注: ...`
-2. 迁移目录：`helloagents/history/YYYY-MM/YYYYMMDDHHMM_<feature>/`
-3. 更新索引：追加到 `helloagents/history/index.md`（包含时间戳、功能标识、类型、状态、链接）
+2. 迁移目录：`HAGWroks/history/YYYY-MM/YYYYMMDDHHMM_<feature>/`
+3. 更新索引：追加到 `HAGWroks/history/index.md`（包含时间戳、功能标识、类型、状态、链接）
 
 ---
 
@@ -37,6 +37,5 @@
 - 开发实施/执行命令/全授权命令结束后（迁移完成）
 
 规则：
-- 扫描 `helloagents/plan/`，排除本次 `CURRENT_PACKAGE`
+- 扫描 `HAGWroks/plan/`，排除本次 `CURRENT_PACKAGE`
 - 如存在遗留包：在完成输出末尾提示，并提供迁移选择流程（见 `kb/SKILL.md` 的遗留方案迁移规则）
-

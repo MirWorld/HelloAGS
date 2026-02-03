@@ -23,7 +23,7 @@
 
 ## 2) 最小产物（仍是完整方案包，但允许极简）
 
-创建目录：`helloagents/plan/YYYYMMDDHHMM_quickfix_<slug>/`
+创建目录：`HAGWroks/plan/YYYYMMDDHHMM_quickfix_<slug>/`
 
 必须包含三个文件（内容允许极简，但不能缺失）：
 - `why.md`：至少写 `## 对齐摘要`（目标/成功标准/非目标/约束/风险容忍度/偏好）
@@ -70,7 +70,6 @@
 3. **执行域声明（边界收口）**：按 `references/execution-guard.md` 明确 Allow/Deny/NewFiles/Refactor，并落盘到快照决策区
 4. **最小改动**：只做必要修改；默认不新增文件、不顺手重构
 5. **最小验证**：按 `references/quality-gates.md` 选择最小门禁/验证（失败则按 `references/failure-protocol.md` 收敛升级）
-6. **收尾与归档**：按 `references/plan-lifecycle.md` 把方案包迁移到 `helloagents/history/YYYY-MM/`，避免 `plan/` 堆积
+6. **收尾与归档**：按 `references/plan-lifecycle.md` 把方案包迁移到 `HAGWroks/history/YYYY-MM/`，避免 `plan/` 堆积
 
-若任务影响 Public API/契约/数据流：必须更新 `helloagents/active_context.md`（见 `references/active-context.md`）。
-
+若任务影响 Public API/契约/数据流：必须更新 `HAGWroks/active_context.md`（见 `references/active-context.md`）。

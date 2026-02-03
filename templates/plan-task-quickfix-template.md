@@ -1,6 +1,6 @@
 # Quick Fix - 任务清单（task.md）
 
-目录：`helloagents/plan/YYYYMMDDHHMM_quickfix_<slug>/task.md`
+目录：`HAGWroks/plan/YYYYMMDDHHMM_quickfix_<slug>/task.md`
 
 ---
 

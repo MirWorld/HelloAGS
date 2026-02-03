@@ -2,7 +2,7 @@
 
 目标：把“项目当前状态/公共接口表面（public surface）/关键契约”压缩成一份**可验证、可续作**的缓存，降低长会话/多轮迭代中的接口幻觉与命名漂移。
 
-定位：`helloagents/active_context.md` 是**派生层缓存**（Derived Cache），不是 SSOT（真值）。
+定位：`HAGWroks/active_context.md` 是**派生层缓存**（Derived Cache），不是 SSOT（真值）。
 - **SSOT（真值）** 是：代码事实 + 可复现验证证据（测试/门禁/命令输出）+ 经确认的 `why.md#对齐摘要`
 - active_context 允许重写、允许清空重建；与代码冲突时必须以代码为准并修正 active_context
 
@@ -10,7 +10,7 @@
 
 ## 1) 写到哪里
 
-- 文件路径：`helloagents/active_context.md`
+- 文件路径：`HAGWroks/active_context.md`
 - 体积约束：**≤120 行**（推荐 80–120 行）
 - 写作风格：高密度、列表化、只写“可验证事实”，禁止写流水账
 
@@ -56,14 +56,14 @@ Public API = “其他模块/调用方”依赖的外部表面（任一即算）
 ### 3.3 与上下文快照的关系
 
 - `task.md##上下文快照`（见 `references/context-snapshot.md`）负责：决策/失败/下一步/待确认
-- `helloagents/active_context.md` 负责：稳定的公共表面与关键契约索引
+- `HAGWroks/active_context.md` 负责：稳定的公共表面与关键契约索引
 - 禁止把快照里的推断直接沉淀为全局事实；必须先变成可验证证据（通常是代码事实）
 
 ---
 
 ## 4) 什么时候必须更新（触发条件）
 
-命中任一条件即必须更新 `helloagents/active_context.md`：
+命中任一条件即必须更新 `HAGWroks/active_context.md`：
 - 新增/修改/删除 Public API（函数/类/路由/CLI/事件）
 - 修改跨模块数据结构/契约（DTO/schema/response shape）
 - 影响核心数据流承诺（例如鉴权方式、幂等策略、错误码语义）
@@ -104,4 +104,4 @@ active_context 建议严格按以下结构组织（模板见 `templates/active-c
 - **必须当轮修复（阻断交付）**：本次变更影响 Public API/契约/数据流承诺（见第 4 节触发条件）时，必须当轮修复对应条目的 `[SRC:CODE]` 指针；未修复不得宣称“完成/可交付”
 - **允许欠账（必须落盘）**：仅涉及内部实现细节、且不影响 Public Surface 时，可暂时不更新细节；但必须在 `## Known Gaps / Risks` 写明缺口，并在 `## Next` 给出“下一步唯一动作”用于补齐
 
-可选工具：`helloagents/scripts/validate-active-context.ps1`（如项目启用）。
+可选工具：`HAGWroks/scripts/validate-active-context.ps1`（如项目启用）。

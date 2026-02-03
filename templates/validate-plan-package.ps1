@@ -1,5 +1,5 @@
 param(
-  [string]$PlanRoot = "helloagents/plan",
+  [string]$PlanRoot = "HAGWroks/plan",
   [string]$Package = "",
   [switch]$Json
 )
@@ -22,7 +22,7 @@ function Get-ProjectRoot() {
   if ($PSScriptRoot) {
     try {
       $twoUp = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\\..")).Path
-      if (Test-Path -LiteralPath (Join-Path $twoUp "helloagents")) {
+      if (Test-Path -LiteralPath (Join-Path $twoUp "HAGWroks")) {
         return $twoUp
       }
     } catch {

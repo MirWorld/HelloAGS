@@ -8,14 +8,14 @@
 
 ## 1) 何时创建/更新
 
-- **允许写入时（建议执行）**：方案设计、开发实施、`~init/~wiki`（可更新 `helloagents/project.md`）
+- **允许写入时（建议执行）**：方案设计、开发实施、`~init/~wiki`（可更新 `HAGWroks/project.md`）
 - **只读阶段（不写入）**：需求分析阶段只在内存中推断并在输出中标注不确定点，不创建文件
 
 ---
 
 ## 2) 画像内容（建议 schema）
 
-写入位置：`helloagents/project.md` 的 `## 项目能力画像` 章节（模板见 `templates/project-template.md`）。
+写入位置：`HAGWroks/project.md` 的 `## 项目能力画像` 章节（模板见 `templates/project-template.md`）。
 
 推荐包含以下字段（未知就写 `unknown`，不要瞎猜）：
 
@@ -39,15 +39,15 @@
 0. **先确定工作区根目录（Repo Root）**
    - 优先使用 `git rev-parse --show-toplevel` 作为 `PROJECT_ROOT`
    - 若失败（非 git 仓库/权限/工具不可用）：以当前工作目录作为 `PROJECT_ROOT`（并在假设账本标注 `[SRC:INFER][置信度: 中]`）
-   - monorepo/多子项目：若用户明确指定“以某子目录为工作区根目录”，以用户指定为准，并将其写入 `helloagents/project.md#项目能力画像` 的“工作区根目录”
+   - monorepo/多子项目：若用户明确指定“以某子目录为工作区根目录”，以用户指定为准，并将其写入 `HAGWroks/project.md#项目能力画像` 的“工作区根目录”
 
-1. **先读知识库**：若存在 `helloagents/project.md` 且包含 `项目能力画像`，优先使用其中的命令矩阵
+1. **先读知识库**：若存在 `HAGWroks/project.md` 且包含 `项目能力画像`，优先使用其中的命令矩阵
 2. **不足则探测（只读）**：
    - 通过哨兵文件判定“可能的栈/子项目位置”
    - 打开哨兵文件，寻找真实可用命令（例如 `package.json` scripts、`pyproject.toml` tool 配置）
 3. **选择最可信命令**：以项目声明为准；启发式仅作兜底
 4. **记录不确定性**：无法确认时写 `unknown`，并在假设账本标注“需要用户确认/需要运行验证”
-5. **允许写入时固化**：把探测结果补写进 `helloagents/project.md`，后续任务直接复用
+5. **允许写入时固化**：把探测结果补写进 `HAGWroks/project.md`，后续任务直接复用
 
 栈探测细则与启发式命令表：按需读取 `references/stack-detection.md`。
 

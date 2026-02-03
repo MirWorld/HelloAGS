@@ -50,8 +50,17 @@ function Normalize-RelativePath([string]$path) {
 
 function Resolve-Reference([string]$repoRoot, [string]$sourceFile, [string]$rawRef) {
   $sourceDir = Split-Path -Parent (Join-Path $repoRoot (Normalize-RelativePath $sourceFile))
-  $ref = Normalize-RelativePath $rawRef
-  return [System.IO.Path]::GetFullPath((Join-Path $sourceDir $ref))
+  $ref = $rawRef.Trim()
+  $refNormalized = Normalize-RelativePath $ref
+
+  $isRelative =
+    $ref.StartsWith("./", [System.StringComparison]::Ordinal) -or
+    $ref.StartsWith("../", [System.StringComparison]::Ordinal) -or
+    $ref.StartsWith(".\\", [System.StringComparison]::Ordinal) -or
+    $ref.StartsWith("..\\", [System.StringComparison]::Ordinal)
+
+  $baseDir = if ($isRelative) { $sourceDir } else { $repoRoot }
+  return [System.IO.Path]::GetFullPath((Join-Path $baseDir $refNormalized))
 }
 
 function Assert-FileExists([string]$repoRoot, [string]$relativePath) {
@@ -91,7 +100,7 @@ function Assert-NotContainsAny([string]$repoRoot, [string]$relativePath, [string
 
 function Assert-NoBrokenInternalReferences([string]$repoRoot, [string[]]$trackedFiles) {
   $mdFiles = $trackedFiles | Where-Object { $_.ToLowerInvariant().EndsWith(".md") }
-  $pattern = "(?<path>(?:\\.{1,2}/)*?(?:references|templates|examples|analyze|design|develop|kb|scripts)/[A-Za-z0-9][A-Za-z0-9._\\-]+\\.(?:md|ps1))"
+  $pattern = '(?<!/)(?<path>(?:\.{1,2}/)*?(?:references|templates|examples|analyze|design|develop|kb|scripts)/(?:[A-Za-z0-9][A-Za-z0-9._\-]*/)*[A-Za-z0-9][A-Za-z0-9._\-]*\.(?:md|ps1))'
 
   foreach ($md in $mdFiles) {
     $fullMd = Join-Path $repoRoot (Normalize-RelativePath $md)
@@ -112,13 +121,13 @@ function Assert-InteractiveWaitContracts([string]$repoRoot, [string[]]$trackedFi
   $allowedModes = @("plan", "exec", "auto", "init", "qa")
   $allowedPhases = @("routing", "analyze", "design", "develop", "kb")
   $allowedAwaitingKinds = @("questions", "choice", "confirm")
-  $statePattern = "(?s)<helloagents_state>\\s*(?<body>.*?)\\s*</helloagents_state>"
+  $statePattern = '(?ms)^\s*<helloagents_state>\s*(?<body>.*?)^\s*</helloagents_state>\s*$'
 
   function Normalize-StateValue([string]$raw) {
     if ($null -eq $raw) {
       return ""
     }
-    $v = [regex]::Replace($raw, "\\s+#.*$", "")
+    $v = [regex]::Replace($raw, '\s+#.*$', '')
     $v = $v.Trim()
     if (($v.StartsWith('"') -and $v.EndsWith('"')) -or ($v.StartsWith("'") -and $v.EndsWith("'"))) {
       if ($v.Length -ge 2) {
@@ -231,8 +240,8 @@ function Assert-InteractiveWaitContracts([string]$repoRoot, [string[]]$trackedFi
 
 function Assert-NoPlanAllowsSideEffects([string]$repoRoot, [string[]]$trackedFiles) {
   $mdFiles = $trackedFiles | Where-Object { $_.ToLowerInvariant().EndsWith(".md") }
-  $pattern = "(?s)(规划域|~plan)[\\s\\S]{0,200}(允许|可以|支持)(?<mid>[\\s\\S]{0,120})(build|test|install|migrate|迁移|构建|安装|测试)"
-  $negation = "(禁止|不允许|不得|不可)"
+  $pattern = '(?s)(规划域|~plan)[\s\S]{0,200}(允许|可以|支持)(?<mid>[\s\S]{0,120})(build|test|install|migrate|迁移|构建|安装|测试)'
+  $negation = '(禁止|不允许|不得|不可|不(?:做|进行|运行|执行)?(?:build|test|install|migrate|迁移|构建|安装|测试))'
 
   foreach ($md in $mdFiles) {
     $fullMd = Join-Path $repoRoot (Normalize-RelativePath $md)
@@ -240,7 +249,7 @@ function Assert-NoPlanAllowsSideEffects([string]$repoRoot, [string[]]$trackedFil
     $matches = [regex]::Matches($text, $pattern)
     foreach ($m in $matches) {
       $mid = $m.Groups["mid"].Value
-      if ($mid -match $negation) {
+      if ($mid -match $negation -or $m.Value -match $negation) {
         continue
       }
       Fail "Plan domain wording contradiction in ${md}: found allowance of side-effect command near '$($m.Value.Trim())'"
@@ -291,12 +300,14 @@ Info "Tracked files: $($tracked.Count)"
 
 # Required files (minimal contract for this repo as a skill pack)
 $required = @(
+  ".gitattributes",
   "SKILL.md",
   "README.md",
   "LICENSE",
   "LICENSE-CC-BY-4.0",
   "LICENSE-SUMMARY.md",
   "NOTICE",
+  ".github/workflows/validate-skill-pack.yml",
   "analyze/SKILL.md",
   "design/SKILL.md",
   "develop/SKILL.md",

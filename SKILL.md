@@ -1,6 +1,6 @@
 ---
 name: helloagents
-description: 用于处理软件开发/维护类请求（常见说法包括但不限于：修改、修复 bug、新增功能、开发模块、重构/优化、补充/编写/运行测试、生成并执行计划）。会自动判定是问答/改动/命令（~auto/~plan/~exec/~init），并选择咨询问答/微调/轻量迭代/标准开发/完整研发路径；需要写入时生成方案包（why/how/task）、执行与验证、同步知识库（helloagents/wiki、helloagents/CHANGELOG.md、helloagents/history/index.md），最终按统一输出格式汇总结果。
+description: 用于处理软件开发/维护类请求（常见说法包括但不限于：修改、修复 bug、新增功能、开发模块、重构/优化、补充/编写/运行测试、生成并执行计划）。会自动判定是问答/改动/命令（~auto/~plan/~exec/~init），并选择咨询问答/微调/轻量迭代/标准开发/完整研发路径；需要写入时生成方案包（why/how/task）、执行与验证、同步知识库（HAGWroks/wiki、HAGWroks/CHANGELOG.md、HAGWroks/history/index.md），最终按统一输出格式汇总结果。
 ---
 
 # HelloAGENTS - 面向 Codex CLI 的高理解研发流程 Skill
@@ -26,7 +26,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 - **可验证优先**：优先建立“项目能力画像”（怎么跑/怎么测/怎么检查），并让成功标准落到可执行验证动作（参考 `references/project-profile.md`、`references/quality-gates.md`）
 - **失败/Review 闭环**：阻断性失败遵循 `references/failure-protocol.md`（默认连续 3 次升级）；最终输出前强制执行 `references/review-protocol.md` 的两段式 Review 并记录（防止漂移与耦合回潮）
 - **中期落盘（上下文快照）**：在关键决策/需求变更/阻断失败/会话可能中断/最终输出前，必须将“关键决策/约束/下一步唯一动作”写入 `task.md##上下文快照`，并为每条结论标注来源标签；推断必须隔离到待确认区（详见 `references/context-snapshot.md`）
-- **Active Context（接口注册表）**：维护 `helloagents/active_context.md` 作为派生缓存（非 SSOT（真值））的公共接口入口清单；每条 Public API 必须包含 `[SRC:CODE] path:line symbol` 指针；与代码冲突时以代码为准并修正文档（详见 `references/active-context.md`）
+- **Active Context（接口注册表）**：维护 `HAGWroks/active_context.md` 作为派生缓存（非 SSOT（真值））的公共接口入口清单；每条 Public API 必须包含 `[SRC:CODE] path:line symbol` 指针；与代码冲突时以代码为准并修正文档（详见 `references/active-context.md`）
 - **子代理调度（如支持多代理）**：仅在触发器命中时启用；主控为唯一可写入者；子代理只读/禁止再分裂/禁止副作用命令；输出必须包含 `[SRC:CODE]` 证据指针并回填 `task.md##上下文快照`（详见 `references/subagent-orchestration.md`）
 
 ---
@@ -67,13 +67,13 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 
 ### 1.5 用户画像/偏好沉淀（可选但高收益）
 
-当同一用户/团队持续使用时，把偏好沉淀到知识库 `helloagents/project.md` 的 **“协作与偏好”** 章节（模板见 `templates/project-template.md`），每次任务最多更新 1–2 条高价值偏好，避免膨胀。
+当同一用户/团队持续使用时，把偏好沉淀到知识库 `HAGWroks/project.md` 的 **“协作与偏好”** 章节（模板见 `templates/project-template.md`），每次任务最多更新 1–2 条高价值偏好，避免膨胀。
 
 更完整的认知方法与提问模板：按需读取 `references/cognitive-core.md`。
 
 ### 1.6 项目能力画像（栈无关）
 
-在不预设技术栈的前提下，先确认“项目怎么跑/怎么测/怎么格式化与检查”，并在允许写入时固化到 `helloagents/project.md`，避免每次猜命令与误用。
+在不预设技术栈的前提下，先确认“项目怎么跑/怎么测/怎么格式化与检查”，并在允许写入时固化到 `HAGWroks/project.md`，避免每次猜命令与误用。
 
 细则：`references/project-profile.md`、`references/stack-detection.md`
 
@@ -150,8 +150,8 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 - **失败协议**：只统计阻断性失败；默认连续 3 次失败即停止空转并升级为用户决策（详见 `references/failure-protocol.md`）
 - **Review 协议**：最终输出前强制两段式审查（对齐一致性→结构质量），最多 3 轮“Review→修复→复测”，并写入 `task.md##Review 记录`（详见 `references/review-protocol.md`）
 - **上下文快照**：触发式中期落盘机制；只固化可追溯事实，推断隔离到待确认区；用于抗打断与跨轮次续作（详见 `references/context-snapshot.md`）
-- **Active Context**：`helloagents/active_context.md`，派生的“公共接口注册表/系统状态缓存”；每条 Public API 必须具备 `[SRC:CODE]` 指针，避免接口幻觉并支持中断续作（详见 `references/active-context.md`）
-- **方案包**：`helloagents/plan/YYYYMMDDHHMM_<feature>/` 下的 `why.md/how.md/task.md`（生命周期细则见 `references/plan-lifecycle.md`）
+- **Active Context**：`HAGWroks/active_context.md`，派生的“公共接口注册表/系统状态缓存”；每条 Public API 必须具备 `[SRC:CODE]` 指针，避免接口幻觉并支持中断续作（详见 `references/active-context.md`）
+- **方案包**：`HAGWroks/plan/YYYYMMDDHHMM_<feature>/` 下的 `why.md/how.md/task.md`（生命周期细则见 `references/plan-lifecycle.md`）
 - **EHRB**：高风险行为信号（生产/PII/破坏性/权限/支付等），触发降速处理与确认（细则见 `references/safety.md`）
 
 ### G3 | 不确定性处理
@@ -162,8 +162,8 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 
 ### G5 | 写入授权与静默执行
 - 需求分析：只读检查
-- 方案设计：可创建/更新 `helloagents/plan/`，可创建/重建知识库
-- 开发实施：可修改代码、更新知识库；结束时**必须**迁移方案包到 `helloagents/history/`
+- 方案设计：可创建/更新 `HAGWroks/plan/`，可创建/重建知识库
+- 开发实施：可修改代码、更新知识库；结束时**必须**迁移方案包到 `HAGWroks/history/`
 
 ### G6 | 阶段输出规范
 - 统一输出格式定义：`templates/output-format.md`
@@ -181,13 +181,13 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 - 细则：`references/safety.md`
 
 ### G10 | 知识库操作规范
-- 快速流程：先检查知识库（`helloagents/`）→ 不足则扫描代码库
+- 快速流程：先检查知识库（`HAGWroks/`）→ 不足则扫描代码库
 - 细则：`kb/SKILL.md`
 
 ### G11 | 方案包生命周期
-- 方案包目录：`helloagents/plan/YYYYMMDDHHMM_<feature>/`（必需 `why.md/how.md/task.md`）
+- 方案包目录：`HAGWroks/plan/YYYYMMDDHHMM_<feature>/`（必需 `why.md/how.md/task.md`）
 - 任务状态符号：`[ ] [√] [X] [-] [?]`
-- 开发实施完成后：更新任务状态 → 迁移到 `helloagents/history/YYYY-MM/` → 更新 `helloagents/history/index.md`
+- 开发实施完成后：更新任务状态 → 迁移到 `HAGWroks/history/YYYY-MM/` → 更新 `HAGWroks/history/index.md`
 - 细则：`references/plan-lifecycle.md`
 
 ### G12 | 状态变量（跨阶段传递）
@@ -197,15 +197,41 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 
 ---
 
-**本 Skill 包文件结构**（以当前目录为根）：
+**本 Skill 包文件结构**（以本仓库根目录为根）：
 ```text
-helloagents/
+<repo-root>/
 ├── SKILL.md
-├── analyze/ SKILL.md
-├── design/ SKILL.md
-├── develop/ SKILL.md
-├── kb/ SKILL.md
+├── analyze/SKILL.md
+├── design/SKILL.md
+├── develop/SKILL.md
+├── kb/SKILL.md
 ├── templates/
 ├── references/
+├── scripts/
 └── examples/
+```
+
+**目标项目工作区结构**（由 `~init` 在项目根目录创建）：
+```text
+HAGWroks/
+├── CHANGELOG.md
+├── project.md
+├── active_context.md
+├── scripts/
+│   ├── validate-active-context.ps1
+│   └── validate-plan-package.ps1
+├── wiki/
+│   ├── overview.md
+│   ├── arch.md
+│   ├── api.md
+│   ├── data.md
+│   └── modules/<module>.md
+├── plan/
+│   └── YYYYMMDDHHMM_<feature>/
+│       ├── why.md
+│       ├── how.md
+│       └── task.md
+└── history/
+    ├── index.md
+    └── YYYY-MM/YYYYMMDDHHMM_<feature>/
 ```

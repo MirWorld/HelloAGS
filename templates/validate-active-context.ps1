@@ -1,5 +1,5 @@
 param(
-  [string]$ActiveContextPath = "helloagents/active_context.md"
+  [string]$ActiveContextPath = "HAGWroks/active_context.md"
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,8 +11,8 @@ function Fail([string]$message) {
 
 function Resolve-ProjectRoot([string]$activeContextPath) {
   $resolved = Resolve-Path -LiteralPath $activeContextPath
-  $helloagentsDir = Split-Path -Parent $resolved.Path
-  return (Resolve-Path -LiteralPath (Split-Path -Parent $helloagentsDir)).Path
+  $workspaceDir = Split-Path -Parent $resolved.Path
+  return (Resolve-Path -LiteralPath (Split-Path -Parent $workspaceDir)).Path
 }
 
 function Parse-CodePointer([string]$line) {

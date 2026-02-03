@@ -25,12 +25,12 @@
 0. **确定项目根目录（Repo Root）**
    - 优先使用 `git rev-parse --show-toplevel` 作为 `PROJECT_ROOT`
    - 若失败（非 git 仓库/权限/工具不可用）：以当前工作目录作为 `PROJECT_ROOT`（并在快照“待确认/假设”区标注 `[SRC:INFER][置信度: 中]`）
-   - 后续所有 `helloagents/...` 路径（plan/wiki/history/active_context/project 等）都必须相对 `PROJECT_ROOT` 定位与读取
-   - monorepo/多子项目：若用户明确指定“以某子目录为工作区根目录”，以用户指定为准，并写入 `helloagents/project.md#项目能力画像`
+   - 后续所有 `HAGWroks/...` 路径（plan/wiki/history/active_context/project 等）都必须相对 `PROJECT_ROOT` 定位与读取
+   - monorepo/多子项目：若用户明确指定“以某子目录为工作区根目录”，以用户指定为准，并写入 `HAGWroks/project.md#项目能力画像`
 
 1. **定位方案包**
    - 优先使用已知 `CURRENT_PACKAGE/CREATED_PACKAGE`（如会话中可得）
-   - 否则扫描 `${PROJECT_ROOT}/helloagents/plan/`：
+   - 否则扫描 `${PROJECT_ROOT}/HAGWroks/plan/`：
      - 0 个：提示用户先 `~plan` 创建方案
      - 1 个：直接选中
      - 多个：列出清单让用户选（禁止擅自猜）
@@ -62,7 +62,7 @@
      | 我做了什么？ | 已完成任务号/门禁/改动面（引用 `task.md`/`git diff --stat`） |
 
 6. **读取 Active Context（如涉及公共接口/契约）**
-   - 读 `helloagents/active_context.md`：
+   - 读 `HAGWroks/active_context.md`：
      - 只信带 `[SRC:CODE]` 指针的条目
      - 需要时用 `rg` 反查 symbol，校验指针未漂移（细则见 `references/active-context.md`）
 
