@@ -319,6 +319,7 @@ $required = @(
   "references/quickfix-protocol.md",
   "references/hook-simulation.md",
   "references/read-paths.md",
+  "references/prompt-optimization.md",
   "references/triage-pass.md",
   "references/failure-protocol.md",
   "references/review-protocol.md"
@@ -483,6 +484,13 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/read-paths.md" 
   "templates/output-format.md",
   "git rev-parse --show-toplevel",
   "PROJECT_ROOT"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/prompt-optimization.md" -needles @(
+  "Trigger-only",
+  "RTCF",
+  "默认写入范围",
+  "冲突约束处理"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/project-profile.md" -needles @(

@@ -40,6 +40,19 @@
 
 ---
 
+## 1.2) 提示词/规则优化（Prompt/Rules）
+
+适用：用户明确要求“优化提示词/系统提示/规则文件/输出格式控制”。
+
+读取：
+- `references/prompt-optimization.md`
+
+停止条件：
+- 已收敛 RTCF（Role/Task/Constraints/Format）最小闭包
+- 已给出：诊断要点 + 三档交付（Quick/Standard/Deep）+ 至少 2 个测试用例（主用例+边缘用例）
+
+---
+
 ## 2) 上一轮处于等待状态（追问/选择/确认）
 
 读取：

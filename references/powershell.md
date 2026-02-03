@@ -17,3 +17,17 @@
 - 比较用 `-gt/-lt/-eq/-ne`；避免 `>` `<` 被当作重定向
 - 空值比较把 `$null` 放左侧：`$null -eq $var`
 
+---
+
+## 编码与 Frontmatter（SKILL.md）
+
+目标：避免因 BOM 导致 skill loader 读不到文件第 1 个字节的 `---`（frontmatter），出现“文件在但无法加载”的隐蔽故障。
+
+- PowerShell 5.1：`Set-Content -Encoding utf8` 可能写入 BOM；对带 frontmatter 的文件（如 `SKILL.md`）避免使用
+- 推荐写法：使用 **UTF-8 无 BOM** 写入
+
+示例（仅供参考）：
+```powershell
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($path, $content, $utf8NoBom)
+```
