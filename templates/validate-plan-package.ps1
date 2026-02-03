@@ -19,11 +19,6 @@ function Get-GitRoot() {
 }
 
 function Get-ProjectRoot() {
-  $gitRoot = Get-GitRoot
-  if ($gitRoot) {
-    return $gitRoot
-  }
-
   if ($PSScriptRoot) {
     try {
       $twoUp = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\\..")).Path
@@ -33,6 +28,11 @@ function Get-ProjectRoot() {
     } catch {
       # ignore
     }
+  }
+
+  $gitRoot = Get-GitRoot
+  if ($gitRoot) {
+    return $gitRoot
   }
 
   return (Get-Location).Path
