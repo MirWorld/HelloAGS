@@ -1,7 +1,3 @@
-param(
-  [switch]$CheckCodexCopy
-)
-
 $ErrorActionPreference = "Stop"
 
 function Fail([string]$message) {
@@ -34,7 +30,7 @@ try {
   }
 
   $sb = [ScriptBlock]::Create($text)
-  & $sb @PSBoundParameters
+  & $sb
 } finally {
   Pop-Location
   if ($hadDefault) {

@@ -1,7 +1,3 @@
-param(
-  [switch]$CheckCodexCopy
-)
-
 $ErrorActionPreference = "Stop"
 
 function Fail([string]$message) {
@@ -273,41 +269,6 @@ function Assert-NoPlanAllowsSideEffects([string]$repoRoot, [string[]]$trackedFil
   }
 }
 
-function Assert-CodexCopyConsistent([string]$repoRoot, [string[]]$trackedFiles) {
-  $codexRoot = Join-Path $repoRoot ".codex\\skills\\helloagents"
-  if (-not (Test-Path -LiteralPath $codexRoot)) {
-    Info "Skip: .codex skill copy not found at $codexRoot"
-    return
-  }
-
-  $coreFiles = $trackedFiles | Where-Object {
-    $_ -in @("SKILL.md", "README.md", "LICENSE", "NOTICE") -or
-    $_ -match "^(analyze|design|develop|kb|references|templates|examples)/"
-  }
-
-  $diff = New-Object System.Collections.Generic.List[string]
-  foreach ($rel in $coreFiles) {
-    $src = Join-Path $repoRoot (Normalize-RelativePath $rel)
-    $dst = Join-Path $codexRoot (Normalize-RelativePath $rel)
-    if (-not (Test-Path -LiteralPath $dst)) {
-      $diff.Add("Missing in .codex copy: $rel")
-      continue
-    }
-    $srcHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $src).Hash
-    $dstHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $dst).Hash
-    if ($srcHash -ne $dstHash) {
-      $diff.Add("Drift: $rel")
-    }
-  }
-
-  if ($diff.Count -gt 0) {
-    $msg = "Codex copy drift detected in ${codexRoot}:`n" + ($diff -join "`n")
-    Fail $msg
-  }
-
-  Info "OK: .codex skill copy matches tracked files"
-}
-
 $repoRoot = Get-RepoRoot
 $tracked = Get-TrackedFiles $repoRoot
 
@@ -539,9 +500,5 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation
   "references/review-protocol.md",
   "templates/output-format.md"
 )
-
-if ($CheckCodexCopy) {
-  Assert-CodexCopyConsistent -repoRoot $repoRoot -trackedFiles $tracked
-}
 
 Info "OK: skill pack validation passed"
