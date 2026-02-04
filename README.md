@@ -56,10 +56,11 @@ HAGWroks/
 ## 验证与维护
 
 - 本仓库自检（CI 同款）：`pwsh -NoProfile -File ./scripts/validate-skill-pack.ps1`
+- Windows PowerShell 5.1 兼容入口：`powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/validate-skill-pack-ps51.ps1`
 - 目标项目 Active Context 校验：`pwsh -NoProfile -File ./HAGWroks/scripts/validate-active-context.ps1`
 - 目标项目方案包完整性校验：`pwsh -NoProfile -File ./HAGWroks/scripts/validate-plan-package.ps1`
 
-说明：本仓库脚本与文档包含大量 UTF-8 中文内容，建议使用 PowerShell 7（`pwsh`）执行校验脚本。
+说明：本仓库脚本与文档包含大量 UTF-8 中文内容；PowerShell 7（`pwsh`）下可直接运行 `./scripts/validate-skill-pack.ps1`，Windows PowerShell 5.1 请使用上面的兼容入口脚本。
 
 ## Acknowledgments
 
