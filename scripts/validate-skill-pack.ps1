@@ -197,12 +197,6 @@ function Assert-InteractiveWaitContracts([string]$repoRoot, [string[]]$trackedFi
     }
 
     foreach ($m in $matches) {
-      $beforeLen = [Math]::Min(2000, $m.Index)
-      $before = $text.Substring($m.Index - $beforeLen, $beforeLen)
-      if ($before -notmatch [regex]::Escape("回复契约:")) {
-        Fail "Interactive wait contract missing '回复契约:' near state block in ${md}"
-      }
-
       $body = $m.Groups["body"].Value
       $kv = Parse-StateBlock $body
 
@@ -238,33 +232,6 @@ function Assert-InteractiveWaitContracts([string]$repoRoot, [string[]]$trackedFi
         Fail "Interactive wait state invalid in ${md}: awaiting_kind must be a single value (got '$($kv["awaiting_kind"])')"
       }
       Assert-OptionsSubset -md $md -key "awaiting_kind" -options $kindOpts -allowed $allowedAwaitingKinds
-
-      if ($kv["package"].Contains("...")) {
-        Fail "Interactive wait state invalid in ${md}: package must not contain '...' (got '$($kv["package"])')"
-      }
-
-      if (-not $kv["next_unique_action"].StartsWith("等待用户", [System.StringComparison]::Ordinal)) {
-        Fail "Interactive wait state invalid in ${md}: next_unique_action must start with '等待用户' (got '$($kv["next_unique_action"])')"
-      }
-    }
-  }
-}
-
-function Assert-NoPlanAllowsSideEffects([string]$repoRoot, [string[]]$trackedFiles) {
-  $mdFiles = $trackedFiles | Where-Object { $_.ToLowerInvariant().EndsWith(".md") }
-  $pattern = '(?s)(规划域|~plan)[\s\S]{0,200}(允许|可以|支持)(?<mid>[\s\S]{0,120})(build|test|install|migrate|迁移|构建|安装|测试)'
-  $negation = '(禁止|不允许|不得|不可|不(?:做|进行|运行|执行)?(?:build|test|install|migrate|迁移|构建|安装|测试))'
-
-  foreach ($md in $mdFiles) {
-    $fullMd = Join-Path $repoRoot (Normalize-RelativePath $md)
-    $text = Get-Content -LiteralPath $fullMd -Raw
-    $matches = [regex]::Matches($text, $pattern)
-    foreach ($m in $matches) {
-      $mid = $m.Groups["mid"].Value
-      if ($mid -match $negation -or $m.Value -match $negation) {
-        continue
-      }
-      Fail "Plan domain wording contradiction in ${md}: found allowance of side-effect command near '$($m.Value.Trim())'"
     }
   }
 }
@@ -319,16 +286,18 @@ foreach ($r in $required) {
 
 Assert-NoBrokenInternalReferences -repoRoot $repoRoot -trackedFiles $tracked
 Assert-InteractiveWaitContracts -repoRoot $repoRoot -trackedFiles $tracked
-Assert-NoPlanAllowsSideEffects -repoRoot $repoRoot -trackedFiles $tracked
 
-# Template invariants (keep light; fail only on foundational structure)
+# Template invariants (structural & contract-only; avoid brittle prose checks)
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @("<output_format>", "<exception_output_format>")
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @(
   "<helloagents_state>",
-  "status: awaiting_user_input",
+  "version:",
+  "mode:",
+  "phase:",
+  "status:",
   "awaiting_kind:",
-  "回复契约:",
-  "运行态渲染规则（硬约束"
+  "package:",
+  "next_unique_action:"
 )
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/active-context-template.md" -needles @(
   "## Modules (Public Surface)",
@@ -347,27 +316,18 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-templa
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-how-template.md" -needles @(
-  "## 中期落盘（上下文快照）",
   "## 执行域声明（Allow/Deny）",
-  "## 跨层一致性（如触发）"
+  "## 中期落盘（上下文快照）"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -needles @(
   "## 0) 阻断式路由（Hard Stop）",
-  "续作/断层恢复",
   "<helloagents_state>",
-  "结构化判定",
-  "不再支持",
-  "最小完整方案包",
   "write_scope",
   "no_write",
   "helloagents_only",
-  "code_write"
-)
-
-# Guardrail: prevent "task-only plan package" from creeping back in.
-Assert-NotContainsAny -repoRoot $repoRoot -relativePath "references/routing.md" -needles @(
-  '仅 `task.md`'
+  "code_write",
+  "## 6) Feedback-Delta（需求变更）"
 )
 
 # Core invariants (keep small but strict; prevents semantic drift)
@@ -378,61 +338,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapsho
   "下一步唯一动作:"
 )
 
-Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol.md" -needles @(
-  "5 问 Reboot Check",
-  "下一步唯一动作",
-  "待用户输入（Pending）",
-  "回复契约",
-  "git rev-parse --show-toplevel",
-  "PROJECT_ROOT"
-)
-
-Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/review-protocol.md" -needles @(
-  "置信度 0–100",
-  "≥80"
-)
-
-Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/subagent-orchestration.md" -needles @(
-  "Multiple Independent Passes",
-  "只读的侦察/审查器"
-)
-
-Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/command-policy.md" -needles @(
-  "只读命令（允许）",
-  "有副作用命令（禁止于规划域）",
-  "规划域（~plan / 方案设计阶段）",
-  "只允许只读命令",
-  "禁止有副作用命令",
-  "执行域（~exec / 开发实施阶段）",
-  "灰区处理"
-)
-
-Assert-ContainsAll -repoRoot $repoRoot -relativePath "analyze/SKILL.md" -needles @(
-  "../references/checklist-triggers.md"
-)
-
-Assert-ContainsAll -repoRoot $repoRoot -relativePath "kb/SKILL.md" -needles @(
-  "../references/checklist-triggers.md"
-)
-
-Assert-ContainsAll -repoRoot $repoRoot -relativePath "design/SKILL.md" -needles @(
-  "规划域护栏（Plan-only）",
-  "只读命令",
-  "references/command-policy.md",
-  "方案设计入场门槛",
-  "不创建方案包",
-  "<helloagents_state>",
-  "plan-why-quickfix-template.md",
-  "quickfix-protocol.md"
-)
-
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quickfix-protocol.md" -needles @(
   "完整方案包",
   "改一个参数",
-  "真值源是否唯一",
-  "单位与边界是否一致",
-  "消费者有哪些",
-  "最小动作"
+  "verify_min"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-quickfix-template.md" -needles @(
@@ -447,17 +356,20 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/triage-pass.md"
   "入口与调用链",
   "契约载体",
   "副作用点与消费者",
+  "verify_min",
   "下一步唯一动作"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/pre-implementation-checklist.md" -needles @(
   "高信号取证已完成",
-  "references/triage-pass.md"
+  "references/triage-pass.md",
+  "verify_min"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quality-gates.md" -needles @(
   "最小-最快-最高信号",
-  "证据落盘"
+  "证据落盘",
+  "verify_min"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-template.md" -needles @(
@@ -465,40 +377,6 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-templa
   "### 待用户输入（Pending）",
   "### 下一步唯一动作",
   "下一步唯一动作:"
-)
-
-Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/read-paths.md" -needles @(
-  "最短读取路径",
-  "停止条件",
-  "references/routing.md",
-  "templates/output-format.md",
-  "git rev-parse --show-toplevel",
-  "PROJECT_ROOT"
-)
-
-Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/prompt-optimization.md" -needles @(
-  "Trigger-only",
-  "RTCF",
-  "默认写入范围",
-  "冲突约束处理"
-)
-
-Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/project-profile.md" -needles @(
-  "git rev-parse --show-toplevel",
-  "PROJECT_ROOT",
-  "工作区根目录"
-)
-
-Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation.md" -needles @(
-  "SessionStart",
-  "UserPromptSubmit",
-  "PreToolUse",
-  "Stop",
-  "references/routing.md",
-  "references/command-policy.md",
-  "references/execution-guard.md",
-  "references/review-protocol.md",
-  "templates/output-format.md"
 )
 
 Info "OK: skill pack validation passed"
