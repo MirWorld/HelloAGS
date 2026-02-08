@@ -81,8 +81,15 @@
 
 优先：
 - `test`: `cargo test`
-- `fmt`: `cargo fmt`
-- `lint`: `cargo clippy -- -D warnings`（可选，视项目约束）
+- `fmt`: `cargo fmt --check`（不改文件；如需自动修复则用 `cargo fmt`）
+- `lint`: `cargo clippy -- -D warnings`（可选，视项目约束/耗时）
+
+语言实现 Playbook（命中 Rust 时建议读取）：
+- `references/stacks/rust.md`
+
+推荐最小闭环（通用，兜底）：
+- **快路径（最快验证）**：`cargo test`
+- **标准路径（更强信号）**：`cargo fmt --check` → `cargo clippy -- -D warnings` → `cargo test`
 
 ---
 
@@ -100,15 +107,44 @@
 ## 7) .NET（`*.csproj` / `*.sln`）
 
 优先：
-- `test`: `dotnet test`
-- `build`: `dotnet build`
+- `test`: `dotnet test`（通常会先 build）
+- `build`: `dotnet build`（仅当需要快速验证“能编译”或定位编译错误时单跑）
 
 可选：
-- `fmt`: `dotnet format`（若可用）
+- `fmt`: `dotnet format --verify-no-changes`（若项目已配置且命令可用；否则跳过/unknown）
+
+语言实现 Playbook（命中 .NET 时建议读取）：
+- `references/stacks/dotnet.md`
+
+推荐最小闭环（通用，兜底）：
+- **快路径（最快验证）**：`dotnet test`
+- **标准路径（更强信号）**：`dotnet build` → `dotnet test`（必要时再加 `dotnet format --verify-no-changes`）
 
 ---
 
-## 8) C/C++（`CMakeLists.txt`）
+## 8) Delphi / RAD Studio（`*.dproj` / `*.dpr`）
+
+> 说明：Delphi 的“怎么编译/怎么测”高度依赖项目工程与本机安装（RAD Studio 版本、环境变量、平台 Win32/Win64）。因此：**优先使用项目自带脚本/CI 声明的命令**；没有明确入口时，不要瞎猜，先把缺口写为 `unknown` 并请用户给出可用命令。
+
+探测线索（从强到弱）：
+- 工程文件：`*.dproj`（最强）/ `*.dpr`
+- 构建脚本：`build*.bat` / `compile*.bat` / `scripts/*.bat|*.ps1`
+- CI：`.github/workflows/*`（是否包含 `msbuild` / `dcc32` / `dcc64`）
+
+语言实现 Playbook（命中 Delphi 时建议读取）：
+- `references/stacks/delphi.md`
+
+常见可用入口（仅作候选，需用户/环境确认）：
+- `build`: `msbuild <project>.dproj /t:Build /p:Config=Release /p:Platform=Win32`（或 Win64）
+- `build`: `dcc32 -B <project>.dpr`（或 `dcc64`）
+
+推荐最小闭环（Delphi 兜底）：
+- **快路径**：只做 `build`（能编译就是最高信号）
+- **测试**：如果仓库里有 DUnit/DUnitX 测试工程或脚本入口，则以该入口作为 `test`（否则 `unknown`）
+
+---
+
+## 9) C/C++（`CMakeLists.txt`）
 
 优先（需根据实际 build 目录约定调整）：
 - `build`: `cmake -S . -B build` + `cmake --build build`
@@ -116,7 +152,7 @@
 
 ---
 
-## 9) 多栈/Monorepo 处理
+## 10) 多栈/Monorepo 处理
 
 如果存在多个哨兵文件：
 - 先按目录划分子项目（例如 `apps/*`、`packages/*`、`services/*`）

@@ -7,7 +7,7 @@
 ## 0. 对齐与取证（必做）
 
 - [ ] 0.1 阅读 `why.md##对齐摘要`，确认目标/成功标准/非目标/约束无误
-- [ ] 0.2 按 `references/quickfix-protocol.md` 执行“参数变更微清单”（如适用），并把结论写入 `## 上下文快照`
+- [ ] 0.2 按 `references/quickfix-protocol.md` 执行“参数变更微清单”（如适用），并把结论写入 `## 上下文快照`；同时确定至少 1 条 `verify_min`（最小验证动作）
 - [ ] 0.3 执行域声明：按 `references/execution-guard.md` 明确 Allow/Deny/NewFiles/Refactor，并写入 `## 上下文快照` 的决策区
 - [ ] 0.4 写检查点：在 `## 上下文快照` 更新 Workset + 下一步唯一动作（防断层）
 
@@ -15,7 +15,7 @@
 
 - [ ] 1.1 在 `[path/to/file]` 将参数从 `A` 改为 `B`
 
-## 2. 验证（最小-最快-最高信号）
+## 2. 验证（verify_min，最小-最快-最高信号）
 
 - [ ] 2.1 运行：`[command]`，预期：[…]
 

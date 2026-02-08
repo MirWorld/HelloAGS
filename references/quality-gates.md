@@ -37,6 +37,8 @@
 
 规则（按优先级）：
 1. **贴近改动面的最小验证**：优先跑能覆盖成功标准的最小测试/脚本/命令（越小越快越好）
+   - 若项目尚未固化命令矩阵但已能明确技术栈：可直接采用 `references/stack-detection.md` 中该栈的“推荐最小闭环（兜底）”作为最小验证候选（例如 Rust/.NET 的 `cargo test` / `dotnet test`）。
+   - 建议把这条“最小验证动作”在方案包中明确标记为 `verify_min`（见 `references/triage-pass.md`），用于执行期快速收口与中途纠偏后的重新验收。
 2. **再跑门禁序列**：按 `fmt → lint → typecheck → test → security` 扩大覆盖面
 3. **阻断即停**：任一阻断性门禁失败必须停止继续尝试，并按 `references/failure-protocol.md` 记录失败证据与“下一步唯一动作”
 4. **证据落盘**：所有验证必须可追溯（命令 + 结果摘要），写入 `task.md##Review 记录`（或阻断时写入 `task.md##上下文快照`）

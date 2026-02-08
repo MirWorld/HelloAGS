@@ -6,7 +6,7 @@
 
 ## 0. 对齐确认
 - [ ] 0.1 阅读 `why.md#对齐摘要`，确认目标/成功标准/边界/约束无误；如有偏差先修正 why.md 再执行后续任务
-- [ ] 0.2 确认 `HAGWroks/project.md#项目能力画像` 已包含可用命令矩阵（test/fmt/lint/typecheck 等）；如缺失则补齐后再继续
+- [ ] 0.2 确认 `HAGWroks/project.md#项目能力画像` 已包含可用命令矩阵（test/fmt/lint/typecheck 等）；并为核心成功标准绑定至少 1 条 `verify_min`（最小验证动作，命令/测试/脚本/可复现手动步骤皆可）；如缺失则补齐后再继续
 - [ ] 0.3 执行复用检索：按 `references/code-reuse-checklist.md` 搜索现有相似实现与可复用组件，避免重复造轮子；在 how.md 的“复用与去重策略”记录结论
 - [ ] 0.4 确认边界与依赖方向：新增/修改代码应落在正确模块层，避免跨层 import；在 how.md 的“边界与依赖”记录约束
 
@@ -44,6 +44,7 @@
 - [ ] 4.1 更新 <知识库文件>
 
 ## 5. 质量门禁与验证
+- [ ] 5.0 运行 `verify_min`（最小-最快-最高信号）：优先用能覆盖成功标准的最小验证动作收口；记录证据（命令+结果摘要），失败则按失败协议收敛升级（参考 `references/quality-gates.md`、`references/failure-protocol.md`）
 - [ ] 5.1 执行 fmt（命令来自 `HAGWroks/project.md#项目能力画像`），确保格式一致
 - [ ] 5.2 执行 lint（命令来自 `HAGWroks/project.md#项目能力画像`），修复阻断性问题
 - [ ] 5.3 执行 typecheck（命令来自 `HAGWroks/project.md#项目能力画像`，如适用），确保类型一致
