@@ -26,7 +26,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 - **可验证优先**：优先建立“项目能力画像”（怎么跑/怎么测/怎么检查），并让成功标准落到可执行验证动作（参考 `references/project-profile.md`、`references/quality-gates.md`）
 - **失败/Review 闭环**：阻断性失败遵循 `references/failure-protocol.md`（默认连续 3 次升级）；最终输出前强制执行 `references/review-protocol.md` 的两段式 Review 并记录（防止漂移与耦合回潮）
 - **中期落盘（上下文快照）**：在关键决策/需求变更/阻断失败/会话可能中断/最终输出前，必须将“关键决策/约束/下一步唯一动作”写入 `task.md##上下文快照`，并为每条结论标注来源标签；推断必须隔离到待确认区（详见 `references/context-snapshot.md`）
-- **Active Context（接口注册表）**：维护 `HAGSWorks/active_context.md` 作为派生缓存（非 SSOT（真值））的公共接口入口清单；每条 Public API 必须包含 `[SRC:CODE] path:line symbol` 指针；与代码冲突时以代码为准并修正文档（详见 `references/active-context.md`）
+- **Active Context（接口注册表）**：维护 `HAGSWorks/active_context.md` 作为派生缓存（非 SSOT（真值））的公共接口入口清单；每条 Public API 必须包含 `[SRC:CODE] path symbol` 指针（行号可选）；与代码冲突时以代码为准并修正文档（详见 `references/active-context.md`）
 - **子代理调度（如支持多代理）**：仅在触发器命中时启用；主控为唯一可写入者；子代理只读/禁止再分裂/禁止副作用命令；输出必须包含 `[SRC:CODE]` 证据指针并回填 `task.md##上下文快照`（详见 `references/subagent-orchestration.md`）
 
 ---

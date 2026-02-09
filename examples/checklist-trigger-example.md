@@ -17,7 +17,7 @@
   - 明确跨层触发与对应任务（模板已包含 `0.5 跨层一致性（触发式）`）
   - 在 `## 上下文快照` 记录关键决策与兼容约束（事实/推断隔离 + 来源标签）
 - `HAGSWorks/active_context.md`：
-  - 新增/修改 Public API（HTTP 路由/handler/命令等）必须登记并带 `[SRC:CODE] path:line symbol`
+  - 新增/修改 Public API（HTTP 路由/handler/命令等）必须登记并带 `[SRC:CODE] path symbol`（行号可选）
 
 ## 输出要点（收尾）
 - 按 `references/finish-checklist.md` 自检

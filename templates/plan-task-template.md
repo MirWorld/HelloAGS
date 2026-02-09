@@ -2,13 +2,16 @@
 
 目录: `HAGSWorks/plan/YYYYMMDDHHMM_<feature>/`
 
+最小闭环（建议只盯这几项，其他按触发/推荐执行）：
+- 必做：0.1（对齐）/ 0.2（verify_min 绑定）/ 0.6（快照）/ 0.8（执行域声明）/ 5.0（verify_min）/ 6.x（Review）
+
 ---
 
 ## 0. 对齐确认
 - [ ] 0.1 阅读 `why.md#对齐摘要`，确认目标/成功标准/边界/约束无误；如有偏差先修正 why.md 再执行后续任务
 - [ ] 0.2 确认 `HAGSWorks/project.md#项目能力画像` 已包含可用命令矩阵（test/fmt/lint/typecheck 等）；并为核心成功标准绑定至少 1 条 `verify_min`（最小验证动作，命令/测试/脚本/可复现手动步骤皆可）；如缺失则补齐后再继续
-- [ ] 0.3 执行复用检索：按 `references/code-reuse-checklist.md` 搜索现有相似实现与可复用组件，避免重复造轮子；在 how.md 的“复用与去重策略”记录结论
-- [ ] 0.4 确认边界与依赖方向：新增/修改代码应落在正确模块层，避免跨层 import；在 how.md 的“边界与依赖”记录约束
+- [ ] 0.3（推荐）执行复用检索：按 `references/code-reuse-checklist.md` 搜索现有相似实现与可复用组件，避免重复造轮子；在 how.md 的“复用与去重策略”记录结论
+- [ ] 0.4（推荐）确认边界与依赖方向：新增/修改代码应落在正确模块层，避免跨层 import；在 how.md 的“边界与依赖”记录约束
 
 ## 0.5 跨层一致性（触发式）
 - [ ] 0.5.1 触发判定：按 `references/checklist-triggers.md` 判断是否命中跨层触发器（≥3层/改契约/多消费者/语义承诺变化等）
@@ -20,7 +23,7 @@
 
 ## 0.7 Active Context（可验证接口注册表，触发式必做）
 - [ ] 0.7.1 阅读 `HAGSWorks/active_context.md`：把它当作公共接口入口清单（派生层，非 SSOT（真值）），只信带 `[SRC:CODE]` 的 Public APIs 条目
-- [ ] 0.7.2 如本次变更影响公共接口/契约/数据流：更新 `HAGSWorks/active_context.md`（每条 Public API 必须包含 `[SRC:CODE] path:line symbol`），并在 Review 前完成漂移校验（可选运行 `HAGSWorks/scripts/validate-active-context.ps1`）
+- [ ] 0.7.2 如本次变更影响公共接口/契约/数据流：更新 `HAGSWorks/active_context.md`（每条 Public API 必须包含 `[SRC:CODE] path symbol`；行号可选），并在 Review 前完成校验（可选运行 `HAGSWorks/scripts/validate-active-context.ps1 -Mode loose|strict`）
 
 ## 0.8 执行期护栏（执行域声明 + Fail→Narrow）
 - [ ] 0.8.1 写域声明（必须）：按 `references/execution-guard.md` 明确 Allow/Deny/NewFiles/Refactor，并把结论写入 `task.md##上下文快照` 的“决策”区（作为可恢复检查点）
@@ -38,18 +41,20 @@
 - [ ] 2.1 在 `path/to/file.ts` 中实现 [具体功能]，验证 why.md#[需求标题anchor]-[场景标题anchor]，依赖任务1.2
 
 ## 3. 安全检查
-- [ ] 3.1 执行安全检查（输入验证、敏感信息处理、权限控制、EHRB风险规避）
+（触发式：外部输入/权限/支付/生产变更/敏感信息等信号命中时必做）
+- [ ] 3.1 执行安全检查（输入验证、敏感信息处理、权限控制、EHRB 风险规避）
 
 ## 4. 文档更新
+（触发式：契约/公共接口/数据模型/架构变化时必做）
 - [ ] 4.1 更新 <知识库文件>
 
 ## 5. 质量门禁与验证
 - [ ] 5.0 运行 `verify_min`（最小-最快-最高信号）：优先用能覆盖成功标准的最小验证动作收口；记录证据（命令+结果摘要），失败则按失败协议收敛升级（参考 `references/quality-gates.md`、`references/failure-protocol.md`）
-- [ ] 5.1 执行 fmt（命令来自 `HAGSWorks/project.md#项目能力画像`），确保格式一致
-- [ ] 5.2 执行 lint（命令来自 `HAGSWorks/project.md#项目能力画像`），修复阻断性问题
-- [ ] 5.3 执行 typecheck（命令来自 `HAGSWorks/project.md#项目能力画像`，如适用），确保类型一致
-- [ ] 5.4 执行 test（命令来自 `HAGSWorks/project.md#项目能力画像`），覆盖 why.md 的成功标准与核心场景
-- [ ] 5.5 如涉及依赖/外部输入/权限，执行 security 门禁（命令来自 `HAGSWorks/project.md#项目能力画像` 或项目既有检查）
+- [ ] 5.1（推荐默认）执行 fmt（命令来自 `HAGSWorks/project.md#项目能力画像`）；若命令不存在则标记 `[-]` 并写明原因
+- [ ] 5.2（推荐默认）执行 lint（命令来自 `HAGSWorks/project.md#项目能力画像`）；若命令不存在则标记 `[-]` 并写明原因
+- [ ] 5.3（推荐默认）执行 typecheck（命令来自 `HAGSWorks/project.md#项目能力画像`，如适用）；若不适用/命令不存在则标记 `[-]` 并写明原因
+- [ ] 5.4（推荐默认）执行 test（命令来自 `HAGSWorks/project.md#项目能力画像`）；若项目无测试入口则标记 `[-]` 并写明原因（但必须保留 `verify_min` 闭环）
+- [ ] 5.5（触发式）如涉及依赖/外部输入/权限，执行 security 门禁（命令来自 `HAGSWorks/project.md#项目能力画像` 或项目既有检查）
 
 ---
 
@@ -108,7 +113,7 @@
 ---
 
 ## Active Context 更新记录
-（如本次影响公共接口/契约/数据流，在此记录更新摘要；每条 Public API 必须带 `[SRC:CODE] path:line symbol`）
+（如本次影响公共接口/契约/数据流，在此记录更新摘要；每条 Public API 必须带 `[SRC:CODE] path symbol`（行号可选））
 
 ---
 

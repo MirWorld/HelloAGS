@@ -13,7 +13,7 @@
 - **兼容策略**：是否需要向后兼容（旧字段保留/双写/降级）、迁移步骤、特性开关？
 - **错误传播**：底层错误如何映射到上层（统一错误结构、日志、用户提示）；避免泄露敏感信息
 - **多消费者清点**：谁在用这个契约？（`rg` 搜调用点/clients/SDK/tests/docs）是否全部更新？
-- **Active Context**：如 Public API/契约变化，更新 `HAGSWorks/active_context.md`，并为每条条目提供 `[SRC:CODE] path:line symbol`；必要时运行漂移校验脚本
+- **Active Context**：如 Public API/契约变化，更新 `HAGSWorks/active_context.md`，并为每条条目提供 `[SRC:CODE] path symbol`（行号可选）；必要时运行校验脚本（`-Mode loose|strict`）
 - **验证**：至少补/跑一条覆盖“跨层路径”的验证（集成测试/契约测试/脚本/手动步骤，必须可复现）
 
 ---

@@ -8,15 +8,20 @@
 
 ## Checklist（命中就做，不需要逐条复述）
 
+### 必做（最小闭环）
+
 - **对齐摘要可复述**：能否用一句话复述目标与成功标准？非目标/约束是否明确且可执行？
 - **高信号取证已完成**：按 `references/triage-pass.md` 完成一次取证，并将“事实/缺口/下一步唯一动作”写入 `task.md##上下文快照`（未落盘则禁止进入实现）
-- **验证已绑定**：至少明确 1 条 `verify_min`（最小验证动作；SSOT 在 `how.md` 的 `verify_min: ...`），并确保 `task.md` 里有可执行验证项/证据记录位点（见 `references/triage-pass.md`）；门禁命令来自 `HAGSWorks/project.md#项目能力画像`
+- **验证已绑定**：至少明确 1 条 `verify_min`（最小验证动作；SSOT 在 `how.md` 的 `verify_min: ...`），并确保 `task.md` 里有可执行验证项/证据记录位点（见 `references/triage-pass.md`）
+- **执行域声明**：按 `references/execution-guard.md` 明确 Allow/Deny/NewFiles/Refactor，并写入 `task.md##上下文快照`（决策区）
+
+### 推荐默认（按触发器/项目现状）
+
 - **语言栈默认值已收敛（如适用）**：若已能明确技术栈但项目命令/规范不完整：按 `references/stack-detection.md` 选取最小闭环命令兜底；并按对应语言 Playbook 收敛实现习惯（少量硬禁止，其余推荐默认）：
   - Rust：`references/stacks/rust.md`
   - .NET：`references/stacks/dotnet.md`
   - Delphi：`references/stacks/delphi.md`
 - **影响面已圈定**：预计改哪些模块/文件？能否收敛到更小范围（避免“顺手扩大”）
-- **执行域声明**：按 `references/execution-guard.md` 明确 Allow/Deny/NewFiles/Refactor，并写入 `task.md##上下文快照`（决策区）
 - **复用检索已做**：`rg` 搜索相似实现/类型/错误码/字段名；优先复用而不是新造
 - **边界与依赖明确**：落点与依赖方向是否正确？是否有跨层 import 风险？
 - **风险与回滚**：是否触发 EHRB？是否需要兼容/降级/回滚策略？

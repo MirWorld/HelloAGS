@@ -65,6 +65,7 @@
 
 - [SRC:CODE] path/to/file.ext:123 symbol - 证据说明（1 句）
 - [SRC:CODE] path/to/file.ext#L456 symbol - 证据说明（1 句）
+- [SRC:CODE] path/to/file.ext symbol - 证据说明（1 句）
 
 > 证据不足的内容不得进入事实区，必须放到“风险/待确认”。
 

@@ -1,5 +1,7 @@
 param(
-  [string]$ActiveContextPath = "HAGSWorks/active_context.md"
+  [string]$ActiveContextPath = "HAGSWorks/active_context.md",
+  [ValidateSet("loose", "strict")]
+  [string]$Mode = "loose"
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,13 +18,29 @@ function Resolve-ProjectRoot([string]$activeContextPath) {
 }
 
 function Parse-CodePointer([string]$line) {
-  $pattern1 = "\[SRC:CODE\]\s+(?<path>\S+?):(?<line>\d+)\s+(?<rest>.+)$"
-  $pattern2 = "\[SRC:CODE\]\s+(?<path>\S+?)#L(?<line>\d+)\s+(?<rest>.+)$"
+  $patterns = @(
+    @{ re = "\[SRC:CODE\]\s+(?<path>\S+?):(?<line>\d+)\s+(?<rest>.+)$"; hasLine = $true },
+    @{ re = "\[SRC:CODE\]\s+(?<path>\S+?)#L(?<line>\d+)\s+(?<rest>.+)$"; hasLine = $true },
+    @{ re = "\[SRC:CODE\]\s+(?<path>\S+?)\s+(?<rest>.+)$"; hasLine = $false }
+  )
 
-  $m = [regex]::Match($line, $pattern1)
-  if ($m.Success) { return $m }
-  $m = [regex]::Match($line, $pattern2)
-  if ($m.Success) { return $m }
+  foreach ($p in $patterns) {
+    $m = [regex]::Match($line, $p.re)
+    if ($m.Success) {
+      $lineValue = $null
+      if ($p.hasLine) {
+        $lineValue = [int]$m.Groups["line"].Value
+      }
+
+      return [pscustomobject]@{
+        path = $m.Groups["path"].Value
+        line = $lineValue
+        rest = $m.Groups["rest"].Value
+        hasLine = $p.hasLine
+      }
+    }
+  }
+
   return $null
 }
 
@@ -92,16 +110,20 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
     continue
   }
 
-  $match = Parse-CodePointer $line
-  if ($null -eq $match) {
-    Fail "Line $lineNo - invalid [SRC:CODE] pointer (expected 'path:line symbol' or 'path#Lline symbol'): $line"
+  $ptr = Parse-CodePointer $line
+  if ($null -eq $ptr) {
+    Fail "Line $lineNo - invalid [SRC:CODE] pointer (expected 'path symbol', 'path:line symbol' or 'path#Lline symbol'): $line"
   }
 
-  $pathValue = $match.Groups["path"].Value
-  $lineValue = [int]$match.Groups["line"].Value
-  $rest = $match.Groups["rest"].Value.Trim()
+  if ($Mode -eq "strict" -and -not $ptr.hasLine) {
+    Fail "Line $lineNo - strict mode requires a line number in [SRC:CODE] pointer (use 'path:line symbol' or 'path#Lline symbol'): $line"
+  }
+
+  $pathValue = $ptr.path
+  $lineValue = $ptr.line
+  $rest = $ptr.rest.Trim()
   if ([string]::IsNullOrWhiteSpace($rest)) {
-    Fail "Line $lineNo - [SRC:CODE] missing symbol (expected 'path:line symbol')"
+    Fail "Line $lineNo - [SRC:CODE] missing symbol (expected 'path symbol')"
   }
 
   $apiEntryCount++
@@ -116,7 +138,7 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
   }
   $symbolPart = $symbolPart.Trim()
   if ([string]::IsNullOrWhiteSpace($symbolPart)) {
-    Fail "Line $lineNo - [SRC:CODE] missing symbol (expected 'path:line symbol')"
+    Fail "Line $lineNo - [SRC:CODE] missing symbol (expected 'path symbol')"
   }
   if ($symbolPart -match "\s") {
     Fail "Line $lineNo - [SRC:CODE] symbol must be a single grep key (no spaces). Use a function/class/handler name. Got: '$symbolPart'"
@@ -132,8 +154,10 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
   }
 
   $targetLines = Get-Content -LiteralPath $resolvedPath
-  if ($lineValue -lt 1 -or $lineValue -gt $targetLines.Count) {
-    Fail "Line $lineNo - [SRC:CODE] line out of range: ${pathValue}:$lineValue (file lines: $($targetLines.Count))"
+  if ($ptr.hasLine) {
+    if ($lineValue -lt 1 -or $lineValue -gt $targetLines.Count) {
+      Fail "Line $lineNo - [SRC:CODE] line out of range: ${pathValue}:$lineValue (file lines: $($targetLines.Count))"
+    }
   }
 
   $searchKey = $symbolPart
@@ -144,37 +168,57 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
     $searchKey = $symbolPart
   }
 
-  $radius = 20
-  $start = [Math]::Max(1, $lineValue - $radius)
-  $end = [Math]::Min($targetLines.Count, $lineValue + $radius)
-
-  $foundNear = $false
-  for ($j = $start; $j -le $end; $j++) {
+  $matchLines = New-Object System.Collections.Generic.List[int]
+  for ($j = 1; $j -le $targetLines.Count; $j++) {
     if ($targetLines[$j - 1].IndexOf($searchKey, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
-      $foundNear = $true
-      break
+      $matchLines.Add($j)
     }
   }
 
-  if (-not $foundNear) {
-    $matchLines = New-Object System.Collections.Generic.List[int]
-    for ($j = 1; $j -le $targetLines.Count; $j++) {
+  if ($matchLines.Count -eq 0) {
+    Fail "Line $lineNo - [SRC:CODE] symbol not found in file: $symbolPart (search: $searchKey). File: $pathValue"
+  }
+
+  if ($Mode -eq "strict") {
+    $radius = 20
+    $start = [Math]::Max(1, $lineValue - $radius)
+    $end = [Math]::Min($targetLines.Count, $lineValue + $radius)
+
+    $foundNear = $false
+    for ($j = $start; $j -le $end; $j++) {
       if ($targetLines[$j - 1].IndexOf($searchKey, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
-        $matchLines.Add($j)
+        $foundNear = $true
+        break
       }
     }
 
-    if ($matchLines.Count -eq 0) {
-      Fail "Line $lineNo - [SRC:CODE] symbol not found in file: $symbolPart (search: $searchKey). File: $pathValue"
+    if (-not $foundNear) {
+      $shown = ($matchLines | Select-Object -First 10) -join ", "
+      Fail "Line $lineNo - [SRC:CODE] symbol not found near referenced line: ${pathValue}:$lineValue ($symbolPart). Possible drift; found at line(s): $shown"
+    }
+  } elseif ($ptr.hasLine) {
+    $radius = 20
+    $start = [Math]::Max(1, $lineValue - $radius)
+    $end = [Math]::Min($targetLines.Count, $lineValue + $radius)
+
+    $foundNear = $false
+    for ($j = $start; $j -le $end; $j++) {
+      if ($targetLines[$j - 1].IndexOf($searchKey, [System.StringComparison]::OrdinalIgnoreCase) -ge 0) {
+        $foundNear = $true
+        break
+      }
     }
 
-    $shown = ($matchLines | Select-Object -First 10) -join ", "
-    Fail "Line $lineNo - [SRC:CODE] symbol not found near referenced line: ${pathValue}:$lineValue ($symbolPart). Possible drift; found at line(s): $shown"
+    if (-not $foundNear) {
+      $shown = ($matchLines | Select-Object -First 5) -join ", "
+      Write-Output "WARN: Line $lineNo - [SRC:CODE] symbol not found near referenced line: ${pathValue}:$lineValue ($symbolPart). Possible drift; found at line(s): $shown"
+    }
   }
 }
 
 Write-Output "OK: active_context validation passed"
 Write-Output "- File: $ActiveContextPath"
+Write-Output "- Mode: $Mode"
 Write-Output "- Lines: $($lines.Count) (<= 120)"
 Write-Output "- ProjectRoot: $projectRoot"
 Write-Output "- Public API entries (Modules section, [SRC:CODE]): $apiEntryCount"

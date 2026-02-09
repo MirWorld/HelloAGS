@@ -30,7 +30,7 @@
 - 版本控制写操作是否按用户授权执行（默认不执行 `git commit/push/merge` 等；见 `references/command-policy.md`）
 - `task.md##上下文快照` 是否可续作：关键决策/约束/下一步唯一动作是否完整，且每条结论具备来源标签（见 `references/context-snapshot.md`）
 - 快照“事实区”是否只包含可追溯事实（禁止混入推断；推断必须在待确认区）
-- `HAGSWorks/active_context.md` 是否可续作：Public APIs 是否齐全且每条具备 `[SRC:CODE] path:line symbol` 指针（禁止无来源事实）
+- `HAGSWorks/active_context.md` 是否可续作：Public APIs 是否齐全且每条具备 `[SRC:CODE] path symbol` 指针（行号可选；禁止无来源事实）
 
 若不一致：
 - 先修正对齐摘要/任务清单/实现之一，使三者一致
@@ -68,7 +68,7 @@
 - <80：信息不足或影响不确定（应转为“待确认/假设”，或给验证动作而不是给结论）
 
 产出要求（每条问题必须包含）：
-- `[置信度]` + `path:line`（或 `[SRC:CODE]` 指针）
+- `[置信度]` + `path`（可选 `:line`）或 `[SRC:CODE]` 指针
 - 为什么重要（影响面/与成功标准或约束的关系）
 - 可执行修复建议（尽量最小改动）
 

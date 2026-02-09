@@ -217,7 +217,7 @@ HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
   - `project.md` 的“项目能力画像”未知项写 `unknown`；在执行域取证补齐（细则：`references/project-profile.md`、`references/stack-detection.md`）
   - `active_context.md` 的最小要求（同上，且校验脚本可用）：
     - 文件存在且≤120行
-    - Public APIs 条目（如有）必须包含 `[SRC:CODE] path:line symbol`
+    - Public APIs 条目（如有）必须包含 `[SRC:CODE] path symbol`（行号可选）
     - 推断/待确认只能写入风险区（禁止混入事实区）
 ```
 

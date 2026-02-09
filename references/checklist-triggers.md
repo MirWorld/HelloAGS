@@ -28,7 +28,7 @@
 ## 2) 落盘规则（避免把推断固化为事实）
 
 - **关键决策/约束/下一步唯一动作/失败证据**：写入 `task.md##上下文快照`（事实/推断隔离 + 来源标签）
-- **Public API/契约入口**：写入 `HAGSWorks/active_context.md`（每条必须 `[SRC:CODE] path:line symbol`；禁止无来源事实）
+- **Public API/契约入口**：写入 `HAGSWorks/active_context.md`（每条必须 `[SRC:CODE] path symbol`；行号可选；禁止无来源事实）
 - **复用/边界/重构预算**：写入 `how.md` 对应章节（作为后续 Review 的结构质量约束）
 
 ---

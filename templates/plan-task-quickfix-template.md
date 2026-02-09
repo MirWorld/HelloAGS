@@ -64,7 +64,7 @@
 ---
 
 ## Active Context 更新记录
-（如本次影响公共接口/契约/数据流，在此记录更新摘要；每条 Public API 必须带 `[SRC:CODE] path:line symbol`）
+（如本次影响公共接口/契约/数据流，在此记录更新摘要；每条 Public API 必须带 `[SRC:CODE] path symbol`（行号可选））
 
 ---
 

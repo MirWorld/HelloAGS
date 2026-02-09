@@ -134,7 +134,7 @@ IF 不满足任何条件:
 落盘要求（最小）：
 - 关键决策/约束/下一步唯一动作：写入 `task.md##上下文快照`（事实/推断隔离 + 来源标签）
 - 复用/边界/重构预算：写入 `how.md` 对应章节
-- Public API/契约变化：更新 `HAGSWorks/active_context.md`（每条必须 `[SRC:CODE] path:line symbol`）
+- Public API/契约变化：更新 `HAGSWorks/active_context.md`（每条必须 `[SRC:CODE] path symbol`；行号可选）
 
 补充（执行期护栏，推荐强制）：
 - 开始改代码前：按 `../references/execution-guard.md` 写一次“执行域声明”（Allow/Deny/NewFiles/Refactor），并落盘到 `task.md##上下文快照`（决策区）
@@ -181,7 +181,7 @@ IF 不满足任何条件:
   - 存在：作为入口清单使用，但只信 `[SRC:CODE]` 条目
 - 预期规则：
   - 本次变更如新增/修改/删除 Public APIs：必须在任务执行后更新 `HAGSWorks/active_context.md`
-  - 每条 Public API 必须包含 `[SRC:CODE] path:line symbol` 指针；推断只能写入风险区
+  - 每条 Public API 必须包含 `[SRC:CODE] path symbol` 指针（行号可选）；推断只能写入风险区
 
 ### 步骤5: 按任务清单执行代码改动
 
@@ -192,8 +192,10 @@ IF 不满足任何条件:
 任务成功处理:
   - 每个任务执行成功后，立即将状态从 [ ] 更新为 [√]
   - 如本任务影响公共接口/契约/数据流:
-      - 更新 `HAGSWorks/active_context.md`（补齐/修正 Public APIs 的 `[SRC:CODE]` 指针）
-      - 如存在 `HAGSWorks/scripts/validate-active-context.ps1`，优先运行进行漂移校验
+       - 更新 `HAGSWorks/active_context.md`（补齐/修正 Public APIs 的 `[SRC:CODE]` 指针）
+       - 如存在 `HAGSWorks/scripts/validate-active-context.ps1`：
+         - 默认运行 `-Mode loose` 做可续作校验
+         - 需要更强信号时运行 `-Mode strict` 做严格漂移校验
 
 任务跳过处理(状态更新为 [-]):
   - 任务依赖的前置任务失败
