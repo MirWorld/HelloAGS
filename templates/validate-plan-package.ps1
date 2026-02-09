@@ -129,6 +129,12 @@ foreach ($pkg in $packages) {
       Add-Error "package '${pkgName}' missing required sections in ${fileName}"
     }
 
+    if ($fileName -eq "how.md") {
+      if ($text -notmatch '(?m)verify_min\\s*[:：]\\s*\\S') {
+        Add-Error "package '${pkgName}' how.md missing verify_min (expected a line like: verify_min: <command/steps>)"
+      }
+    }
+
     if ($fileName -eq "task.md") {
       if ($text -notmatch [regex]::Escape("- [ ]")) {
         Add-Error "package '${pkgName}' task.md has no task items (- [ ])"

@@ -295,6 +295,7 @@ next_unique_action: "等待用户补充需求信息或取消"
 - `mode/phase/awaiting_kind` 必须填**单值**（不得出现 `|`）
 - `package` 必须为空或真实路径（不得出现 `...`）
 - `next_unique_action` 必须以“等待用户”开头，且与“回复契约”一致（下一轮只处理用户回复）
+- 允许用户在**满足回复契约后**追加“Delta 纠偏行”（例如 `新增约束:` / `纠偏:` / `非目标:` / `允许:` / `禁止:`），系统会先处理 Delta 再处理回复（细则：`references/routing.md` 的“等待态输入解析”）
 
 ```
 <helloagents_state>
@@ -311,7 +312,9 @@ next_unique_action: "等待用户输入序号 1-2"
 约束：
 - 必须放在输出最后（不插入到正文中）
 - `status=awaiting_user_input` 时，`next_unique_action` 必须是“等待用户输入/选择/确认”的单一动作
-- 如果用户回复与 `awaiting_kind` 不匹配：必须按本节“无效输入再次询问”重试，并保留/更新标记块
+- 如果用户回复与 `awaiting_kind` 不匹配：
+  - 若用户是在追加 Delta（纠偏/新增约束）：按 `references/routing.md` 的“等待态输入解析”先采纳/落盘 Delta，并保持等待态重发原问题
+  - 若既不匹配也不包含 Delta：必须按本节“无效输入再次询问”重试，并保留/更新标记块
 
 **通用模板:**
 ```
@@ -324,7 +327,7 @@ next_unique_action: "等待用户输入序号 1-2"
 
 ────
 🔄 下一步: {引导文字}
-回复契约: {只回复选项序号 / 只回复确认或取消 / 按序号回答问题}
+回复契约: {先按契约回复；可选另起一行追加 Delta（新增约束:/纠偏:/非目标:/允许:/禁止:）}
 
 <helloagents_state>
 version: 1

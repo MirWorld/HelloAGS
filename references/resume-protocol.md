@@ -48,6 +48,13 @@
 
 4. **读取执行约束（防重复/防耦合）**
    - 读 `{package}/how.md`：边界与依赖 / 复用与去重策略 / 重构范围与不变量 / 质量门禁
+   - **verify_min（最小验证动作，SSOT）**：
+     - 以 how.md 中的 `verify_min: ...` 作为本次变更的最小验证动作（Single Source of Truth）
+       - 推荐写在 `## 变更请求（Change/Verify/Don't）`（或同义章节）的 Verify 行，便于快速定位与中途纠偏
+     - 若 how.md 缺失 `verify_min`：将其视为闭环缺口
+       - 允许写入时：优先补齐到 how.md（可为 `unknown`，但必须写“获取路径”）
+       - 不允许写入时（`write_scope=no_write`）：在本轮输出中明确“verify_min 尚缺失”，并把“获取 verify_min 的下一步唯一动作”写到对话结论（等待允许写入后再回填）
+     - 若 `task.md##上下文快照` 记录了更晚的纠偏/Delta（例如新增约束导致验证路径变化）：以快照中的最新决策为准，并在允许写入时回填更新 how.md 的 `verify_min`（避免续作时读到两套命令）
 
 5. **5 问 Reboot Check（强制）**
    - 目的：在压缩/中断后，把任务状态压缩成“可继续执行”的确定性描述，避免凭感觉继续导致跑偏
