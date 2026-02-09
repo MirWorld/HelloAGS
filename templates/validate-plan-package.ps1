@@ -1,5 +1,5 @@
 param(
-  [string]$PlanRoot = "HAGWroks/plan",
+  [string]$PlanRoot = "HAGSWorks/plan",
   [string]$Package = "",
   [switch]$Json
 )
@@ -22,7 +22,7 @@ function Get-ProjectRoot() {
   if ($PSScriptRoot) {
     try {
       $twoUp = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..\\..")).Path
-      if (Test-Path -LiteralPath (Join-Path $twoUp "HAGWroks")) {
+      if (Test-Path -LiteralPath (Join-Path $twoUp "HAGSWorks")) {
         return $twoUp
       }
     } catch {
@@ -154,3 +154,4 @@ if (-not $report.ok) {
 }
 
 Write-Output "OK: plan package validation passed ($($packages.Count) package(s))"
+

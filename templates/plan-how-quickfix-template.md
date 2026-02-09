@@ -1,6 +1,6 @@
 # Quick Fix - 技术说明（how.md）
 
-目录：`HAGWroks/plan/YYYYMMDDHHMM_quickfix_<slug>/how.md`
+目录：`HAGSWorks/plan/YYYYMMDDHHMM_quickfix_<slug>/how.md`
 
 > 说明：Quick Fix 的 `how.md` 只写“边界/验证/回滚”的最小闭包；其余内容按需补充。
 
@@ -30,3 +30,4 @@
 
 - 回滚动作：…
 - 风险：…
+

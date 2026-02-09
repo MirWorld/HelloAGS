@@ -10,11 +10,11 @@
 - 模式：Light Iteration
 
 ## 关键动作
-1. 创建最小完整方案包：`HAGWroks/plan/YYYYMMDDHHMM_auth-errors/`（包含 `why.md` + `how.md` + `task.md`）
+1. 创建最小完整方案包：`HAGSWorks/plan/YYYYMMDDHHMM_auth-errors/`（包含 `why.md` + `how.md` + `task.md`）
 2. `why.md` 写对齐摘要（目标/成功标准/非目标/约束）；`how.md` 写边界/复用/验证门禁；`task.md` 写可执行任务 + `## 上下文快照` 检查点
 3. 按任务执行改动，并把每条任务更新为 `[√]/[X]/[-]`
 4. 同步知识库（必要时先 `~init`）
-5. 迁移方案包到 `HAGWroks/history/YYYY-MM/...`
+5. 迁移方案包到 `HAGSWorks/history/YYYY-MM/...`
 
 ## task.md 片段示例
 ```markdown
@@ -37,7 +37,7 @@
 ✅【HelloAGENTS】- 轻量迭代完成
 
 - ✅ 执行结果: 任务 5/5 完成
-- 📦 方案包: 已迁移至 HAGWroks/history/2025-12/202512261830_auth-errors/
+- 📦 方案包: 已迁移至 HAGSWorks/history/2025-12/202512261830_auth-errors/
 - 📚 知识库: 已更新
 
 ────
@@ -46,8 +46,9 @@
   - src/auth/login.ts
   - src/auth/signup.ts
   - src/auth/reset.ts
-  - HAGWroks/wiki/modules/auth.md
-  - HAGWroks/history/index.md
+  - HAGSWorks/wiki/modules/auth.md
+  - HAGSWorks/history/index.md
 
 🔄 下一步: 请验证 3 个入口的错误提示是否一致
 ```
+

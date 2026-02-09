@@ -13,7 +13,7 @@ description: 方案设计阶段详细规则；进入方案设计时读取；包�
 
 **重要:** 只有在通过“方案设计入场门槛”后才创建方案包；一旦进入创建阶段，方案设计必须创建新方案包，适用于所有模式（交互确认/全授权/规划命令）
 
-**路径约定（避免歧义）:** 本文件中 `plan/` 代表项目根目录下的 `HAGWroks/plan/`（同理 `history/` → `HAGWroks/history/`），与 G11 保持一致。
+**路径约定（避免歧义）:** 本文件中 `plan/` 代表项目根目录下的 `HAGSWorks/plan/`（同理 `history/` → `HAGSWorks/history/`），与 G11 保持一致。
 
 **执行流程:**
 ```
@@ -27,14 +27,14 @@ description: 方案设计阶段详细规则；进入方案设计时读取；包�
 目标：把 `~plan` 明确为“只规划不执行”，减少审批噪声与上下文膨胀，避免在未对齐前就动手改代码导致返工与跑偏。
 
 在方案设计阶段（规划域）：
-- ✅ 允许：只读扫描/读取项目文件，形成方案；写入 `HAGWroks/` 工作区（`plan/`、`project.md`、`active_context.md`、`wiki/` 等）
+- ✅ 允许：只读扫描/读取项目文件，形成方案；写入 `HAGSWorks/` 工作区（`plan/`、`project.md`、`active_context.md`、`wiki/` 等）
 - ✅ 允许：运行**只读命令**辅助定位与取证（定义见 `references/command-policy.md`）
-- 🚫 禁止：修改业务代码/配置（`HAGWroks/` 工作区之外的文件）
+- 🚫 禁止：修改业务代码/配置（`HAGSWorks/` 工作区之外的文件）
 - 🚫 禁止：运行**有副作用命令**（定义见 `references/command-policy.md`）；如确需验证，留到开发实施阶段执行
 
 补充（写入范围 `write_scope`，见 `references/routing.md`）：
-- 若 `write_scope = no_write`：本阶段不得写入 `HAGWroks/` 工作区；只在对话中给方案/清单（必要时进入等待态）
-- 若用户希望“方案落盘以便续作/执行”：将写入范围提升为 `helloagents_only`（只写 `HAGWroks/`，不改业务代码）
+- 若 `write_scope = no_write`：本阶段不得写入 `HAGSWorks/` 工作区；只在对话中给方案/清单（必要时进入等待态）
+- 若用户希望“方案落盘以便续作/执行”：将写入范围提升为 `helloagents_only`（只写 `HAGSWorks/`，不改业务代码）
 
 当用户在规划域要求“直接改代码/直接执行命令”时：
 - 必须先阻断并请求确认是否切换到开发实施（建议使用 `references/routing.md` 的“上下文确认”交互格式）
@@ -114,15 +114,15 @@ next_unique_action: "等待用户补充入场门槛信息/取消"
 **2.1 建立/更新项目能力画像（Project Profile）**
 - 目的：在不预设技术栈的前提下，确认“怎么跑/怎么测/怎么检查”，让后续任务与验证可执行
 - 规则：
-  - 优先复用 `HAGWroks/project.md#项目能力画像` 中已有命令矩阵
-  - 不足则探测并补齐（方案设计允许写入 `HAGWroks/project.md`）
+  - 优先复用 `HAGSWorks/project.md#项目能力画像` 中已有命令矩阵
+  - 不足则探测并补齐（方案设计允许写入 `HAGSWorks/project.md`）
   - 多栈/monorepo 时按子目录分别记录（避免误跑全仓）
 - 细则：`../references/project-profile.md`、`../references/stack-detection.md`
 
 **2.2 建立/更新 Active Context（可验证接口注册表）**
 - 目的：为续作提供稳定入口，避免接口命名漂移与“瞎编调用”
 - 规则：
-  - `HAGWroks/active_context.md` 不存在 → 使用 `../templates/active-context-template.md` 创建（允许写入）
+  - `HAGSWorks/active_context.md` 不存在 → 使用 `../templates/active-context-template.md` 创建（允许写入）
   - 存在但明显不合格（>120行/缺结构/大量无来源条目）→ 重建为模板结构（内容后续在开发实施阶段补齐）
   - 与代码冲突的内容：以代码为准；本阶段可先标注风险，开发实施阶段修正
 - 细则：`../references/active-context.md`
@@ -323,12 +323,12 @@ next_unique_action: "等待用户输入序号 1-2"
   - （触发式）`跨层一致性`：当变更涉及 ≥3 层/改契约/多消费者时，按 `../references/cross-layer-checklist.md` 补齐契约/兼容/验证要点（触发条件见 `../references/checklist-triggers.md`）
 - `task.md` 必须包含：
   - 对齐确认（引用 `why.md#对齐摘要`）
-  - 项目能力画像确认（引用 `HAGWroks/project.md#项目能力画像`）
+  - 项目能力画像确认（引用 `HAGSWorks/project.md#项目能力画像`）
   - 复用检索与边界确认
   - （如触发）跨层一致性检查：按 `../references/cross-layer-checklist.md` 清点受影响层/契约/消费者，并把结论落到 how.md 或 task.md
   - active_context（可验证接口注册表）规则：
-      - 执行前阅读 `HAGWroks/active_context.md`（只信 `[SRC:CODE]` 条目）
-      - 如本次变更影响公共接口/契约/数据流：必须更新 `HAGWroks/active_context.md` 并补齐 `[SRC:CODE]` 指针
+      - 执行前阅读 `HAGSWorks/active_context.md`（只信 `[SRC:CODE]` 条目）
+      - 如本次变更影响公共接口/契约/数据流：必须更新 `HAGSWorks/active_context.md` 并补齐 `[SRC:CODE]` 指针
   - 执行期护栏（越界保护）：
       - 执行前写域声明（Allow/Deny/NewFiles/Refactor），并落盘到 `task.md##上下文快照`（参考 `../references/execution-guard.md`）
       - Patch/修改不符合预期时先 Fail→Narrow（最多 1 轮），禁止直接扩大范围继续“硬修”（参考 `../references/execution-guard.md`）
@@ -378,9 +378,9 @@ next_unique_action: "等待用户输入序号 1-2"
    - 📊 任务清单概要
    - ⚠️ 风险评估（如检测到EHRB）
 3. **文件变更清单:**
-   - `HAGWroks/plan/YYYYMMDDHHMM_<feature>/why.md`
-   - `HAGWroks/plan/YYYYMMDDHHMM_<feature>/how.md`
-   - `HAGWroks/plan/YYYYMMDDHHMM_<feature>/task.md`
+   - `HAGSWorks/plan/YYYYMMDDHHMM_<feature>/why.md`
+   - `HAGSWorks/plan/YYYYMMDDHHMM_<feature>/how.md`
+   - `HAGSWorks/plan/YYYYMMDDHHMM_<feature>/task.md`
 4. **下一步建议:**
    - 交互确认模式: 是否进入开发实施?（是/否）
    - 规划命令: 方案包已生成，如需执行请输入`~exec`
@@ -411,3 +411,4 @@ next_unique_action: "等待用户输入序号 1-2"
   2. 全授权命令(~auto等)触发且已完成方案设计
   3. 执行命令(~exec等)触发且plan/中存在方案包
 ```
+

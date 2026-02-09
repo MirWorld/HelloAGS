@@ -24,7 +24,8 @@
 ## 3) 脚本建议（确定性工具）
 
 可选为“机械且容易错”的动作提供脚本，减少口误与漏检：
-- `HAGWroks/scripts/validate-active-context.ps1`：Active Context 漂移校验
-- `HAGWroks/scripts/validate-plan-package.ps1`：方案包完整性校验（why/how/task + 关键章节）
+- `HAGSWorks/scripts/validate-active-context.ps1`：Active Context 漂移校验
+- `HAGSWorks/scripts/validate-plan-package.ps1`：方案包完整性校验（why/how/task + 关键章节）
 
 使用原则：脚本只负责**确定性检查**；策略与决策仍以 `why.md##对齐摘要` 与 `task.md##上下文快照` 为准。
+

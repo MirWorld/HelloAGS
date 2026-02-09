@@ -10,7 +10,7 @@
 
 - **对齐摘要可复述**：能否用一句话复述目标与成功标准？非目标/约束是否明确且可执行？
 - **高信号取证已完成**：按 `references/triage-pass.md` 完成一次取证，并将“事实/缺口/下一步唯一动作”写入 `task.md##上下文快照`（未落盘则禁止进入实现）
-- **验证已绑定**：至少明确 1 条 `verify_min`（最小验证动作；SSOT 在 `how.md` 的 `verify_min: ...`），并确保 `task.md` 里有可执行验证项/证据记录位点（见 `references/triage-pass.md`）；门禁命令来自 `HAGWroks/project.md#项目能力画像`
+- **验证已绑定**：至少明确 1 条 `verify_min`（最小验证动作；SSOT 在 `how.md` 的 `verify_min: ...`），并确保 `task.md` 里有可执行验证项/证据记录位点（见 `references/triage-pass.md`）；门禁命令来自 `HAGSWorks/project.md#项目能力画像`
 - **语言栈默认值已收敛（如适用）**：若已能明确技术栈但项目命令/规范不完整：按 `references/stack-detection.md` 选取最小闭环命令兜底；并按对应语言 Playbook 收敛实现习惯（少量硬禁止，其余推荐默认）：
   - Rust：`references/stacks/rust.md`
   - .NET：`references/stacks/dotnet.md`
@@ -29,3 +29,4 @@
 1. **缺成功标准/边界/约束**：用 1–3 个高信息增益问题追问；或将相关任务标记为 `[?]` 暂停推进
 2. **缺验证方式**：在 `task.md` 补最小可复现验证步骤/脚本（必须可重复）
 3. **缺边界/复用结论**：在 `how.md` 补齐“边界与依赖 / 复用与去重策略 / 重构范围与不变量”
+

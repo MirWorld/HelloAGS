@@ -24,19 +24,19 @@
 
 ## 1.1) 确定项目根目录（Repo Root）
 
-适用：除纯问答外的所有场景（需要读/写项目文件、扫描 `HAGWroks/` 工作区、运行项目命令等）。
+适用：除纯问答外的所有场景（需要读/写项目文件、扫描 `HAGSWorks/` 工作区、运行项目命令等）。
 
 只读命令（优先）：
 - `git rev-parse --show-toplevel` → 作为 `PROJECT_ROOT`
 - 若失败（非 git 仓库/权限/工具不可用）→ 以当前工作目录作为 `PROJECT_ROOT`（并在假设账本标注 `[SRC:INFER][置信度: 中]`）
 
 规则：
-- 所有 `HAGWroks/...` 路径（plan/wiki/history/active_context/project 等）都必须以 `PROJECT_ROOT` 为基准定位与写入
-- monorepo/多子项目：若用户明确指定“以某子目录为工作区根目录”，以用户指定为准，并写入 `HAGWroks/project.md#项目能力画像`
+- 所有 `HAGSWorks/...` 路径（plan/wiki/history/active_context/project 等）都必须以 `PROJECT_ROOT` 为基准定位与写入
+- monorepo/多子项目：若用户明确指定“以某子目录为工作区根目录”，以用户指定为准，并写入 `HAGSWorks/project.md#项目能力画像`
 
 停止条件：
 - 已得到唯一的 `PROJECT_ROOT`
-- 已明确：本轮所有读写都相对 `PROJECT_ROOT` 执行（避免在子目录生成多份 `HAGWroks/`）
+- 已明确：本轮所有读写都相对 `PROJECT_ROOT` 执行（避免在子目录生成多份 `HAGSWorks/`）
 
 ---
 
@@ -146,3 +146,4 @@
 
 停止条件：
 - 输出中包含：改动了什么 / 改在哪里（纵向文件清单）/ 验证结果
+

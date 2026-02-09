@@ -61,7 +61,7 @@ mode: exec
 phase: develop
 status: awaiting_user_input
 awaiting_kind: choice
-package: HAGWroks/plan/YYYYMMDDHHMM_<feature>/   # 有方案包则填写
+package: HAGSWorks/plan/YYYYMMDDHHMM_<feature>/   # 有方案包则填写
 next_unique_action: "等待用户输入序号 1-3"
 </helloagents_state>
 ```
@@ -82,3 +82,4 @@ next_unique_action: "等待用户输入序号 1-3"
 3. 在 `how.md` 的“假设与不确定性”追加新的阻断因素（适合影响方案选择的阻断）
 
 原则：失败记录必须能让后续接手者复现阻断点（命令/环境/错误摘要）。
+

@@ -9,7 +9,7 @@ description: 知识库管理完整规则；~init命令或知识库缺失时读�
 
 **文件结构:**
 ```plaintext
-HAGWroks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
+HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 ├── CHANGELOG.md          # 版本历史（Keep a Changelog）
 ├── project.md            # 技术约定 + 项目能力画像 + 协作偏好
 ├── active_context.md     # 派生缓存：可验证接口注册表/系统状态（非 SSOT（真值））
@@ -33,8 +33,8 @@ HAGWroks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 ```
 
 **路径约定:**
-- 本规则集中 `plan/`、`wiki/`、`history/` 均指 `HAGWroks/` 下的完整路径
-- 所有知识库文件必须在 `HAGWroks/` 目录下创建
+- 本规则集中 `plan/`、`wiki/`、`history/` 均指 `HAGSWorks/` 下的完整路径
+- 所有知识库文件必须在 `HAGSWorks/` 目录下创建
 
 **补充（触发式清单）:** 本 Skill 的通用 checklist 采用“命中触发器才读取与执行”的策略（触发信号与结论落点见 `../references/checklist-triggers.md`），避免在 KB 阶段无脑全量执行所有清单。
 
@@ -42,36 +42,45 @@ HAGWroks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 
 ## ~init / ~wiki 幂等初始化协议（必遵守）
 
-目标：把 `${PROJECT_ROOT}/HAGWroks/` 变成“可写可重建的项目工作区”。`~init` **只做存在性检查 + 缺失补齐 + 轻量校验**，不做全库扫描/不自动生成模块文档（避免噪声与误报）。
+目标：把 `${PROJECT_ROOT}/HAGSWorks/` 变成“可写可重建的项目工作区”。`~init` **只做存在性检查 + 缺失补齐 + 轻量校验**，不做全库扫描/不自动生成模块文档（避免噪声与误报）。
 
 ### 1) 先定根目录（必须）
 - 先按 `../references/read-paths.md#11-确定项目根目录repo-root` 解析 `PROJECT_ROOT`
-- 后续所有路径都以 `PROJECT_ROOT` 为基准（避免在子目录生成多份 `HAGWroks/`）
+- 后续所有路径都以 `PROJECT_ROOT` 为基准（避免在子目录生成多份 `HAGSWorks/`）
+
+### 1.1) 工作区目录名纠错与迁移（必须）
+
+目录名唯一合法：`HAGSWorks/`。
+
+兼容旧目录（历史拼写错误）`HAGWroks/` 的迁移规则：
+- 若 `HAGSWorks/` **不存在**且 `HAGWroks/` **存在**：在任何读写前，先将 `HAGWroks/` **重命名**为 `HAGSWorks/`（避免后续写到两处造成断层）。
+- 若 `HAGSWorks/` 与 `HAGWroks/` **同时存在**：必须阻断并让用户选择（推荐先备份旧目录再继续），禁止擅自合并/删除。
+- 若当前 `write_scope = no_write`：不得迁移/重命名；只能提示用户“需要允许写入后才能修正目录名”。
 
 ### 2) 先检测，再读/写（必须）
-- 任何 `Get-Content HAGWroks/...` 之前，必须先 `Test-Path`；不存在就跳过读取，转入“按模板补齐”。
+- 任何 `Get-Content HAGSWorks/...` 之前，必须先 `Test-Path`；不存在就跳过读取，转入“按模板补齐”。
 
 ### 3) 初始化的最小必需集（缺什么补什么；默认不覆盖）
 
 **目录（缺失即创建）**
-- `HAGWroks/`
-- `HAGWroks/wiki/`
-- `HAGWroks/wiki/modules/`
-- `HAGWroks/scripts/`
-- `HAGWroks/plan/`
-- `HAGWroks/history/`
+- `HAGSWorks/`
+- `HAGSWorks/wiki/`
+- `HAGSWorks/wiki/modules/`
+- `HAGSWorks/scripts/`
+- `HAGSWorks/plan/`
+- `HAGSWorks/history/`
 
 **文件（缺失即按模板创建）**
-- `HAGWroks/CHANGELOG.md` ← `templates/changelog-template.md`
-- `HAGWroks/project.md` ← `templates/project-template.md`
-- `HAGWroks/active_context.md` ← `templates/active-context-template.md`
-- `HAGWroks/scripts/validate-active-context.ps1` ← `templates/validate-active-context.ps1`
-- `HAGWroks/scripts/validate-plan-package.ps1` ← `templates/validate-plan-package.ps1`
-- `HAGWroks/wiki/overview.md` ← `templates/wiki-overview-template.md`
-- `HAGWroks/wiki/arch.md` ← `templates/wiki-arch-template.md`
-- `HAGWroks/wiki/api.md` ← `templates/wiki-api-template.md`
-- `HAGWroks/wiki/data.md` ← `templates/wiki-data-template.md`
-- `HAGWroks/history/index.md` ← `templates/history-index-template.md`
+- `HAGSWorks/CHANGELOG.md` ← `templates/changelog-template.md`
+- `HAGSWorks/project.md` ← `templates/project-template.md`
+- `HAGSWorks/active_context.md` ← `templates/active-context-template.md`
+- `HAGSWorks/scripts/validate-active-context.ps1` ← `templates/validate-active-context.ps1`
+- `HAGSWorks/scripts/validate-plan-package.ps1` ← `templates/validate-plan-package.ps1`
+- `HAGSWorks/wiki/overview.md` ← `templates/wiki-overview-template.md`
+- `HAGSWorks/wiki/arch.md` ← `templates/wiki-arch-template.md`
+- `HAGSWorks/wiki/api.md` ← `templates/wiki-api-template.md`
+- `HAGSWorks/wiki/data.md` ← `templates/wiki-data-template.md`
+- `HAGSWorks/history/index.md` ← `templates/history-index-template.md`
 
 说明：
 - `project.md` 中“项目能力画像”未知项写 `unknown`，不要凭空猜测；后续在执行域取证补齐。
@@ -79,13 +88,13 @@ HAGWroks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 
 ### 4) “都在”的情况下怎么判定正常
 - 仅做轻量校验（不扫描代码）：
-  - `./HAGWroks/scripts/validate-active-context.ps1`（若文件存在）
+  - `./HAGSWorks/scripts/validate-active-context.ps1`（若文件存在）
   - 核心文件存在且非空（`CHANGELOG.md/project.md/wiki/*.md/history/index.md`）
 
 ### 5) 重建语义（覆盖）
 - 默认：只补齐缺失（不覆盖已有文件）
 - 只有当用户明确说“重建/覆盖/清空再生成”时，才允许覆盖；覆盖前必须让用户二选一确认：
-  - [1] 备份旧目录到 `HAGWroks/_backup_<timestamp>/` 再重建（推荐）
+  - [1] 备份旧目录到 `HAGSWorks/_backup_<timestamp>/` 再重建（推荐）
   - [2] 直接覆盖（风险自担）
 
 ---
@@ -96,7 +105,7 @@ HAGWroks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
   - **行为真值:** 代码事实 + 可复现验证证据（测试/门禁/命令输出）
   - **意图真值:** 经确认的 `why.md##对齐摘要`（优先引用用户原话）
   - *规则:* 派生文档（知识库/wiki、`active_context.md`、`task.md##上下文快照`）不得覆盖真值；冲突时以真值为准并回填修正
-- **知识库（KB）**: `HAGWroks/` 下的文档与偏好沉淀主落点（`CHANGELOG.md`, `project.md`, `wiki/*`）；允许过时、可纠错
+- **知识库（KB）**: `HAGSWorks/` 下的文档与偏好沉淀主落点（`CHANGELOG.md`, `project.md`, `wiki/*`）；允许过时、可纠错
 - **EHRB** (Extreme High-Risk Behavior): 极度高风险行为
 - **ADR** (Architecture Decision Record): 架构决策记录
 - **MRE** (Minimal Reproducible Example): 最小可复现示例
@@ -320,9 +329,10 @@ for each 选定的方案包:
 ────
 📁 变更:
   - {知识库文件}
-  - HAGWroks/CHANGELOG.md
-  - HAGWroks/project.md
+  - HAGSWorks/CHANGELOG.md
+  - HAGSWorks/project.md
   ...
 
 🔄 下一步: 知识库操作已完成，可进行其他任务
 ```
+

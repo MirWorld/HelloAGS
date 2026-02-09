@@ -27,7 +27,7 @@
 4. `test`（单元/集成）→ 覆盖成功标准与核心场景  
 5. `security`（依赖/敏感信息/危险用法）→ 特别是外部输入与权限相关改动
 
-命令来源：优先 `HAGWroks/project.md#项目能力画像`；不足时按 `references/stack-detection.md` 推断并在允许写入时固化。
+命令来源：优先 `HAGSWorks/project.md#项目能力画像`；不足时按 `references/stack-detection.md` 推断并在允许写入时固化。
 
 ---
 
@@ -87,3 +87,4 @@
 - 运行了哪些门禁（fmt/lint/typecheck/test/security）
 - 结果（通过/失败/未执行+原因）
 - 若未执行，必须给出下一步可执行命令或原因（例如“项目无测试套件/命令未知需确认”）
+

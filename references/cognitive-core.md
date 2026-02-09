@@ -82,7 +82,7 @@
 ## 6) 用户偏好沉淀（长期高收益）
 
 当同一用户/团队持续协作时：
-- 把偏好记录在知识库 `HAGWroks/project.md` 的“协作与偏好”
+- 把偏好记录在知识库 `HAGSWorks/project.md` 的“协作与偏好”
 - 每次最多新增/修正 1–2 条偏好（避免文档膨胀）
 - 偏好只记录“能改变你决策/输出”的点（例如：默认写测试、默认少解释、偏好最小改动）
 
@@ -93,6 +93,7 @@
 当会话变长、失败反复或存在中断风险时，“正确理解”往往不是靠一次性推理，而是靠**持续对齐 + 可追溯记录**：
 - 把关键决策/约束/下一步唯一动作写入 `task.md##上下文快照`
 - 每条结论标注来源标签；推断必须隔离到待确认区
-- 如涉及公共接口与续作：同步维护 `HAGWroks/active_context.md` 作为可验证入口（每条 Public API 必须带 `[SRC:CODE]` 指针）
+- 如涉及公共接口与续作：同步维护 `HAGSWorks/active_context.md` 作为可验证入口（每条 Public API 必须带 `[SRC:CODE]` 指针）
 
 细则与固定格式见：`references/context-snapshot.md`、`references/active-context.md`
+

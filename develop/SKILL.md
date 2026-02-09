@@ -9,7 +9,7 @@ description: 开发实施阶段详细规则；进入开发实施时读取；包�
 
 **前提:** `plan/` 目录中存在待执行的方案包
 
-**路径约定（避免歧义）:** 本文件中 `plan/`、`history/`、`wiki/` 均指项目根目录下的 `HAGWroks/` 子路径（例如 `plan/` → `HAGWroks/plan/`），与 G11 保持一致。
+**路径约定（避免歧义）:** 本文件中 `plan/`、`history/`、`wiki/` 均指项目根目录下的 `HAGSWorks/` 子路径（例如 `plan/` → `HAGSWorks/plan/`），与 G11 保持一致。
 
 **备份保护:** 执行前建议创建 Git 备份分支或手动备份代码目录
 
@@ -96,7 +96,7 @@ IF 不满足任何条件:
 ```
 
 补充（可选但高收益，确定性校验）：
-- 如存在 `HAGWroks/scripts/validate-plan-package.ps1`：优先运行对 `CURRENT_PACKAGE` 做完整性校验；失败则停止并按G6.2输出“方案包不完整/校验失败”错误。
+- 如存在 `HAGSWorks/scripts/validate-plan-package.ps1`：优先运行对 `CURRENT_PACKAGE` 做完整性校验；失败则停止并按G6.2输出“方案包不完整/校验失败”错误。
 
 ### 步骤2: 检查知识库状态并处理
 
@@ -109,7 +109,7 @@ IF 不满足任何条件:
 执行方式:
 - 按 G10 快速流程执行（先检查知识库 → 不足则扫描代码库）
 - 如需详细规则 → 读取 `../kb/SKILL.md`
-- 优先读取 `HAGWroks/active_context.md`（如存在）作为公共接口入口清单：
+- 优先读取 `HAGSWorks/active_context.md`（如存在）作为公共接口入口清单：
   - 只信带 `[SRC:CODE]` 的 Public APIs 条目（无来源不得当作事实引用）
   - 与代码冲突时以代码为准，并在开发实施阶段修正文档缓存（见 `../references/active-context.md`）
 
@@ -134,7 +134,7 @@ IF 不满足任何条件:
 落盘要求（最小）：
 - 关键决策/约束/下一步唯一动作：写入 `task.md##上下文快照`（事实/推断隔离 + 来源标签）
 - 复用/边界/重构预算：写入 `how.md` 对应章节
-- Public API/契约变化：更新 `HAGWroks/active_context.md`（每条必须 `[SRC:CODE] path:line symbol`）
+- Public API/契约变化：更新 `HAGSWorks/active_context.md`（每条必须 `[SRC:CODE] path:line symbol`）
 
 补充（执行期护栏，推荐强制）：
 - 开始改代码前：按 `../references/execution-guard.md` 写一次“执行域声明”（Allow/Deny/NewFiles/Refactor），并落盘到 `task.md##上下文快照`（决策区）
@@ -173,14 +173,14 @@ IF 不满足任何条件:
 
 ### 步骤4.4: Active Context（可验证接口注册表，触发式必做）
 
-目标：把“公共接口表面/关键契约入口”稳定落到 `HAGWroks/active_context.md`，防止续作时接口幻觉。
+目标：把“公共接口表面/关键契约入口”稳定落到 `HAGSWorks/active_context.md`，防止续作时接口幻觉。
 
 执行方式（按需读取细则）：`../references/active-context.md`
-- 检查 `HAGWroks/active_context.md` 是否存在：
+- 检查 `HAGSWorks/active_context.md` 是否存在：
   - 不存在：在允许写入时使用 `../templates/active-context-template.md` 创建空壳（后续按任务逐步补齐）
   - 存在：作为入口清单使用，但只信 `[SRC:CODE]` 条目
 - 预期规则：
-  - 本次变更如新增/修改/删除 Public APIs：必须在任务执行后更新 `HAGWroks/active_context.md`
+  - 本次变更如新增/修改/删除 Public APIs：必须在任务执行后更新 `HAGSWorks/active_context.md`
   - 每条 Public API 必须包含 `[SRC:CODE] path:line symbol` 指针；推断只能写入风险区
 
 ### 步骤5: 按任务清单执行代码改动
@@ -192,8 +192,8 @@ IF 不满足任何条件:
 任务成功处理:
   - 每个任务执行成功后，立即将状态从 [ ] 更新为 [√]
   - 如本任务影响公共接口/契约/数据流:
-      - 更新 `HAGWroks/active_context.md`（补齐/修正 Public APIs 的 `[SRC:CODE]` 指针）
-      - 如存在 `HAGWroks/scripts/validate-active-context.ps1`，优先运行进行漂移校验
+      - 更新 `HAGSWorks/active_context.md`（补齐/修正 Public APIs 的 `[SRC:CODE]` 指针）
+      - 如存在 `HAGSWorks/scripts/validate-active-context.ps1`，优先运行进行漂移校验
 
 任务跳过处理(状态更新为 [-]):
   - 任务依赖的前置任务失败
@@ -236,7 +236,7 @@ IF 不满足任何条件:
 ```yaml
 质量门禁执行（顺序建议）:
   - fmt → lint → typecheck → test → security
-  - 命令优先来自 HAGWroks/project.md#项目能力画像；不足则按需探测并在允许写入时固化（参考 `../references/project-profile.md`）
+  - 命令优先来自 HAGSWorks/project.md#项目能力画像；不足则按需探测并在允许写入时固化（参考 `../references/project-profile.md`）
 
 测试执行: 运行task.md中定义的测试任务，或项目已有测试套件
 测试覆盖: 测试用例应覆盖 why.md 中的成功标准与核心场景（否则视为验证不足）
@@ -288,7 +288,7 @@ mode: exec
 phase: develop
 status: awaiting_user_input
 awaiting_kind: choice
-package: HAGWroks/plan/YYYYMMDDHHMM_<feature>/   # 有方案包则填写
+package: HAGSWorks/plan/YYYYMMDDHHMM_<feature>/   # 有方案包则填写
 next_unique_action: "等待用户输入序号 1-3"
 </helloagents_state>
 ```
@@ -303,7 +303,7 @@ next_unique_action: "等待用户输入序号 1-3"
      - 对齐摘要（目标/成功标准/非目标/约束）是否被偏离
      - 成功标准是否有对应验证证据（命令/测试/复现步骤）
      - `task.md##上下文快照` 是否已覆盖关键决策/约束/下一步唯一动作，且来源标签齐全（见 `../references/context-snapshot.md`）
-     - `HAGWroks/active_context.md` 是否可续作：Public APIs 是否完整且每条具备 `[SRC:CODE]` 指针（见 `../references/active-context.md`）
+     - `HAGSWorks/active_context.md` 是否可续作：Public APIs 是否完整且每条具备 `[SRC:CODE]` 指针（见 `../references/active-context.md`）
   2) 结构与质量:
      - 边界/依赖方向是否被破坏（跨层 import、隐藏耦合）
      - 是否新增重复逻辑或 utils 膨胀
@@ -395,7 +395,7 @@ mode: exec
 phase: develop
 status: awaiting_user_input
 awaiting_kind: choice
-package: HAGWroks/plan/YYYYMMDDHHMM_<feature>/   # 有方案包则填写
+package: HAGSWorks/plan/YYYYMMDDHHMM_<feature>/   # 有方案包则填写
 next_unique_action: "等待用户输入序号 1-2"
 </helloagents_state>
 ```
@@ -434,7 +434,7 @@ next_unique_action: "等待用户输入序号 1-2"
 - 对齐摘要与实现/验证一致
 - 质量门禁证据可复现
 - `task.md` 状态/快照/Review 记录完整
-- `HAGWroks/active_context.md`（如适用）已更新且 `[SRC:CODE]` 指针可达
+- `HAGSWorks/active_context.md`（如适用）已更新且 `[SRC:CODE]` 指针可达
 - 输出格式符合 `templates/output-format.md`
 
 ---
@@ -502,8 +502,8 @@ next_unique_action: "等待用户输入方案包序号"
    📁 变更:
      - {代码文件}
      - {知识库文件}
-     - HAGWroks/CHANGELOG.md
-     - HAGWroks/history/index.md
+     - HAGSWorks/CHANGELOG.md
+     - HAGSWorks/history/index.md
      ...
    ```
 4. **下一步建议:** "请确认实施结果是否符合预期?"
@@ -525,3 +525,4 @@ next_unique_action: "等待用户输入方案包序号"
   全授权命令/执行命令: 在总结中标注测试失败，流程正常结束
   后续用户消息按路由优先级处理
 ```
+

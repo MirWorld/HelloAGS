@@ -5,7 +5,7 @@
 
 ## 关键动作
 1. 扫描项目结构，识别模块边界（按目录/领域划分即可，先粗后细）
-2. 创建 `HAGWroks/` 目录结构与核心文件
+2. 创建 `HAGSWorks/` 目录结构与核心文件
 3. 每个模块创建一份 `wiki/modules/<module>.md`
 
 ## 输出示例
@@ -18,14 +18,15 @@
 
 ────
 📁 变更:
-  - HAGWroks/CHANGELOG.md
-  - HAGWroks/project.md
-  - HAGWroks/wiki/overview.md
-  - HAGWroks/wiki/arch.md
-  - HAGWroks/wiki/api.md
-  - HAGWroks/wiki/data.md
-  - HAGWroks/wiki/modules/<module>.md
-  - HAGWroks/history/index.md
+  - HAGSWorks/CHANGELOG.md
+  - HAGSWorks/project.md
+  - HAGSWorks/wiki/overview.md
+  - HAGSWorks/wiki/arch.md
+  - HAGSWorks/wiki/api.md
+  - HAGSWorks/wiki/data.md
+  - HAGSWorks/wiki/modules/<module>.md
+  - HAGSWorks/history/index.md
 
 🔄 下一步: 知识库操作已完成，可继续提出改动需求
 ```
+

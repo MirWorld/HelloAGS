@@ -1,5 +1,5 @@
 param(
-  [string]$ActiveContextPath = "HAGWroks/active_context.md"
+  [string]$ActiveContextPath = "HAGSWorks/active_context.md"
 )
 
 $ErrorActionPreference = "Stop"
@@ -178,3 +178,4 @@ Write-Output "- File: $ActiveContextPath"
 Write-Output "- Lines: $($lines.Count) (<= 120)"
 Write-Output "- ProjectRoot: $projectRoot"
 Write-Output "- Public API entries (Modules section, [SRC:CODE]): $apiEntryCount"
+

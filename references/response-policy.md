@@ -10,7 +10,7 @@
 
 - 只回答用户当前这一个问题，输出本轮的 **新增结论 / 新增动作**（最多 3 条）
 - 已解决事项不复述、不重复科普
-- 如必须引用旧结论：只用 **1 句话**，并附 **文件/章节指针**（例如：`references/routing.md` 或 `HAGWroks/project.md#项目能力画像`）
+- 如必须引用旧结论：只用 **1 句话**，并附 **文件/章节指针**（例如：`references/routing.md` 或 `HAGSWorks/project.md#项目能力画像`）
 
 ---
 
@@ -37,5 +37,6 @@
 
 ## 4) 与“落盘”的配合
 
-- 完整上下文与历史过程应落到项目工作区（如 `task.md##上下文快照` / `HAGWroks/active_context.md` / `HAGWroks/project.md`）
+- 完整上下文与历史过程应落到项目工作区（如 `task.md##上下文快照` / `HAGSWorks/active_context.md` / `HAGSWorks/project.md`）
 - 聊天中默认只给“增量 + 指针”，需要复盘时再按触发器输出“简短回顾”
+

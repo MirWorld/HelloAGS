@@ -1,6 +1,6 @@
 # Quick Fix - 对齐摘要（why.md）
 
-目录：`HAGWroks/plan/YYYYMMDDHHMM_quickfix_<slug>/why.md`
+目录：`HAGSWorks/plan/YYYYMMDDHHMM_quickfix_<slug>/why.md`
 
 > 说明：Quick Fix 的 `why.md` 只写“对齐摘要”的最小闭包；不要写长篇背景。
 
@@ -24,3 +24,4 @@
 - 参数/配置项：[…]
 - 当前值 → 目标值：[…] → […]
 - 生效位置（候选真值源）：[…]
+

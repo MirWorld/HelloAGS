@@ -1,6 +1,6 @@
 # Active Context（模板）
 
-> 文件：`HAGWroks/active_context.md`  
+> 文件：`HAGSWorks/active_context.md`  
 > 约束：≤120 行，高密度；每条 Public API 必须包含 `[SRC:CODE] path:line symbol`（symbol 必须是可检索键/无空格）；推断只能出现在“待确认/风险”区。  
 > 协议：`references/active-context.md`
 
@@ -37,3 +37,4 @@
 
 - Run: `...` Expect: ...
 - Change: `path/to/file` Goal: ...
+

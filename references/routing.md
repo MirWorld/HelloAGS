@@ -17,7 +17,7 @@
    - 等待态回复必须先执行“Delta 先行解析”（见第 3.3 节），避免纠偏被当作无效输入吞掉。
 2. **用户限制写入范围**（例如“不做/只给方案/不要改代码/不要写文件/不要落盘”）→ 先确定 `write_scope`，并按写入范围阻断越界（见第 2 节）：  
    - `no_write`：只允许咨询/追问/方案文字输出；**禁止写任何文件**
-   - `helloagents_only`：允许写 `HAGWroks/` 工作区（方案包/知识库），**禁止进入开发实施（改业务代码）**
+   - `helloagents_only`：允许写 `HAGSWorks/` 工作区（方案包/知识库），**禁止进入开发实施（改业务代码）**
    - `code_write`：按正常流程推进（仍受“执行入口=完整方案包/执行域护栏/质量门禁”约束）
    - 重要：`write_scope` 是上位约束，适用于所有模式（含命令模式）。命令只决定“走哪条流程”，不允许绕过写入范围。
 3. **包含 `~` 命令** → 进入命令模式；但仍必须遵守 `write_scope`，如冲突则阻断并请求裁决（见第 2.3 节）
@@ -54,7 +54,7 @@
 ### 2.1 写入范围（write_scope）定义（无歧义）
 
 - `no_write`：**不写任何文件**（只在对话里给解释/方案/清单）；不创建方案包、不更新知识库
-- `helloagents_only`：只允许写入 `${PROJECT_ROOT}/HAGWroks/` 工作区（plan/wiki/history/project/active_context 等），**禁止修改业务代码/配置**
+- `helloagents_only`：只允许写入 `${PROJECT_ROOT}/HAGSWorks/` 工作区（plan/wiki/history/project/active_context 等），**禁止修改业务代码/配置**
 - `code_write`：允许修改业务代码/配置；仍必须遵守“执行入口=完整方案包”与执行域/质量门禁护栏
 
 ### 2.2 写入范围判定（保守优先）
@@ -66,9 +66,9 @@
 - 用户说“去做/按你的去做/修复/实现/改代码/落地” → `code_write`
 
 歧义处理（必须阻断澄清）：
-- 用户只说“不要改文件”但未说明是否允许写 `HAGWroks/` 工作区 → 默认按 `no_write` 处理，并给 2 个选项让用户确认：
+- 用户只说“不要改文件”但未说明是否允许写 `HAGSWorks/` 工作区 → 默认按 `no_write` 处理，并给 2 个选项让用户确认：
   - `[1] 只在对话里给方案（不写任何文件）`
-  - `[2] 允许写 HAGWroks/ 工作区（只写方案包/知识库，不改业务代码）`
+  - `[2] 允许写 HAGSWorks/ 工作区（只写方案包/知识库，不改业务代码）`
 
 ### 2.3 命令与写入范围冲突裁决（必须）
 
@@ -78,8 +78,8 @@
 
 | 命令 | 最低 write_scope | 说明 |
 |---|---|---|
-| `~init` / `~wiki` | `helloagents_only` | 会创建/补齐 `${PROJECT_ROOT}/HAGWroks/` |
-| `~plan` | `no_write`（可） / `helloagents_only`（落盘方案包） | 不落盘时可纯对话出方案；要写方案包必须允许写 `HAGWroks/` |
+| `~init` / `~wiki` | `helloagents_only` | 会创建/补齐 `${PROJECT_ROOT}/HAGSWorks/` |
+| `~plan` | `no_write`（可） / `helloagents_only`（落盘方案包） | 不落盘时可纯对话出方案；要写方案包必须允许写 `HAGSWorks/` |
 | `~exec` | `code_write` | 会改业务代码/跑门禁/写入执行记录 |
 | `~auto` | `code_write` | 全链路（方案+执行） |
 
@@ -90,10 +90,10 @@
 
 检测到写入范围与命令冲突：
 - write_scope: no_write（不写任何文件）
-- 命令: ~init（需要创建/补齐 HAGWroks/）
+- 命令: ~init（需要创建/补齐 HAGSWorks/）
 
 [1] 保持 no_write - 不执行 ~init，仅在对话中说明 ~init 会做什么
-[2] 允许写 HAGWroks/ - 将 write_scope 提升为 helloagents_only 后执行 ~init
+[2] 允许写 HAGSWorks/ - 将 write_scope 提升为 helloagents_only 后执行 ~init
 [3] 取消 - 终止本次命令
 
 ────
@@ -268,3 +268,4 @@ package:
 next_unique_action: "等待用户输入序号 1-2"
 </helloagents_state>
 ```
+

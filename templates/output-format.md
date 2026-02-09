@@ -131,7 +131,7 @@ mode: auto               # plan|exec|auto|init|qa（运行态必须单值）
 phase: routing            # routing|analyze|design|develop|kb（运行态必须单值）
 status: awaiting_user_input
 awaiting_kind: confirm    # questions|choice|confirm（运行态必须单值）
-package:                  # 无方案包则留空；有则填写 HAGWroks/plan/YYYYMMDDHHMM_<feature>/
+package:                  # 无方案包则留空；有则填写 HAGSWorks/plan/YYYYMMDDHHMM_<feature>/
 next_unique_action: "等待用户回复 确认/取消"
 </helloagents_state>
 ```
@@ -199,7 +199,7 @@ mode: exec                # plan|exec|auto|init|qa（运行态必须单值）
 phase: develop            # routing|analyze|design|develop|kb（运行态必须单值）
 status: awaiting_user_input
 awaiting_kind: choice     # questions|choice|confirm（运行态必须单值）
-package:                  # 无方案包则留空；有则填写 HAGWroks/plan/YYYYMMDDHHMM_<feature>/
+package:                  # 无方案包则留空；有则填写 HAGSWorks/plan/YYYYMMDDHHMM_<feature>/
 next_unique_action: "等待用户输入序号 1-2"
 </helloagents_state>
 ```
@@ -221,7 +221,7 @@ mode: auto                # plan|exec|auto|init|qa（运行态必须单值）
 phase: routing            # routing|analyze|design|develop|kb（运行态必须单值）
 status: awaiting_user_input
 awaiting_kind: choice     # questions|choice|confirm（运行态必须单值）
-package:                  # 无方案包则留空；有则填写 HAGWroks/plan/YYYYMMDDHHMM_<feature>/
+package:                  # 无方案包则留空；有则填写 HAGSWorks/plan/YYYYMMDDHHMM_<feature>/
 next_unique_action: "等待用户输入有效选项"
 </helloagents_state>
 ```
@@ -304,7 +304,7 @@ mode: plan                 # plan|exec|auto|init|qa
 phase: routing              # routing|analyze|design|develop|kb
 status: awaiting_user_input
 awaiting_kind: choice        # questions|choice|confirm
-package:                     # 无方案包则留空；有则填写 HAGWroks/plan/YYYYMMDDHHMM_<feature>/
+package:                     # 无方案包则留空；有则填写 HAGSWorks/plan/YYYYMMDDHHMM_<feature>/
 next_unique_action: "等待用户输入序号 1-2"
 </helloagents_state>
 ```
@@ -335,7 +335,7 @@ mode: plan                 # plan|exec|auto|init|qa
 phase: routing              # routing|analyze|design|develop|kb
 status: awaiting_user_input
 awaiting_kind: choice        # questions|choice|confirm
-package:                     # 无方案包则留空；有则填写 HAGWroks/plan/YYYYMMDDHHMM_<feature>/
+package:                     # 无方案包则留空；有则填写 HAGSWorks/plan/YYYYMMDDHHMM_<feature>/
 next_unique_action: "等待用户输入序号 1-2"
 </helloagents_state>
 ```
@@ -358,3 +358,4 @@ next_unique_action: "等待用户输入序号 1-2"
 3. **其他交互场景** - 格式见对应规则文件（方案构思选择、测试失败、代码质量询问等）
 
 </interactive_output_format>
+

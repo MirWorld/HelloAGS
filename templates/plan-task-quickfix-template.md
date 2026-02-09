@@ -1,6 +1,6 @@
 # Quick Fix - 任务清单（task.md）
 
-目录：`HAGWroks/plan/YYYYMMDDHHMM_quickfix_<slug>/task.md`
+目录：`HAGSWorks/plan/YYYYMMDDHHMM_quickfix_<slug>/task.md`
 
 ---
 
@@ -70,3 +70,4 @@
 
 ## Review 记录
 （实现完成后填写：发现的问题/采取的修复/复测结果）
+

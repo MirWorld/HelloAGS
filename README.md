@@ -13,13 +13,14 @@
 ## 一分钟上手（复制即用）
 
 1. **安装**：把本仓库放到 Codex CLI 的 skills 搜索路径（例如 `~/.codex/skills/helloagents/`）
-2. **初始化**：在你的目标项目根目录对话中输入 `~init`（生成 `HAGWroks/` 工作区骨架）
+2. **初始化**：在你的目标项目根目录对话中输入 `~init`（生成 `HAGSWorks/` 工作区骨架）
+   - 若你之前使用过旧目录名（历史拼写错误）`HAGWroks/`：执行 `~init` 会自动迁移为 `HAGSWorks/`
 3. **直接开干**：在目标项目里直接提需求即可（默认 `~auto`；只想出方案用 `~plan`）
 4. （维护者可选）**自检**：修改本 Skill 后先跑 `pwsh -NoProfile -File ./scripts/validate-skill-pack.ps1`
 
 ## 命令速查（只记这四个）
 
-- `~init`：初始化/补齐 `HAGWroks/`（可反复执行，幂等）
+- `~init`：初始化/补齐 `HAGSWorks/`（可反复执行，幂等）
 - `~plan`：只做对齐与方案（会产出 why/how/task），不进入改代码/跑门禁
 - `~exec`：执行已有方案包（按 task 清单改代码、验证、归档）
 - `~auto`：一口气跑完整链路（对齐 → 方案 → 执行）
@@ -32,8 +33,8 @@
 
 ## 写入范围（常见表述的意思）
 
-- 你说“**不写文件/不要落盘**”→ 我不会创建/修改任何文件（包括 `HAGWroks/`）
-- 你说“**不要改业务代码，但可以写方案**”→ 只写 `HAGWroks/`（方案包/知识库），不碰业务代码
+- 你说“**不写文件/不要落盘**”→ 我不会创建/修改任何文件（包括 `HAGSWorks/`）
+- 你说“**不要改业务代码，但可以写方案**”→ 只写 `HAGSWorks/`（方案包/知识库），不碰业务代码
 - 你说“**直接改好**”→ 可以修改业务代码与相关配置（仍遵循方案包与验证约束）
 
 ## 中途纠偏（Enter / Tab）
@@ -63,10 +64,10 @@
 - `how.md`：技术设计、边界、验证与回滚
 - `task.md`：可执行任务清单（含上下文快照与 Review 记录）
 
-并把长期记忆落盘到 `HAGWroks/`（建议纳入版本库）：
+并把长期记忆落盘到 `HAGSWorks/`（建议纳入版本库）：
 
 ```text
-HAGWroks/
+HAGSWorks/
 ├── active_context.md              # Active Context：可验证接口注册表（≤120行）
 ├── project.md                     # 项目能力画像/协作偏好（unknown 允许）
 ├── wiki/                          # 项目知识库
@@ -89,8 +90,8 @@ HAGWroks/
 
 - 本仓库自检（CI 同款）：`pwsh -NoProfile -File ./scripts/validate-skill-pack.ps1`
 - Windows PowerShell 5.1 兼容入口：`powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/validate-skill-pack-ps51.ps1`
-- 目标项目 Active Context 校验：`pwsh -NoProfile -File ./HAGWroks/scripts/validate-active-context.ps1`
-- 目标项目方案包完整性校验：`pwsh -NoProfile -File ./HAGWroks/scripts/validate-plan-package.ps1`
+- 目标项目 Active Context 校验：`pwsh -NoProfile -File ./HAGSWorks/scripts/validate-active-context.ps1`
+- 目标项目方案包完整性校验：`pwsh -NoProfile -File ./HAGSWorks/scripts/validate-plan-package.ps1`
 
 说明：本仓库脚本与文档包含大量 UTF-8 中文内容；PowerShell 7（`pwsh`）下可直接运行 `./scripts/validate-skill-pack.ps1`，Windows PowerShell 5.1 请使用上面的兼容入口脚本。
 
@@ -102,3 +103,4 @@ HAGWroks/
 ## License
 
 双许可：代码 Apache-2.0 / 文档 CC BY 4.0。详见 `LICENSE`、`LICENSE-CC-BY-4.0`、`LICENSE-SUMMARY.md` 与 `NOTICE`。
+
