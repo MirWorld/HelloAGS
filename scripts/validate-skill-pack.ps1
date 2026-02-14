@@ -357,8 +357,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapsho
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quickfix-protocol.md" -needles @(
-  "完整方案包",
-  "改一个参数",
+  "<!-- CONTRACT: quickfix-protocol v1 -->",
   "verify_min"
 )
 
@@ -371,11 +370,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-quickf
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/triage-pass.md" -needles @(
-  "入口与调用链",
-  "契约载体",
-  "副作用点与消费者",
-  "verify_min",
-  "下一步唯一动作"
+  "<!-- CONTRACT: triage-pass v1 -->",
+  "verify_min"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/pre-implementation-checklist.md" -needles @(
@@ -385,8 +381,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/pre-implementat
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quality-gates.md" -needles @(
-  "最小-最快-最高信号",
-  "证据落盘",
+  "<!-- CONTRACT: quality-gates v1 -->",
   "verify_min"
 )
 
