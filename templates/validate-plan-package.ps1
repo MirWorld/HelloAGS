@@ -1,6 +1,8 @@
 param(
   [string]$PlanRoot = "HAGSWorks/plan",
   [string]$Package = "",
+  [ValidateSet("plan", "exec")]
+  [string]$Mode = "plan",
   [switch]$Json
 )
 
@@ -42,6 +44,14 @@ function Read-Text([string]$path) {
   return (Get-Content -LiteralPath $path -Raw)
 }
 
+function Strip-FencedCodeBlocks([string]$text) {
+  if ($null -eq $text) {
+    return ""
+  }
+  # Remove fenced blocks to avoid matching example snippets.
+  return ([regex]::Replace($text, '(?ms)```.*?```|~~~.*?~~~', ''))
+}
+
 function Text-HasAll([string]$text, [string[]]$needles) {
   foreach ($needle in $needles) {
     if ($text -notmatch [regex]::Escape($needle)) {
@@ -56,6 +66,7 @@ $report = [ordered]@{
   ok = $true
   project_root = ""
   plan_root = ""
+  mode = $Mode
   checked_packages = @()
   errors = @()
 }
@@ -132,6 +143,11 @@ foreach ($pkg in $packages) {
     if ($fileName -eq "how.md") {
       if ($text -notmatch '(?m)verify_min\\s*[:：]\\s*\\S') {
         Add-Error "package '${pkgName}' how.md missing verify_min (expected a line like: verify_min: <command/steps>)"
+      } else {
+        $textNoCode = Strip-FencedCodeBlocks $text
+        if ($Mode -eq "exec" -and $textNoCode -match '(?mi)verify_min\\s*[:：]\\s*unknown\\b') {
+          Add-Error "package '${pkgName}' how.md verify_min is unknown (exec mode requires a runnable verify_min)"
+        }
       }
     }
 

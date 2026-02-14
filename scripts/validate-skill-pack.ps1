@@ -349,6 +349,11 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -ne
 )
 
 # Core invariants (keep small but strict; prevents semantic drift)
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/terminology.md" -needles @(
+  "<!-- CONTRACT: terminology v1 -->",
+  "## SSOT Map"
+)
+
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapshot.md" -needles @(
   "### 错误与尝试",
   "### 待用户输入（Pending）",

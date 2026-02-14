@@ -96,7 +96,7 @@ IF 不满足任何条件:
 ```
 
 补充（可选但高收益，确定性校验）：
-- 如存在 `HAGSWorks/scripts/validate-plan-package.ps1`：优先运行对 `CURRENT_PACKAGE` 做完整性校验；失败则停止并按G6.2输出“方案包不完整/校验失败”错误。
+- 如存在 `HAGSWorks/scripts/validate-plan-package.ps1`：优先运行对 `CURRENT_PACKAGE` 做完整性校验（执行域建议：`-Mode exec`，确保 `verify_min` 不是 `unknown`）；失败则停止并按G6.2输出“方案包不完整/校验失败”错误。
 
 ### 步骤2: 检查知识库状态并处理
 

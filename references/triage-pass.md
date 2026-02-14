@@ -51,7 +51,8 @@
 - 将同一条 `verify_min: ...` 写入方案包的 `how.md`（SSOT，推荐放在 `## 变更请求（Change/Verify/Don't）` 的 Verify 行），避免续作时读到两套验证命令
 - `task.md##上下文快照` 负责记录“当前 verify_min 选择理由/执行证据/失败收敛决策”，不作为 verify_min 的唯一来源
 
-若当前无法确定可运行的验证动作：允许写 `verify_min: unknown`，但必须同时写清“下一步如何获得 verify_min”（例如从 CI/README/package scripts/现有测试入口中取证）。
+若当前无法确定可运行的验证动作：允许写 `verify_min: unknown`，但必须同时写清“下一步如何获得 verify_min”（例如从 CI/README/package scripts/现有测试入口中取证）。  
+注意：这只允许停留在规划域；进入执行域（改代码/交付）前必须把 `verify_min` 落成可运行命令（可用 `validate-plan-package.ps1 -Mode exec` 作为硬闸）。
 
 ### 2.6 下一步唯一动作（必须只有 1 条）
 - 下一步唯一动作: `...` 预期: ...
