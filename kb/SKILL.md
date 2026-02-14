@@ -14,7 +14,7 @@ HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 ├── project.md            # 技术约定 + 项目能力画像 + 协作偏好
 ├── active_context.md     # 派生缓存：可验证接口注册表/系统状态（非 SSOT（真值））
 ├── scripts/              # 工具脚本（派生层，可删可重建）
-│   ├── validate-active-context.ps1  # Active Context 漂移校验脚本（可选）
+│   ├── validate-active-context.ps1  # Active Context 校验脚本（loose/strict，可选）
 │   └── validate-plan-package.ps1    # 方案包完整性校验脚本（可选）
 ├── wiki/                 # 核心文档
 │   ├── overview.md       # 项目概述

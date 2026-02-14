@@ -236,6 +236,22 @@ function Assert-InteractiveWaitContracts([string]$repoRoot, [string[]]$trackedFi
   }
 }
 
+function Assert-NoDeprecatedTerms([string]$repoRoot, [string[]]$trackedFiles) {
+  $mdFiles = $trackedFiles | Where-Object { $_.ToLowerInvariant().EndsWith(".md") }
+
+  # Avoid embedding deprecated terms as plain text in this repo (keeps grep clean),
+  # but still block reintroduction into docs.
+  $deprecated = ([char]0x6F02) + ([char]0x79FB) + ([char]0x6821) + ([char]0x9A8C)
+
+  foreach ($md in $mdFiles) {
+    $fullMd = Join-Path $repoRoot (Normalize-RelativePath $md)
+    $text = Get-Content -LiteralPath $fullMd -Raw
+    if ($text -match [regex]::Escape($deprecated)) {
+      Fail "Deprecated term found in ${md}. Please follow 'references/terminology.md'."
+    }
+  }
+}
+
 $repoRoot = Get-RepoRoot
 $tracked = Get-TrackedFiles $repoRoot
 
@@ -270,6 +286,7 @@ $required = @(
   "references/plan-lifecycle.md",
   "references/command-policy.md",
   "references/active-context.md",
+  "references/terminology.md",
   "references/context-snapshot.md",
   "references/quickfix-protocol.md",
   "references/hook-simulation.md",
@@ -286,6 +303,7 @@ foreach ($r in $required) {
 
 Assert-NoBrokenInternalReferences -repoRoot $repoRoot -trackedFiles $tracked
 Assert-InteractiveWaitContracts -repoRoot $repoRoot -trackedFiles $tracked
+Assert-NoDeprecatedTerms -repoRoot $repoRoot -trackedFiles $tracked
 
 # Template invariants (structural & contract-only; avoid brittle prose checks)
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @("<output_format>", "<exception_output_format>")

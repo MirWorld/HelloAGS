@@ -195,7 +195,7 @@ IF 不满足任何条件:
        - 更新 `HAGSWorks/active_context.md`（补齐/修正 Public APIs 的 `[SRC:CODE]` 指针）
        - 如存在 `HAGSWorks/scripts/validate-active-context.ps1`：
          - 默认运行 `-Mode loose` 做可续作校验
-         - 需要更强信号时运行 `-Mode strict` 做严格漂移校验
+         - 需要更强信号时运行 `-Mode strict` 做严格校验（更漂移敏感）
 
 任务跳过处理(状态更新为 [-]):
   - 任务依赖的前置任务失败

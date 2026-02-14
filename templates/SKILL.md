@@ -35,7 +35,7 @@ description: 文档/脚本模板集合；创建 Wiki/方案包/校验脚本时�
 | `templates/wiki-module-template.md` | `HAGSWorks/wiki/modules/<module>.md` | 模块文档 |
 | `templates/output-format.md` | （输出规范单一来源） | 统一输出格式（G6.1~G6.4） |
 | `templates/version-source-map.md` | （版本来源单一来源） | 版本号来源映射（G7） |
-| `templates/validate-active-context.ps1` | `HAGSWorks/scripts/validate-active-context.ps1` | Active Context 漂移校验脚本 |
+| `templates/validate-active-context.ps1` | `HAGSWorks/scripts/validate-active-context.ps1` | Active Context 校验脚本（loose/strict） |
 
 ## 约束提醒
 
