@@ -1,3 +1,5 @@
+<!-- CONTRACT: pre-implementation-checklist v1 -->
+
 # 开工前检查清单（Pre-Implementation Checklist）
 
 目标：在写代码前 60 秒完成“对齐 + 验证 + 边界/复用”三件事，减少做错方向、返工与耦合回潮。

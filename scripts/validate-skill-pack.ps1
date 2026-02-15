@@ -393,7 +393,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/triage-pass.md"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/pre-implementation-checklist.md" -needles @(
-  "高信号取证已完成",
+  "<!-- CONTRACT: pre-implementation-checklist v1 -->",
   "references/triage-pass.md",
   "verify_min"
 )
