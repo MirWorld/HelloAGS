@@ -291,6 +291,7 @@ $required = @(
   "references/quickfix-protocol.md",
   "references/hook-simulation.md",
   "references/read-paths.md",
+  "references/resume-protocol.md",
   "references/prompt-optimization.md",
   "references/triage-pass.md",
   "references/failure-protocol.md",
@@ -352,6 +353,18 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -ne
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/terminology.md" -needles @(
   "<!-- CONTRACT: terminology v1 -->",
   "## SSOT Map"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
+  "<!-- CONTRACT: skill-no-redo v1 -->"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "develop/SKILL.md" -needles @(
+  "<!-- CONTRACT: develop-no-redo v1 -->"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol.md" -needles @(
+  "<!-- CONTRACT: resume-no-redo v1 -->"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapshot.md" -needles @(

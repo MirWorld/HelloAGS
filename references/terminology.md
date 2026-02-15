@@ -43,6 +43,7 @@
 |---|---|
 | 术语口径 | `references/terminology.md` |
 | 路由与写入范围/Delta | `references/routing.md` |
+| 断层恢复（Resume） | `references/resume-protocol.md` |
 | 输出规范 | `templates/output-format.md` |
 | 方案包生命周期 | `references/plan-lifecycle.md` |
 | 上下文快照 | `references/context-snapshot.md` |
