@@ -355,6 +355,16 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/terminology.md"
   "## SSOT Map"
 )
 
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.md" -needles @(
+  "<!-- CONTRACT: plan-lifecycle v1 -->",
+  "<plan_lifecycle_contract>",
+  "history_overwrite: deny",
+  "history_conflict_suffix: _v2",
+  "current_pointer_file: HAGSWorks/plan/_current.md",
+  "current_pointer_key: current_package",
+  "</plan_lifecycle_contract>"
+)
+
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
   "<!-- CONTRACT: skill-no-redo v1 -->"
 )
@@ -365,6 +375,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "develop/SKILL.md" -needles
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol.md" -needles @(
   "<!-- CONTRACT: resume-no-redo v1 -->"
+  "<!-- CONTRACT: resume-current-package-pointer v1 -->"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapshot.md" -needles @(

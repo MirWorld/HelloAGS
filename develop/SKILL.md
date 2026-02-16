@@ -57,18 +57,22 @@ IF 不满足任何条件:
   - 读取CREATED_PACKAGE变量（方案设计阶段设置的方案包路径）
   - 检查该方案包是否存在且完整
     - 存在且完整 → 使用该方案包，设置CURRENT_PACKAGE = CREATED_PACKAGE
+      - 同时更新 `HAGSWorks/plan/_current.md` 的 `current_package` 指向该方案包（无感续作；细则见 `references/resume-protocol.md`）
     - 不存在或不完整 → 按G6.2输出错误格式并停止
   - 忽略plan/中的其他遗留方案包
 
 交互确认模式/执行命令(MODE_EXECUTION=true):
-  - 扫描plan/目录下所有方案包
-  - 不存在方案包 → 按G6.2输出错误格式并停止
-  - 方案包不完整 → 按G6.2输出错误格式并停止
-  - 单个完整方案包 → 设置CURRENT_PACKAGE，继续执行
-  - 多个方案包 → 列出清单，等待用户选择
-    - 用户输入有效序号(1-N) → 设置CURRENT_PACKAGE，继续执行
-    - 用户输入取消/拒绝 → 按G6.2输出取消格式，流程终止
-    - 无效输入 → 再次询问
+   - 优先检查 `HAGSWorks/plan/_current.md`（若存在且有效）：
+     - 若 `current_package` 指向的方案包存在且完整 → 设置CURRENT_PACKAGE并继续（减少选包交互）
+     - 否则忽略该指针，继续扫描 plan/
+   - 扫描plan/目录下所有**目录型**方案包（忽略 `_current.md` 等文件）
+   - 不存在方案包 → 按G6.2输出错误格式并停止
+   - 方案包不完整 → 按G6.2输出错误格式并停止
+   - 单个完整方案包 → 设置CURRENT_PACKAGE，继续执行（并更新 `_current.md` 指针）
+   - 多个方案包 → 列出清单，等待用户选择
+     - 用户输入有效序号(1-N) → 设置CURRENT_PACKAGE，继续执行（并更新 `_current.md` 指针）
+     - 用户输入取消/拒绝 → 按G6.2输出取消格式，流程终止
+     - 无效输入 → 再次询问
 
 异常输出示例:
   方案包不存在:
@@ -431,14 +435,17 @@ next_unique_action: "等待用户输入序号 1-2"
    - 非[√]状态任务下方添加备注（格式: `> 备注: [原因]`）
    - 如有多个失败/跳过任务，可在末尾添加执行总结章节
 
-2. 迁移至历史记录目录:
-   - 将方案包目录从 plan/ 移动到 history/YYYY-MM/ 下
-   - YYYY-MM 从方案包目录名提取（如 202511201200_xxx → 2025-11）
-   - 迁移后完整路径: history/YYYY-MM/YYYYMMDDHHMM_<feature>/
-   - 迁移操作会自动删除 plan/ 下的源目录
-   - 同名冲突处理: 强制覆盖 history/ 中的旧方案包
+  2. 迁移至历史记录目录:
+    - 将方案包目录从 plan/ 移动到 history/YYYY-MM/ 下
+    - YYYY-MM 从方案包目录名提取（如 202511201200_xxx → 2025-11）
+    - 迁移后完整路径: history/YYYY-MM/YYYYMMDDHHMM_<feature>/
+    - 迁移操作会自动删除 plan/ 下的源目录
+    - 同名冲突处理: 禁止覆盖；如目标已存在则追加 `_v2/_v3/...`（以 `references/plan-lifecycle.md` 为准）
 
-3. 更新历史记录索引: `history/index.md`
+  2.1 清空当前方案包指针（必须）:
+    - 更新 `HAGSWorks/plan/_current.md`：将 `current_package` 置空（避免断层恢复误选已归档包）
+
+  3. 更新历史记录索引: `history/index.md`
 
 **警告:** 此操作将导致 plan/ 下的源文件路径失效，请确保步骤8已完成内容读取
 **不可跳过:** 此步骤为本阶段结束的原子性操作

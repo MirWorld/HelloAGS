@@ -30,10 +30,17 @@
 
 1. **定位方案包**
    - 优先使用已知 `CURRENT_PACKAGE/CREATED_PACKAGE`（如会话中可得）
-   - 否则扫描 `${PROJECT_ROOT}/HAGSWorks/plan/`：
+
+   <!-- CONTRACT: resume-current-package-pointer v1 -->
+   - 否则检查 `${PROJECT_ROOT}/HAGSWorks/plan/_current.md`（若存在）：
+     - 读取其中的 `current_package: ...` 路径；若为空则视为不存在
+     - 若该目录存在且看起来是完整方案包（why/how/task 齐全）→ 直接选中（减少断层恢复时的“选包”交互）
+     - 若路径无效/目录不存在/不完整 → 忽略该指针，继续按下述规则扫描 `plan/`
+
+   - 否则扫描 `${PROJECT_ROOT}/HAGSWorks/plan/`（只看目录；忽略 `_current.md` 等文件）：
      - 0 个：提示用户先 `~plan` 创建方案
      - 1 个：直接选中
-     - 多个：列出清单让用户选（禁止擅自猜）
+     - 多个：列出清单让用户选（禁止擅自猜）；若允许写入，则在用户选中后更新 `_current.md` 指针
 
 2. **读取对齐摘要（防跑偏）**
    - 读 `{package}/why.md#对齐摘要`：目标/成功标准/非目标/约束/风险容忍度/偏好
@@ -50,6 +57,7 @@
      - 行为：判定该方案包已完成；**禁止**再次执行/重复修改任何任务
      - 下一步唯一动作（按 write_scope 自动收口）：
        - 若允许写入（`helloagents_only|code_write`）：按 `references/plan-lifecycle.md` 迁移到 `HAGSWorks/history/` 并更新索引（防止后续压缩/续作误选中）
+         - 同时清空 `${PROJECT_ROOT}/HAGSWorks/plan/_current.md` 的 `current_package`（避免指向已归档包）
        - 若不允许写入（`no_write`）：本轮不做任何写入，只输出“已完成/无需续作”，等待新需求（或等待用户允许归档）
      - 例外：若用户提出新问题/必须修正既有结论 → 作为新 Delta 处理（先写 `task.md##上下文快照` 决策，再新增任务或新建方案包），禁止无说明地“二次重做”
 

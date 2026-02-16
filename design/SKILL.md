@@ -359,6 +359,16 @@ next_unique_action: "等待用户输入序号 1-2"
 用途: 在全授权命令中传递给开发实施，确保执行正确的方案包
 ```
 
+**5.1 更新当前方案包指针（无感续作）**
+
+当允许写入 `HAGSWorks/` 时，创建/更新：`HAGSWorks/plan/_current.md`
+```yaml
+格式要求（最小）:
+  - 文件必须存在
+  - 必须包含 1 行: current_package: HAGSWorks/plan/YYYYMMDDHHMM_<feature>/
+```
+用途：断层恢复与 `~exec` 在多个方案包存在时可优先锁定“当前包”，减少用户选包交互（细则：`references/resume-protocol.md`）。
+
 ---
 
 ## 方案设计 输出格式

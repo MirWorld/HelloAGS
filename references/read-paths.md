@@ -99,7 +99,7 @@
 - （失败收敛）`references/execution-guard.md`
 
 停止条件：
-- 已定位 `CURRENT_PACKAGE`
+- 已定位 `CURRENT_PACKAGE`（优先读 `HAGSWorks/plan/_current.md`；否则按 `develop/SKILL.md` 的“步骤1: 确定待执行方案包”定位）
 - 已完成“开工前检查”（对齐/取证/边界/验证绑定）
 - 已明确执行域声明（Allow/Deny/NewFiles/Refactor）并准备落盘
 

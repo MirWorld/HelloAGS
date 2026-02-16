@@ -1,6 +1,16 @@
+<!-- CONTRACT: plan-lifecycle v1 -->
+
 # 方案包生命周期（G11 细则）
 
 目标：让每次变更都可追溯：方案包 → 执行记录 → 归档索引。
+
+<plan_lifecycle_contract>
+version: 1
+history_overwrite: deny
+history_conflict_suffix: _v2
+current_pointer_file: HAGSWorks/plan/_current.md
+current_pointer_key: current_package
+</plan_lifecycle_contract>
 
 ---
 
@@ -19,6 +29,7 @@
 - 路径：`HAGSWorks/plan/YYYYMMDDHHMM_<feature>/`
 - 冲突：同名目录存在则追加 `_v2/_v3/...`
 - 完整性：必须包含 `why.md` + `how.md` + `task.md` 且非空（`task.md` 至少 1 条任务）
+- （推荐默认）更新当前方案包指针：写入 `HAGSWorks/plan/_current.md` 的 `current_package: HAGSWorks/plan/YYYYMMDDHHMM_<feature>/`
 
 ---
 
@@ -26,7 +37,9 @@
 
 1. 回写 `task.md`：所有任务标注真实状态；非 `[√]` 的任务必须写 `> 备注: ...`
 2. 迁移目录：`HAGSWorks/history/YYYY-MM/YYYYMMDDHHMM_<feature>/`
+   - 冲突：**禁止覆盖**既有 history 目录；如目标目录已存在，则追加 `_v2/_v3/...`
 3. 更新索引：追加到 `HAGSWorks/history/index.md`（包含时间戳、功能标识、类型、状态、链接）
+4. （推荐默认）清空当前方案包指针：将 `HAGSWorks/plan/_current.md` 的 `current_package` 置空（避免断层恢复误选已归档包）
 
 ---
 
@@ -37,6 +50,6 @@
 - 开发实施/执行命令/全授权命令结束后（迁移完成）
 
 规则：
-- 扫描 `HAGSWorks/plan/`，排除本次 `CURRENT_PACKAGE`
+- 扫描 `HAGSWorks/plan/` 下的方案包目录（忽略 `_current.md` 等文件），排除本次 `CURRENT_PACKAGE`
 - 如存在遗留包：在完成输出末尾提示，并提供迁移选择流程（见 `kb/SKILL.md` 的遗留方案迁移规则）
 

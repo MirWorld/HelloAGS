@@ -271,7 +271,8 @@ for each 选定的方案包:
   2. 迁移至历史记录目录:
      - 从 plan/ 移动到 history/YYYY-MM/
      - YYYY-MM 从方案包目录名提取
-     - 同名冲突: 强制覆盖
+     - 同名冲突: 禁止覆盖；如目标已存在则追加 `_v2/_v3/...`（以 `references/plan-lifecycle.md` 为准）
+     - 若 `HAGSWorks/plan/_current.md` 指向了该方案包：迁移后将 `current_package` 置空（避免断层恢复误选）
 
   3. 更新历史记录索引: history/index.md（标注"未执行"）
 ```

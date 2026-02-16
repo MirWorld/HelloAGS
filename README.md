@@ -71,6 +71,7 @@ HAGSWorks/
 ├── active_context.md              # Active Context：可验证接口注册表（≤120行）
 ├── project.md                     # 项目能力画像/协作偏好（unknown 允许）
 ├── wiki/                          # 项目知识库
+├── plan/_current.md               # 当前方案包指针（自动维护；用于断层恢复/续作选包）
 ├── plan/YYYYMMDDHHMM_<feature>/   # 方案包（进行中）
 └── history/YYYY-MM/...            # 方案包归档（已完成）
 ```
