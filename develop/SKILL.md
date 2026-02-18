@@ -63,6 +63,7 @@ IF 不满足任何条件:
 
 交互确认模式/执行命令(MODE_EXECUTION=true):
    - 优先检查 `HAGSWorks/plan/_current.md`（若存在且有效）：
+     - 约束：`current_package` 必须指向 `HAGSWorks/plan/` 下的方案包目录（禁止指向 history/ 或任意路径）
      - 若 `current_package` 指向的方案包存在且完整 → 设置CURRENT_PACKAGE并继续（减少选包交互）
      - 否则忽略该指针，继续扫描 plan/
    - 扫描plan/目录下所有**目录型**方案包（忽略 `_current.md` 等文件）

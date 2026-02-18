@@ -34,6 +34,7 @@
    <!-- CONTRACT: resume-current-package-pointer v1 -->
    - 否则检查 `${PROJECT_ROOT}/HAGSWorks/plan/_current.md`（若存在）：
      - 读取其中的 `current_package: ...` 路径；若为空则视为不存在
+     - 约束：`current_package` 必须指向 `HAGSWorks/plan/` 下的方案包目录（禁止指向 history/ 或任意路径）
      - 若该目录存在且看起来是完整方案包（why/how/task 齐全）→ 直接选中（减少断层恢复时的“选包”交互）
      - 若路径无效/目录不存在/不完整 → 忽略该指针，继续按下述规则扫描 `plan/`
 
