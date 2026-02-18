@@ -76,6 +76,7 @@ HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 - `HAGSWorks/active_context.md` ← `templates/active-context-template.md`
 - `HAGSWorks/scripts/validate-active-context.ps1` ← `templates/validate-active-context.ps1`
 - `HAGSWorks/scripts/validate-plan-package.ps1` ← `templates/validate-plan-package.ps1`
+- `HAGSWorks/plan/_current.md` ← `templates/current-plan-pointer-template.md`
 - `HAGSWorks/wiki/overview.md` ← `templates/wiki-overview-template.md`
 - `HAGSWorks/wiki/arch.md` ← `templates/wiki-arch-template.md`
 - `HAGSWorks/wiki/api.md` ← `templates/wiki-api-template.md`

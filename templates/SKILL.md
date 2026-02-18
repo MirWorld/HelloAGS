@@ -26,6 +26,7 @@ description: 文档/脚本模板集合；创建 Wiki/方案包/校验脚本时�
 | `templates/plan-task-quickfix-template.md` | `HAGSWorks/plan/.../task.md` | Quick Fix 极简任务清单（含上下文快照/Review） |
 | `templates/project-template.md` | `HAGSWorks/project.md` | 项目能力画像/协作偏好（栈无关） |
 | `templates/active-context-template.md` | `HAGSWorks/active_context.md` | Active Context（可验证接口注册表/系统状态缓存） |
+| `templates/current-plan-pointer-template.md` | `HAGSWorks/plan/_current.md` | 当前方案包指针（断层恢复/选包减少交互） |
 | `templates/changelog-template.md` | `HAGSWorks/CHANGELOG.md` | 变更日志（语义化版本） |
 | `templates/history-index-template.md` | `HAGSWorks/history/index.md` | 方案包归档索引 |
 | `templates/wiki-overview-template.md` | `HAGSWorks/wiki/overview.md` | Wiki 总览 |

@@ -280,6 +280,7 @@ $required = @(
   "templates/plan-how-quickfix-template.md",
   "templates/plan-task-quickfix-template.md",
   "templates/active-context-template.md",
+  "templates/current-plan-pointer-template.md",
   "templates/validate-active-context.ps1",
   "templates/validate-plan-package.ps1",
   "references/routing.md",
@@ -324,6 +325,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/active-context-t
   "## Data Flow Guarantees",
   "## Known Gaps / Risks",
   "## Next"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/current-plan-pointer-template.md" -needles @(
+  "current_package:"
 )
 
 Assert-NotMatches -repoRoot $repoRoot -relativePath "templates/active-context-template.md" -pattern '\[SRC:CODE\][^\r\n]*(?::\d+|#L\d+)\b' -hint "Don't include resolvable [SRC:CODE] pointers in the template; ~init runs before real files/line numbers exist."
