@@ -38,6 +38,10 @@
    current_pointer_file: HAGSWorks/plan/_current.md
    current_pointer_key: current_package
    current_marker: （current）
+   list_current_first: true
+   list_sort: timestamp_desc
+   list_timestamp_source: dirname_prefix_YYYYMMDDHHMM
+   list_tiebreaker: dirname_desc
    </resume_package_selection_contract>
 
    <!-- CONTRACT: resume-current-package-pointer v1 -->
@@ -50,7 +54,9 @@
    - 否则扫描 `${PROJECT_ROOT}/HAGSWorks/plan/`（只看目录；忽略 `_current.md` 等文件）：
      - 0 个：提示用户先 `~plan` 创建方案
      - 1 个：直接选中；若允许写入，则更新 `_current.md` 指针（必要时先创建；自愈）
-     - 多个：列出清单让用户选（禁止擅自猜）；如 `_current.md` 指向其中一个包，则在列表中标注 `（current）`；若允许写入，则在用户选中后更新 `_current.md` 指针（必要时先创建）
+     - 多个：列出清单让用户选（禁止擅自猜）
+       - 排序：若 `_current.md` 指向其中一个包，则该项置顶并标注 `（current）`；其余按目录名时间戳前缀倒序（`YYYYMMDDHHMM`）
+       - 若允许写入：在用户选中后更新 `_current.md` 指针（必要时先创建）
 
 1.1 **方案包快速校验（推荐默认）**
    - 若存在 `HAGSWorks/scripts/validate-plan-package.ps1`：对选中的方案包运行一次完整性校验（`-Mode plan`）

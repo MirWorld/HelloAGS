@@ -385,6 +385,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol
   "current_pointer_file: HAGSWorks/plan/_current.md"
   "current_pointer_key: current_package"
   "current_marker: （current）"
+  "list_current_first: true"
+  "list_sort: timestamp_desc"
+  "list_timestamp_source: dirname_prefix_YYYYMMDDHHMM"
+  "list_tiebreaker: dirname_desc"
   "</resume_package_selection_contract>"
   "<!-- CONTRACT: resume-current-package-pointer v1 -->"
 )
