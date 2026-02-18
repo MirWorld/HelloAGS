@@ -121,6 +121,12 @@ IF 不满足任何条件:
 
 读取 `plan/YYYYMMDDHHMM_<feature>/task.md`、`why.md` 和 `how.md`
 
+### 步骤4.0.1: 已完成方案包硬停（防误触发重复执行）
+
+在任何“改代码/跑门禁/执行 verify_min”之前，先基于 `task.md` 做一次完成态判定：
+- 若 `task.md` 中所有任务均为 `[√]` 或 `[-]`，且 `### 待用户输入（Pending）` 为空：判定方案包已完成；**禁止继续执行**。
+- 下一步：按 `references/plan-lifecycle.md` 迁移到 history/ 并清空 `HAGSWorks/plan/_current.md`；若本轮 `write_scope=no_write` 则只输出“已完成/无需续作”，等待新需求或等待用户允许归档。
+
 ### 步骤4.0: 触发器与检查清单（写代码前必做）
 
 目标：把“开工前检查/跨层一致性/复用去重/收尾”做成可重复动作，减少遗漏、返工与耦合回潮。
