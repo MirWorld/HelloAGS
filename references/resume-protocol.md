@@ -31,6 +31,15 @@
 1. **定位方案包**
    - 优先使用已知 `CURRENT_PACKAGE/CREATED_PACKAGE`（如会话中可得）
 
+   <!-- CONTRACT: resume-package-selection v1 -->
+   <resume_package_selection_contract>
+   version: 1
+   plan_scan_dirs_only: true
+   current_pointer_file: HAGSWorks/plan/_current.md
+   current_pointer_key: current_package
+   current_marker: （current）
+   </resume_package_selection_contract>
+
    <!-- CONTRACT: resume-current-package-pointer v1 -->
    - 否则检查 `${PROJECT_ROOT}/HAGSWorks/plan/_current.md`（若存在）：
      - 读取其中的 `current_package: ...` 路径；若为空则视为不存在
@@ -40,8 +49,8 @@
 
    - 否则扫描 `${PROJECT_ROOT}/HAGSWorks/plan/`（只看目录；忽略 `_current.md` 等文件）：
      - 0 个：提示用户先 `~plan` 创建方案
-     - 1 个：直接选中
-     - 多个：列出清单让用户选（禁止擅自猜）；若允许写入，则在用户选中后更新 `_current.md` 指针
+     - 1 个：直接选中；若允许写入，则更新 `_current.md` 指针（必要时先创建；自愈）
+     - 多个：列出清单让用户选（禁止擅自猜）；如 `_current.md` 指向其中一个包，则在列表中标注 `（current）`；若允许写入，则在用户选中后更新 `_current.md` 指针（必要时先创建）
 
 1.1 **方案包快速校验（推荐默认）**
    - 若存在 `HAGSWorks/scripts/validate-plan-package.ps1`：对选中的方案包运行一次完整性校验（`-Mode plan`）

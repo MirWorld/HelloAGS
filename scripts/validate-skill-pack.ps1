@@ -380,6 +380,12 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "develop/SKILL.md" -needles
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol.md" -needles @(
   "<!-- CONTRACT: resume-no-redo v1 -->"
+  "<!-- CONTRACT: resume-package-selection v1 -->"
+  "<resume_package_selection_contract>"
+  "current_pointer_file: HAGSWorks/plan/_current.md"
+  "current_pointer_key: current_package"
+  "current_marker: （current）"
+  "</resume_package_selection_contract>"
   "<!-- CONTRACT: resume-current-package-pointer v1 -->"
 )
 

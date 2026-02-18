@@ -52,6 +52,25 @@ function Strip-FencedCodeBlocks([string]$text) {
   return ([regex]::Replace($text, '(?ms)```.*?```|~~~.*?~~~', ''))
 }
 
+function Strip-HtmlComments([string]$text) {
+  if ($null -eq $text) {
+    return ""
+  }
+  return ([regex]::Replace($text, '(?ms)<!--.*?-->', ''))
+}
+
+function Get-MarkdownSectionBody([string]$text, [string]$headingRegex) {
+  if ($null -eq $text) {
+    return ""
+  }
+  $pattern = '(?ms)^\s*' + $headingRegex + '\s*$\r?\n(?<body>.*?)(?=^\s*#{2,6}\s+|\z)'
+  $m = [regex]::Match($text, $pattern)
+  if ($m.Success) {
+    return $m.Groups["body"].Value
+  }
+  return ""
+}
+
 function Text-HasAll([string]$text, [string[]]$needles) {
   foreach ($needle in $needles) {
     if ($text -notmatch [regex]::Escape($needle)) {
@@ -141,19 +160,38 @@ foreach ($pkg in $packages) {
     }
 
     if ($fileName -eq "how.md") {
-      if ($text -notmatch '(?m)verify_min\\s*[:：]\\s*\\S') {
+      if ($text -notmatch '(?m)verify_min\s*[:：]\s*\S') {
         Add-Error "package '${pkgName}' how.md missing verify_min (expected a line like: verify_min: <command/steps>)"
       } else {
         $textNoCode = Strip-FencedCodeBlocks $text
-        if ($Mode -eq "exec" -and $textNoCode -match '(?mi)verify_min\\s*[:：]\\s*unknown\\b') {
+        if ($Mode -eq "exec" -and $textNoCode -match '(?mi)verify_min\s*[:：]\s*unknown\b') {
           Add-Error "package '${pkgName}' how.md verify_min is unknown (exec mode requires a runnable verify_min)"
         }
       }
     }
 
     if ($fileName -eq "task.md") {
-      if ($text -notmatch [regex]::Escape("- [ ]")) {
-        Add-Error "package '${pkgName}' task.md has no task items (- [ ])"
+      $textNoCode = Strip-FencedCodeBlocks $text
+      $taskItemAnyPattern = '(?m)^\s*-\s*\[(?:\s|√|X|-|\?)\]\s+'
+      $taskItemOpenPattern = '(?m)^\s*-\s*\[\s\]\s+'
+
+      if ($textNoCode -notmatch $taskItemAnyPattern) {
+        Add-Error "package '${pkgName}' task.md has no task items (- [ ]/[√]/[X]/[-]/[?])"
+      }
+
+      if ($Mode -eq "exec") {
+        if ($textNoCode -notmatch $taskItemOpenPattern) {
+          Add-Error "package '${pkgName}' task.md has no pending tasks (- [ ]) (exec mode requires at least one pending task). If you need follow-up work, add a Delta to ## 上下文快照 and create a new - [ ] task."
+        }
+
+        $pendingBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '###\s*待用户输入（Pending）'
+        $pendingBody = Strip-HtmlComments $pendingBody
+        $pendingLines = $pendingBody -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        # Backward compatible: ignore template-like placeholder TODO lines that still contain ellipsis.
+        $pendingLines = $pendingLines | Where-Object { -not (($_ -match '^\-\s*\[SRC:TODO\]') -and (($_ -match '…') -or ($_ -match '\.\.\.'))) }
+        if ($pendingLines.Count -gt 0) {
+          Add-Error "package '${pkgName}' task.md has unresolved Pending items (exec mode requires Pending to be empty)"
+        }
       }
     }
   }
