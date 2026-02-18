@@ -58,6 +58,7 @@
 3. **Constraints（已确认约束）**：只写 `[SRC:USER|CODE]` 可追溯约束
 4. **Failure（如有）**：1–3 行错误摘要 + 已尝试 1–2 条（`[SRC:TOOL]`）
 5. **Assumptions（如有）**：只能进入“待确认/假设”区（`[SRC:INFER][置信度]`）
+6. （推荐）**Repo 状态**：记录 `branch/head/diffstat` 的最小戳（用于识别“包外改动/状态漂移”，避免断层续作误重做）
 
 固定格式与来源标签规则：见 `references/context-snapshot.md`。
 

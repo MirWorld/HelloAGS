@@ -37,6 +37,9 @@
 - [SRC:CODE] …
 - [SRC:TOOL] …
 
+### Repo 状态（复现/防漂移，推荐）
+- [SRC:TOOL] repo_state: branch=... head=... dirty=... diffstat=...
+
 ### 用户原话（验收/约束/偏好）
 - [SRC:USER] “...”
 

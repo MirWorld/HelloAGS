@@ -82,6 +82,9 @@
 - [SRC:CODE] …
 - [SRC:TOOL] …
 
+### Repo 状态（复现/防漂移，推荐）
+- [SRC:TOOL] repo_state: branch=... head=... dirty=... diffstat=...
+
 ### 错误与尝试（防重复，按需）
 
 | 错误/症状 | 尝试 | 结果/证据 | 结论（避免重复） |

@@ -74,6 +74,7 @@ IF 不满足任何条件:
      - 用户输入有效序号(1-N) → 设置CURRENT_PACKAGE，继续执行（并更新 `_current.md` 指针）
      - 用户输入取消/拒绝 → 按G6.2输出取消格式，流程终止
      - 无效输入 → 再次询问
+     - 如用户明确要求“列出让我选/我要换一个包”：即使 `_current.md` 有效也进入该选择流程；并在列表中对指针命中的项追加标记 `（current）`
 
 异常输出示例:
   方案包不存在:
@@ -173,6 +174,7 @@ IF 不满足任何条件:
 
 执行方式（按需读取细则）：`../references/context-snapshot.md`
 - 当出现“上下文预算风险”（工具调用密集/排查分叉/可能中断）：先按 `../references/context-budget.md` 写一次检查点快照（Workset + 下一步唯一动作），再继续推进
+- （推荐默认）写检查点时记录一次 **Repo 状态最小戳**（`branch/head/diffstat`）：用于识别“包外改动/状态漂移”，降低断层续作误重做概率
 - 确认 `task.md` 存在 `## 上下文快照` 章节（缺失则创建）
 - 在以下触发点追加/更新快照（不要求重写整段）：
   - 关键决策点（技术路径、模块落点、重构范围、降级策略）
@@ -498,7 +500,7 @@ next_unique_action: "等待用户输入序号 1-2"
 检测到多个方案包，请选择执行目标:
 
 [1] YYYYMMDDHHMM_<feature1> - [概要描述]
-[2] YYYYMMDDHHMM_<feature2> - [概要描述]
+[2] YYYYMMDDHHMM_<feature2> - [概要描述]（current）
 [3] YYYYMMDDHHMM_<feature3> - [概要描述]
 
 ────
