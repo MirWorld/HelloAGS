@@ -39,6 +39,7 @@
 
 ### Repo 状态（复现/防漂移，推荐）
 - [SRC:TOOL] repo_state: branch=... head=... dirty=... diffstat=...
+<!-- 推荐采集: git rev-parse --abbrev-ref HEAD / git rev-parse --short HEAD / git status --porcelain / git diff --stat -->
 
 ### 用户原话（验收/约束/偏好）
 - [SRC:USER] “...”

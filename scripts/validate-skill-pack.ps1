@@ -239,15 +239,15 @@ function Assert-InteractiveWaitContracts([string]$repoRoot, [string[]]$trackedFi
 function Assert-NoDeprecatedTerms([string]$repoRoot, [string[]]$trackedFiles) {
   $mdFiles = $trackedFiles | Where-Object { $_.ToLowerInvariant().EndsWith(".md") }
 
-  # Avoid embedding deprecated terms as plain text in this repo (keeps grep clean),
-  # but still block reintroduction into docs.
+  # Prefer SSOT terminology (see references/terminology.md).
+  # Keep this as a warning (not a hard fail) to avoid brittle prose gating.
   $deprecated = ([char]0x6F02) + ([char]0x79FB) + ([char]0x6821) + ([char]0x9A8C)
 
   foreach ($md in $mdFiles) {
     $fullMd = Join-Path $repoRoot (Normalize-RelativePath $md)
     $text = Get-Content -LiteralPath $fullMd -Raw
     if ($text -match [regex]::Escape($deprecated)) {
-      Fail "Deprecated term found in ${md}. Please follow 'references/terminology.md'."
+      Info "WARN: Deprecated term found in ${md}. Please follow 'references/terminology.md'."
     }
   }
 }

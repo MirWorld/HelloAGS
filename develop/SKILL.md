@@ -70,7 +70,7 @@ IF 不满足任何条件:
    - 不存在方案包 → 按G6.2输出错误格式并停止
    - 方案包不完整 → 按G6.2输出错误格式并停止
    - 单个完整方案包 → 设置CURRENT_PACKAGE，继续执行（并更新 `_current.md` 指针）
-   - 多个方案包 → 列出清单，等待用户选择（排序规则同 `references/resume-protocol.md` 的 `<resume_package_selection_contract>`：`（current）` 置顶，其余按目录名时间戳前缀倒序）
+   - 多个方案包 → 先按 `references/resume-protocol.md` 的“唯一候选自动选包”规则尝试自动选；否则列出清单等待用户选择（排序规则同 `references/resume-protocol.md` 的 `<resume_package_selection_contract>`：`（current）` 置顶，其余按目录名时间戳前缀倒序）
      - 用户输入有效序号(1-N) → 设置CURRENT_PACKAGE，继续执行（并更新 `_current.md` 指针）
      - 用户输入取消/拒绝 → 按G6.2输出取消格式，流程终止
      - 无效输入 → 再次询问
@@ -101,8 +101,8 @@ IF 不满足任何条件:
     ```
 ```
 
-补充（可选但高收益，确定性校验）：
-- 如存在 `HAGSWorks/scripts/validate-plan-package.ps1`：优先运行对 `CURRENT_PACKAGE` 做完整性校验（执行域建议：`-Mode exec`，确保 `verify_min` 不是 `unknown`）；失败则停止并按G6.2输出“方案包不完整/校验失败”错误。
+补充（硬闸，存在即跑）：
+- 如存在 `HAGSWorks/scripts/validate-plan-package.ps1`：**必须**先对 `CURRENT_PACKAGE` 做完整性校验（执行域：`-Mode exec`，确保 `verify_min` 可运行且存在待执行任务）；失败则停止并按G6.2输出“方案包不完整/校验失败”错误。
 
 ### 步骤2: 检查知识库状态并处理
 

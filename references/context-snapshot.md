@@ -108,6 +108,14 @@
 - 下一步唯一动作: `…` 预期: …
 ```
 
+`repo_state` 推荐采集（只读命令；任意顺序均可）：
+- `branch`：`git rev-parse --abbrev-ref HEAD`
+- `head`：`git rev-parse --short HEAD`
+- `dirty`：`git status --porcelain`（非空=dirty）
+- `diffstat`：`git diff --stat`
+
+若不是 git 仓库或命令不可用：允许省略 `repo_state`，或在“待确认/假设”区标注 `[SRC:INFER][置信度: 中]` 并说明原因（不要编造）。
+
 **写作约束：**
 - 每个小节最多 3–5 条；宁可短而精，避免写成冗长复盘
 - “下一步唯一动作”必须可执行（命令/文件/任务编号），避免“继续排查”式空话
