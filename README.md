@@ -13,8 +13,9 @@
 ## 一分钟上手（复制即用）
 
 1. **安装**：把本仓库放到 Codex CLI 的 skills 搜索路径（例如 `~/.codex/skills/helloagents/`）
-2. **初始化**：在你的目标项目根目录对话中输入 `~init`（生成 `HAGSWorks/` 工作区骨架）
-   - 若你之前使用过旧目录名（历史拼写错误）`HAGWroks/`：执行 `~init` 会自动迁移为 `HAGSWorks/`
+2. （可选）**初始化**：在目标项目根目录对话中输入 `~init`（补齐 `HAGSWorks/` 工作区骨架；可反复执行，幂等）
+   - 若你直接提需求：在你未声明 `no_write` 的前提下，Skill 会在首次需要写入 `HAGSWorks/` 时自动补齐（无需你先手动 `~init`）
+   - 若你之前使用过旧目录名（历史拼写错误）`HAGWroks/`（错误拼写）：执行 `~init` 会自动迁移为 `HAGSWorks/`
 3. **直接开干**：在目标项目里直接提需求即可（默认 `~auto`；只想出方案用 `~plan`）
 4. （维护者可选）**自检**：修改本 Skill 后先跑 `pwsh -NoProfile -File ./scripts/validate-skill-pack.ps1`
 

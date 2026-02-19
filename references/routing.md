@@ -185,7 +185,9 @@ next_unique_action: "等待用户输入序号 1-3"
 - 按 `references/quickfix-protocol.md` 执行 Quick Fix 快路径（优先使用 quickfix 模板创建最小完整方案包）
 - 在 `task.md##上下文快照` 写一次检查点（Workset + 下一步唯一动作）后再开始改动
 - 按任务执行改动、验证、迁移到 history（执行细则：`develop/SKILL.md`）
-- 知识库缺失则只提示 `~init`（不创建）
+- 知识库缺失处理：
+  - 若 `write_scope != no_write` 且需要落盘（写 `HAGSWorks/`）：先**隐式执行一次 `~init`**（幂等补齐）再继续
+  - 若 `write_scope = no_write`：只提示 `~init` 会做什么（不创建）
 
 ### 4.2 轻量迭代（Light Iteration）
 条件（全部满足）：
@@ -223,6 +225,10 @@ next_unique_action: "等待用户输入序号 1-3"
 - `~auto/~helloauto/~fa`：全链路（需求分析→方案设计→开发实施）
 
 命令确认/输出格式：遵循 `templates/output-format.md`（G6.1–G6.4）。
+
+补充（无感，推荐默认）：当命令/流程需要写入 `HAGSWorks/`，但 `HAGSWorks/` 缺失时：
+- 若 `write_scope != no_write`：先隐式执行一次 `~init`（幂等补齐）再继续
+- 若 `write_scope = no_write`：按第 2.3 节“命令与写入范围冲突裁决”阻断并让用户裁决
 
 ---
 

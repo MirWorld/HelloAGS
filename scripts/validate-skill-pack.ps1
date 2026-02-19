@@ -311,6 +311,7 @@ Assert-NoDeprecatedTerms -repoRoot $repoRoot -trackedFiles $tracked
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @("<output_format>", "<exception_output_format>")
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @(
   "<helloagents_state>",
+  "回复契约:",
   "version:",
   "mode:",
   "phase:",

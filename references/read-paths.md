@@ -107,7 +107,7 @@
 
 ## 6) 续作/断层恢复（用户说“继续/接着/上次…”）
 
-同样适用：检测到模型切换/明显 reroute、或出现“输出不完整/压缩异常”（例如 `response.incomplete`）导致你无法稳定解释当前进度。
+同样适用：检测到模型切换/明显 reroute（例如收到 `model/rerouted` 通知）、或出现“输出不完整/压缩异常”（例如 `response.incomplete`）导致你无法稳定解释当前进度。
 
 读取：
 - `references/resume-protocol.md`
