@@ -236,6 +236,11 @@ function Assert-InteractiveWaitContracts([string]$repoRoot, [string[]]$trackedFi
         Fail "Interactive wait state invalid in ${md}: awaiting_kind must be a single value (got '$($kv["awaiting_kind"])')"
       }
       Assert-OptionsSubset -md $md -key "awaiting_kind" -options $kindOpts -allowed $allowedAwaitingKinds
+
+      $nextAction = Normalize-StateValue $kv["next_unique_action"]
+      if ([string]::IsNullOrWhiteSpace($nextAction)) {
+        Fail "Interactive wait state invalid in ${md}: next_unique_action must be non-empty"
+      }
     }
   }
 }
