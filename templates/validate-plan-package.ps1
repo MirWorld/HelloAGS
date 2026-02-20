@@ -84,6 +84,7 @@ $report = [ordered]@{
   tool = "validate-plan-package"
   ok = $true
   project_root = ""
+  git_root = ""
   plan_root = ""
   mode = $Mode
   checked_packages = @()
@@ -100,8 +101,16 @@ function Emit-Json() {
 }
 
 $projectRoot = Get-ProjectRoot
+$gitRoot = $null
+try {
+  Push-Location $projectRoot
+  $gitRoot = Get-GitRoot
+} finally {
+  Pop-Location
+}
 $planRootFull = (Join-Path $projectRoot $PlanRoot)
 $report.project_root = $projectRoot
+$report.git_root = $gitRoot
 $report.plan_root = $planRootFull
 
 if (-not (Test-Path -LiteralPath $planRootFull)) {
@@ -182,6 +191,33 @@ foreach ($pkg in $packages) {
       if ($Mode -eq "exec") {
         if ($textNoCode -notmatch $taskItemOpenPattern) {
           Add-Error "package '${pkgName}' task.md has no pending tasks (- [ ]) (exec mode requires at least one pending task). If you need follow-up work, add a Delta to ## 上下文快照 and create a new - [ ] task."
+        }
+
+        if ($gitRoot) {
+          $repoBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '###\s*Repo\s*状态.*'
+          $repoBody = Strip-HtmlComments $repoBody
+          $repoLines = $repoBody -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+          $repoStateLines = $repoLines | Where-Object { $_ -match '(?i)\brepo_state\s*[:：]\s*\S' }
+          if ($repoStateLines.Count -eq 0) {
+            Add-Error "package '${pkgName}' task.md missing repo_state checkpoint under '### Repo 状态' (exec mode requires repo_state when git is available)"
+          } else {
+            $okRepoState = $false
+            foreach ($line in $repoStateLines) {
+              $looksPlaceholder = [regex]::IsMatch($line, '(?i)\b(?:branch|head|dirty|diffstat)\s*=\s*(?:\.{3}|…)\b')
+              if ($looksPlaceholder) {
+                continue
+              }
+              $hasHead = [regex]::IsMatch($line, '(?i)\bhead\s*=\s*\S+')
+              $hasDirty = [regex]::IsMatch($line, '(?i)\bdirty\s*=\s*\S+')
+              if ($hasHead -and $hasDirty) {
+                $okRepoState = $true
+                break
+              }
+            }
+            if (-not $okRepoState) {
+              Add-Error "package '${pkgName}' task.md repo_state looks like a template placeholder or missing head/dirty (exec mode requires a concrete repo_state). Expected a line like: repo_state: branch=<name> head=<sha> dirty=<true/false> diffstat=<...>"
+            }
+          }
         }
 
         $pendingBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '###\s*待用户输入（Pending）'

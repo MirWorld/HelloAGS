@@ -34,6 +34,8 @@
 
 补充：当出现“上下文预算风险”（工具调用密集/排查分叉/可能中断）时，按 `references/context-budget.md` 进入 Yellow/Red，并优先写一次**检查点（Checkpoint）**，确保可续作。
 
+补充（推荐默认，执行域强制）：当处于执行域（`~exec`/`~auto` 且 `write_scope != no_write`）并且 git 可用时，**每次写检查点快照都应包含 `### Repo 状态` 的 `repo_state:` 行**（`branch/head/dirty/diffstat`）。缺失会显著提高断层续作“重复执行/二次修改”的概率。
+
 ---
 
 ## 3) 来源标签（防止“写错固化”）

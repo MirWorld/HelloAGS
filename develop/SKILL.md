@@ -174,7 +174,7 @@ IF 不满足任何条件:
 
 执行方式（按需读取细则）：`../references/context-snapshot.md`
 - 当出现“上下文预算风险”（工具调用密集/排查分叉/可能中断）：先按 `../references/context-budget.md` 写一次检查点快照（Workset + 下一步唯一动作），再继续推进
-- （推荐默认）写检查点时记录一次 **Repo 状态最小戳**（`branch/head/diffstat`）：用于识别“包外改动/状态漂移”，降低断层续作误重做概率
+- （执行域强制）写检查点时记录一次 **Repo 状态最小戳**（`branch/head/dirty/diffstat`）：用于识别“包外改动/状态漂移”，降低断层续作误重做概率（按 `../references/context-snapshot.md` 的 `repo_state:` 格式）
 - 确认 `task.md` 存在 `## 上下文快照` 章节（缺失则创建）
 - 在以下触发点追加/更新快照（不要求重写整段）：
   - 关键决策点（技术路径、模块落点、重构范围、降级策略）

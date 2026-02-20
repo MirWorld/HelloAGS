@@ -127,10 +127,19 @@
      - 只信带 `[SRC:CODE]` 指针的条目
      - 需要时用 `rg` 反查 symbol，校验指针未漂移（细则见 `references/active-context.md`）
 
-7. **对齐真实代码状态**
-   - `git status` / `git diff --stat`：确认实际改动面
-   - （如适用）若 `task.md##上下文快照` 中包含 `### Repo 状态`：对比当前 Repo 状态；如出现“包外改动/状态漂移”，先按 Feedback-Delta 规则写 Delta 到快照，再决定是否需要新增任务/新建方案包
-   - 若与 `task.md` 状态不一致：在 `task.md##上下文快照` 记录一次“纠偏检查点”（标注来源）
+7. **对齐真实代码状态（Repo State 双证据，推荐默认）**
+   - 采集当前 `repo_state`（只读命令，建议按统一格式写入快照）：
+     - `git rev-parse --abbrev-ref HEAD`
+     - `git rev-parse --short HEAD`
+     - `git status --porcelain`
+     - `git diff --stat`
+   - 若 `task.md##上下文快照` 中已存在 `### Repo 状态` 的 `repo_state:`：对比当前与快照中的最近一次 `repo_state`
+     - 一致 → 继续
+     - 不一致（包外改动/状态漂移/执行进度未落盘）→ 在允许写入时先追加一条“纠偏检查点”到快照（`[SRC:TOOL] repo_state: ...` + 影响 + 下一步唯一动作），再决定是否需要新增任务/新建方案包（按 Feedback-Delta）
+   - 若快照缺失 `repo_state:`：
+     - 若允许写入（`write_scope != no_write`）：立即补一条 `[SRC:TOOL] repo_state: ...` 作为检查点（减少下次续作误重做）
+     - 若不允许写入（`write_scope = no_write`）：在本轮输出中标注“repo_state 缺失”，并将“补 repo_state”作为下一步唯一动作（等待允许写入）
+   - 若发现 `task.md` 的任务状态与当前代码事实/工具证据明显不一致：在 `task.md##上下文快照` 记录一次“纠偏检查点”（标注来源），禁止凭感觉继续
 
 ---
 
