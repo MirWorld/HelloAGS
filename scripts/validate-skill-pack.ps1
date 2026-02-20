@@ -191,12 +191,16 @@ function Assert-InteractiveWaitContracts([string]$repoRoot, [string[]]$trackedFi
     $fullMd = Join-Path $repoRoot (Normalize-RelativePath $md)
     $text = Get-Content -LiteralPath $fullMd -Raw
 
-    $matches = [regex]::Matches($text, $statePattern)
-    if ($matches.Count -eq 0) {
+    $stateMatches = [regex]::Matches($text, $statePattern)
+    if ($stateMatches.Count -eq 0) {
       continue
     }
 
-    foreach ($m in $matches) {
+    if (-not ([regex]::IsMatch($text, [regex]::Escape("回复契约:")))) {
+      Fail "Interactive wait state invalid in ${md}: missing '回复契约:' (reply contract). Any file with <helloagents_state> must include a reply contract line."
+    }
+
+    foreach ($m in $stateMatches) {
       $body = $m.Groups["body"].Value
       $kv = Parse-StateBlock $body
 
