@@ -34,7 +34,7 @@
 
 | Claude Hook（概念） | helloagents 等价锚点（必须做） | 必读文件（最小集合） | 必须落盘（最小） | 停止条件（避免无限加戏） |
 |---|---|---|---|---|
-| SessionStart（会话启动） | 若是续作/不确定：按恢复协议重建进度；否则只做最小环境确认 | `references/resume-protocol.md`、`references/read-paths.md` | `task.md##上下文快照`：Workset + 下一步唯一动作（必要时） | 3 分钟内恢复到“下一步唯一动作” |
+| SessionStart（会话启动） | 若是续作/不确定，或检测到 `model/rerouted` / `response.incomplete`：按恢复协议重建进度；否则只做最小环境确认 | `references/resume-protocol.md`、`references/read-paths.md` | `task.md##上下文快照`：Workset + 下一步唯一动作（必要时） | 3 分钟内恢复到“下一步唯一动作” |
 | UserPromptSubmit（用户提交问题） | **先路由**：命令/等待回复/只给方案/执行缺方案包/EHRB → 命中即阻断 | `references/routing.md`、`templates/output-format.md` | 需要等待用户时：写 `Pending` + 输出末尾 `<helloagents_state>` | 路由明确且下一步唯一动作清晰 |
 | PreToolUse（执行工具前） | 规划域只读；执行域先写执行域声明；失败走 Fail→Narrow | `references/command-policy.md`、`references/execution-guard.md` | `task.md##上下文快照`：决策（Allow/Deny/NewFiles/Refactor）+ 下一步唯一动作 | 边界清晰、命令分级清晰、可验证动作已绑定 |
 | Stop（任务结束） | 收尾清单 + 两段式 Review + 统一输出；必要时迁移 history | `references/finish-checklist.md`、`references/review-protocol.md`、`templates/output-format.md` | `task.md##Review 记录`：门禁证据；`task.md##上下文快照`：最终检查点 | 输出包含：改动了什么/在哪里/验证结果 |
@@ -94,4 +94,3 @@ Claude 用 Hook 强制“先评估技能再实现”。helloagents 的等价实�
 - **制度化的核心 SSOT 在方案包/知识库/代码事实**（见 `references/context-snapshot.md`）
 - “hooks/外壳脚本/CI”最多是辅助门禁与提示，不允许成为唯一依赖
 - 一切机制最终必须收敛到：下一步唯一动作 + 可复现证据 + 可恢复进度
-

@@ -13,7 +13,7 @@
 1. 创建最小完整方案包（why/how/task）并声明执行域（Allow/Deny/回滚/最小验证）
 2. 仅修改目标文件（避免无关重构）
 3. 如存在 `HAGSWorks/wiki/modules/utils.md`：补充/更新对应规范或变更历史
-4. 如知识库缺失：提示建议执行 `~init`（不在本次任务中强制创建）
+4. 如知识库缺失：若本次需要写入 `HAGSWorks/` 且 `write_scope != no_write`，先隐式执行一次 `~init`（幂等补齐）再继续；`write_scope = no_write` 则只提示不创建
 
 ## 输出示例（使用 templates/output-format.md）
 ```
