@@ -193,6 +193,40 @@ foreach ($pkg in $packages) {
           Add-Error "package '${pkgName}' task.md has no pending tasks (- [ ]) (exec mode requires at least one pending task). If you need follow-up work, add a Delta to ## 上下文快照 and create a new - [ ] task."
         }
 
+        $nextBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '###\s*下一步唯一动作.*'
+        $nextBody = Strip-HtmlComments $nextBody
+        $nextLines = $nextBody -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        $nextActionLines = $nextLines | Where-Object { $_ -match '下一步唯一动作\s*[:：]\s*\S' }
+        if ($nextActionLines.Count -eq 0) {
+          Add-Error "package '${pkgName}' task.md missing next_unique_action under '### 下一步唯一动作' (exec mode requires a concrete next_unique_action)"
+        } else {
+          $okNextAction = $false
+          foreach ($line in $nextActionLines) {
+            $m = [regex]::Match($line, '下一步唯一动作\s*[:：]\s*(?<rest>.+)$')
+            if (-not $m.Success) {
+              continue
+            }
+
+            $rest = $m.Groups["rest"].Value.Trim()
+            if ([string]::IsNullOrWhiteSpace($rest)) {
+              continue
+            }
+
+            $isEllipsisOnly = [regex]::IsMatch($rest, '^(?:`)?\s*(?:\.{3}|…)\s*(?:`)?\s*$')
+            $hasBacktickedEllipsis = [regex]::IsMatch($rest, '`\s*(?:\.{3}|…)\s*`')
+            if ($isEllipsisOnly -or $hasBacktickedEllipsis) {
+              continue
+            }
+
+            $okNextAction = $true
+            break
+          }
+
+          if (-not $okNextAction) {
+            Add-Error "package '${pkgName}' task.md next_unique_action looks like a template placeholder (exec mode requires a concrete next_unique_action). Expected a line like: 下一步唯一动作: `<command>` 预期: ..."
+          }
+        }
+
         if ($gitRoot) {
           $repoBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '###\s*Repo\s*状态.*'
           $repoBody = Strip-HtmlComments $repoBody
