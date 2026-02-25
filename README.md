@@ -50,6 +50,19 @@
 - `非目标：不要顺手重构，只改最小必要处`
 - `先停一下：列出你准备改的文件，我确认后再继续`
 
+补充：无论你是 Enter 立即发送，还是 Tab 排队注入，这类“中途追加约束/非目标/范围收口”都会被当作 **Feedback‑Delta** 处理，并以 `[SRC:USER]` 原话落到 `task.md##上下文快照`（避免对话被压缩后丢失，导致跑偏或重复修改）。
+
+## 模型切换 / 输出不完整（无感防重做）
+
+Codex 偶尔会出现两类高风险信号：
+- `model/rerouted`：模型被重定向/以不同模型继续
+- `response.incomplete`：输出不完整
+
+本 Skill 的处理策略是“先落盘证据、再续作”，避免在不确定状态下继续执行导致重做/二次修改：
+- 把信号结构化写入 `task.md##上下文快照`（例如：`- [SRC:TOOL] model_event: model_rerouted|response_incomplete`）
+- 先按 `references/resume-protocol.md` 对齐磁盘事实（尤其是 `repo_state` 双证据），再继续推进
+- 若出现 `response.incomplete`：进入 `~exec` 前必须先追加新的恢复检查点（至少包含 `repo_state:` 与 `下一步唯一动作:`），否则校验会阻止执行（防止断层误重做）
+
 ## Features（你会得到什么）
 
 - 需求对齐：6 槽 Intent Model + 假设账本 + `why.md##对齐摘要`（防跑偏/防返工）

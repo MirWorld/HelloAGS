@@ -304,6 +304,38 @@ foreach ($pkg in $packages) {
           }
         }
 
+        # High-risk runtime signals: response.incomplete should hard-stop execution until a recovery checkpoint exists.
+        $snapshotBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '##\s*上下文快照'
+        $snapshotBody = Strip-HtmlComments $snapshotBody
+        if (-not [string]::IsNullOrWhiteSpace($snapshotBody)) {
+          $eventMatches = [regex]::Matches($snapshotBody, '(?im)^\s*-\s*\[SRC:TOOL\]\s*model_event\s*[:：]\s*(?<kind>\S+)(?:\s+#.*)?\s*$')
+          if ($eventMatches.Count -gt 0) {
+            $lastIncomplete = $null
+            foreach ($m in $eventMatches) {
+              $kind = $m.Groups["kind"].Value.Trim("`", '"', "'", ",", ";")
+              if ($kind -match '(?i)^response[._]incomplete\b') {
+                $lastIncomplete = $m
+              }
+            }
+
+            if ($lastIncomplete) {
+              $after = ""
+              try {
+                $start = [Math]::Min($snapshotBody.Length, $lastIncomplete.Index + $lastIncomplete.Length)
+                $after = $snapshotBody.Substring($start)
+              } catch {
+                $after = ""
+              }
+
+              $hasRepoAfter = ($after -match '(?im)\brepo_state\s*[:：]\s*\S')
+              $hasNextAfter = ($after -match '(?im)下一步唯一动作\s*[:：]\s*\S')
+              if (-not ($hasRepoAfter -and $hasNextAfter)) {
+                Add-Error "package '${pkgName}' task.md contains model_event: response_incomplete but has no recovery checkpoint after it. Add a new repo_state + next_unique_action AFTER the response_incomplete event before entering exec mode."
+              }
+            }
+          }
+        }
+
         $pendingBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '###\s*待用户输入（Pending）'
         $pendingBody = Strip-HtmlComments $pendingBody
         $pendingLines = $pendingBody -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }

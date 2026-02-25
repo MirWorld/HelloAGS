@@ -69,6 +69,21 @@
 - `### 待用户输入（Pending）` 必须为空（否则视为仍在等待态，不得继续执行）
 - git 可用时：`### Repo 状态` 下必须有非占位的 `repo_state: ... head=<sha> dirty=<true/false> ...`
 
+### 3.1 上下文快照的运行时/模型事件（结构化，可选）
+
+为降低“续作/压缩/异常后重复执行”的概率，允许在 `task.md##上下文快照` 中记录**结构化事件**：
+
+- 建议使用键：`model_event: <kind>`（该键名属于公共 API；不校验自然语言文案）
+- 建议放在可选小节：`### 运行时/模型事件（可选）`
+- 建议来源标签：`[SRC:TOOL]`（因为它来自 CLI/UI/工具链信号）
+
+`<kind>` 建议使用下列稳定枚举（推荐默认）：
+- `model_rerouted`：对应 Codex 的 `model/rerouted`（模型被重定向/以不同模型继续）
+- `response_incomplete`：对应 Codex 的 `response.incomplete`（输出不完整；属于高风险信号）
+
+执行域门禁（`-Mode exec`）的高风险约束：
+- 若快照中出现 `model_event: response_incomplete`，则必须在其**之后**追加一条“恢复检查点”（至少包含 `repo_state:` 与 `下一步唯一动作:`）；否则不得继续执行（防止在不确定状态下重做/二次修改）。
+
 ---
 
 ## 4) 当前方案包指针：`HAGSWorks/plan/_current.md`
@@ -100,4 +115,3 @@ Public API 条目的指针格式属于公共 API：
 - 可选行号：`path:line symbol` 或 `path#Lline symbol`
 
 来源：`templates/validate-active-context.ps1`（loose/strict 校验）。
-

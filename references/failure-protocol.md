@@ -88,3 +88,9 @@ next_unique_action: "等待用户输入序号 1-3"
 - 写入 `task.md##上下文快照`（记录异常信号 + 已尝试/结论）
 - 按 `references/resume-protocol.md` 执行断层恢复（先重建进度/No-Redo 判定，再决定是否继续）
 
+推荐记录格式（结构化，不绑定文案）：
+- [SRC:TOOL] model_event: response_incomplete   # 对应 Codex 的 response.incomplete（高风险）
+- [SRC:TOOL] model_event: model_rerouted        # 对应 Codex 的 model/rerouted（模型被重定向）
+
+高风险硬规则：若出现 `model_event: response_incomplete`，在进入执行域（改代码/跑门禁）前必须先追加新的恢复检查点（至少包含 `repo_state:` 与 `下一步唯一动作:`），否则视为不确定状态，禁止继续执行（防止断层后重做/二次修改）。
+

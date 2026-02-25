@@ -374,6 +374,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/terminology.md"
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -needles @(
   "<!-- CONTRACT: protocol-api v1 -->",
   "<helloagents_state>",
+  "model_event:",
   "HAGSWorks/plan/_current.md"
 )
 
@@ -412,6 +413,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapshot.md" -needles @(
   "### 错误与尝试",
+  "model_event:",
   "### Repo 状态",
   "### 待用户输入（Pending）",
   "### 下一步唯一动作",
@@ -425,6 +427,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quickfix-protoc
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-quickfix-template.md" -needles @(
   "## 上下文快照",
+  "model_event:",
   "### Repo 状态",
   "### 待用户输入（Pending）",
   "### 错误与尝试",
@@ -450,6 +453,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quality-gates.m
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-template.md" -needles @(
   "### 错误与尝试",
+  "model_event:",
   "### Repo 状态",
   "### 待用户输入（Pending）",
   "### 下一步唯一动作",

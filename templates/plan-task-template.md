@@ -86,6 +86,9 @@
 - [SRC:TOOL] repo_state: branch=... head=... dirty=... diffstat=...
 <!-- 推荐采集: git rev-parse --abbrev-ref HEAD / git rev-parse --short HEAD / git status --porcelain / git diff --stat -->
 
+### 运行时/模型事件（可选）
+<!-- 仅在 UI/工具提示出现时记录（结构化）：- [SRC:TOOL] model_event: model_rerouted / response_incomplete -->
+
 ### 错误与尝试（防重复，按需）
 
 提示：若遇到“输出不完整/压缩或续作异常”（例如 `response.incomplete`、工具输出被截断），先按失败协议记录证据并执行断层恢复（避免重复修改与越界）。
