@@ -78,12 +78,12 @@
 - [SRC:CODE] ……
 - [SRC:TOOL] ……
 
-### Repo 状态（复现/防漂移，推荐）
-- [SRC:TOOL] repo_state: branch=... head=... dirty=... diffstat=...
-
 ### 运行时/模型事件（可选，结构化）
 - [SRC:TOOL] model_event: model_rerouted
 - [SRC:TOOL] model_event: response_incomplete
+
+### Repo 状态（复现/防漂移，推荐）
+- [SRC:TOOL] repo_state: branch=... head=... dirty=... diffstat=...
 
 ### 用户原话（验收/约束/偏好）
 - [SRC:USER] “……”

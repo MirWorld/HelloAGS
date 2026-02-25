@@ -82,12 +82,12 @@
 - [SRC:CODE] …
 - [SRC:TOOL] …
 
+### 运行时/模型事件（可选）
+<!-- 仅在 UI/工具提示出现时记录（结构化）：- [SRC:TOOL] model_event: model_rerouted / response_incomplete -->
+
 ### Repo 状态（复现/防漂移，执行域必填）
 - [SRC:TOOL] repo_state: branch=... head=... dirty=... diffstat=...
 <!-- 推荐采集: git rev-parse --abbrev-ref HEAD / git rev-parse --short HEAD / git status --porcelain / git diff --stat -->
-
-### 运行时/模型事件（可选）
-<!-- 仅在 UI/工具提示出现时记录（结构化）：- [SRC:TOOL] model_event: model_rerouted / response_incomplete -->
 
 ### 错误与尝试（防重复，按需）
 

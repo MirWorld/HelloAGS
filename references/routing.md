@@ -20,9 +20,17 @@
    - `helloagents_only`：允许写 `HAGSWorks/` 工作区（方案包/知识库），**禁止进入开发实施（改业务代码）**
    - `code_write`：按正常流程推进（仍受“执行入口=完整方案包/执行域护栏/质量门禁”约束）
    - 重要：`write_scope` 是上位约束，适用于所有模式（含命令模式）。命令只决定“走哪条流程”，不允许绕过写入范围。
-3. **包含 `~` 命令** → 进入命令模式；但仍必须遵守 `write_scope`，如冲突则阻断并请求裁决（见第 2.3 节）
-4. **目标路由为开发实施/执行，但缺少可执行方案包** → 输出错误并路由回 `~plan`/方案设计
-5. **EHRB 风险信号未确认** → 必须先停下做风险确认，再决定是否继续（见 `references/safety.md`）
+3. **运行时异常信号未闭环**（模型切换/输出不完整/降级提示）→ 先落盘证据与恢复检查点，再继续  
+   - 触发信号（启发式，避免绑定具体措辞；命中任一即可）：  
+     - 看到 `model/rerouted`（或 “routed … fallback/降级/以不同模型继续” 类系统提示）  
+     - 看到 `response.incomplete` / “输出不完整/被截断” 类提示  
+   - 处理原则：把信号当作 `[SRC:TOOL]`，并结构化落到 `task.md##上下文快照`：  
+     - `- [SRC:TOOL] model_event: model_rerouted` 或 `response_incomplete`（结构契约见 `references/contracts.md`）  
+     - 在其后追加**恢复检查点**（至少包含 `repo_state:` 与 `下一步唯一动作:`；细则见 `references/context-snapshot.md`）  
+   - 路由：优先改走 `references/resume-protocol.md` 的断层恢复（禁止依赖聊天记忆继续推进）；若 `write_scope = no_write` 则只做只读恢复与对话内说明（不得落盘）。
+4. **包含 `~` 命令** → 进入命令模式；但仍必须遵守 `write_scope`，如冲突则阻断并请求裁决（见第 2.3 节）
+5. **目标路由为开发实施/执行，但缺少可执行方案包** → 输出错误并路由回 `~plan`/方案设计
+6. **EHRB 风险信号未确认** → 必须先停下做风险确认，再决定是否继续（见 `references/safety.md`）
 
 需要阻断交互时：优先使用 `templates/output-format.md` 的 `❓/⚠️/❌` 交互模板，给 2–3 个可选决策。
 

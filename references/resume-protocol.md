@@ -18,6 +18,8 @@
 - 发现“输出不完整/压缩异常”（例如 `response.incomplete`、工具输出被截断），无法确认已完成内容与下一步
 - 工具调用密集或失败反复，怀疑上下文即将被压缩（可参考 `references/context-budget.md`）
 
+补充（无感启发式，避免绑定具体措辞）：若对话中出现系统级警告/提示包含 “routed / rerouted / fallback / 降级” 这类字样，也视为 `model/rerouted` 信号；应当记录一次 `[SRC:TOOL] model_event: model_rerouted` 并优先走本恢复流程（不要凭聊天记忆继续推进）。
+
 ---
 
 ## 2) 固定恢复顺序（只读优先）
@@ -140,6 +142,15 @@
      - 若允许写入（`write_scope != no_write`）：立即补一条 `[SRC:TOOL] repo_state: ...` 作为检查点（减少下次续作误重做）
      - 若不允许写入（`write_scope = no_write`）：在本轮输出中标注“repo_state 缺失”，并将“补 repo_state”作为下一步唯一动作（等待允许写入）
    - 若发现 `task.md` 的任务状态与当前代码事实/工具证据明显不一致：在 `task.md##上下文快照` 记录一次“纠偏检查点”（标注来源），禁止凭感觉继续
+
+8. **运行时/模型异常信号闭环（触发式，推荐默认；response_incomplete 为高风险）**
+   - 若本次恢复的触发原因包含 `model/rerouted` 或 `response.incomplete`（或等价系统警告）：
+     - 在 `task.md##上下文快照` 记录一条结构化事件（来源 `[SRC:TOOL]`）：
+       - `- [SRC:TOOL] model_event: model_rerouted` 或 `response_incomplete`
+     - 并在该事件**之后**追加一次恢复检查点（至少包含）：
+       - `repo_state: branch=... head=... dirty=... diffstat=...`
+       - `下一步唯一动作: ...`
+   - 说明：`response_incomplete` 属于执行域高风险信号；若没有补齐“事件后的恢复检查点”，进入 `~exec` 会被方案包校验阻止（避免断层误重做）。
 
 ---
 
