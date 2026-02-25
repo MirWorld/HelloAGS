@@ -89,11 +89,19 @@ $report = [ordered]@{
   mode = $Mode
   checked_packages = @()
   errors = @()
+  warnings = @()
 }
 
 function Add-Error([string]$message) {
   $script:report.ok = $false
   $script:report.errors += $message
+}
+
+function Add-Warn([string]$message) {
+  $script:report.warnings += $message
+  if (-not $Json) {
+    Write-Output "WARN: $message"
+  }
 }
 
 function Emit-Json() {
@@ -117,6 +125,48 @@ if (-not (Test-Path -LiteralPath $planRootFull)) {
   Add-Error "plan root not found: $PlanRoot (resolved: $planRootFull)"
   if ($Json) { Emit-Json }
   exit 1
+}
+
+$currentPointer = Join-Path $planRootFull "_current.md"
+if (Test-Path -LiteralPath $currentPointer) {
+  $pointerText = Read-Text $currentPointer
+  $m = [regex]::Match($pointerText, '(?m)^\s*current_package\s*:\s*(?<path>.*)\s*$')
+  if ($m.Success) {
+    $raw = $m.Groups["path"].Value
+    $raw = [regex]::Replace($raw, '\s+#.*$', '')
+    $raw = $raw.Trim()
+
+    if (-not [string]::IsNullOrWhiteSpace($raw)) {
+      $pathValue = $raw.Trim('"', "'", "`")
+      $looksPlaceholder = [regex]::IsMatch($pathValue, '^(?:\.{3}|…)$')
+      if ($looksPlaceholder) {
+        Add-Warn "_current.md current_package looks like a placeholder: '$raw'"
+      } else {
+        if ($pathValue -match '(?i)\bHAGSWorks[\\/]+history\b') {
+          Add-Warn "_current.md current_package points to history (invalid; should be under HAGSWorks/plan): '$pathValue'"
+        }
+
+        $normalized = $pathValue.Replace("/", [System.IO.Path]::DirectorySeparatorChar)
+        $full = $normalized
+        if (-not ([System.IO.Path]::IsPathRooted($full))) {
+          $full = [System.IO.Path]::GetFullPath((Join-Path $projectRoot $normalized))
+        } else {
+          $full = [System.IO.Path]::GetFullPath($full)
+        }
+
+        $planFull = [System.IO.Path]::GetFullPath($planRootFull)
+        $planPrefix = if ($planFull.EndsWith([System.IO.Path]::DirectorySeparatorChar)) { $planFull } else { $planFull + [System.IO.Path]::DirectorySeparatorChar }
+        $inPlan = $full.StartsWith($planPrefix, [System.StringComparison]::OrdinalIgnoreCase)
+        if (-not $inPlan) {
+          Add-Warn "_current.md current_package is outside plan root (expected under: $PlanRoot): '$pathValue' (resolved: $full)"
+        } elseif (-not (Test-Path -LiteralPath $full -PathType Container)) {
+          Add-Warn "_current.md current_package directory not found: '$pathValue' (resolved: $full)"
+        }
+      }
+    }
+  } else {
+    Add-Warn "_current.md missing current_package key: $currentPointer"
+  }
 }
 
 $packages = @()

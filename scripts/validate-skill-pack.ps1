@@ -297,6 +297,7 @@ $required = @(
   "references/command-policy.md",
   "references/active-context.md",
   "references/terminology.md",
+  "references/contracts.md",
   "references/context-snapshot.md",
   "references/quickfix-protocol.md",
   "references/hook-simulation.md",
@@ -368,6 +369,12 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -ne
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/terminology.md" -needles @(
   "<!-- CONTRACT: terminology v1 -->",
   "## SSOT Map"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -needles @(
+  "<!-- CONTRACT: protocol-api v1 -->",
+  "<helloagents_state>",
+  "HAGSWorks/plan/_current.md"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.md" -needles @(

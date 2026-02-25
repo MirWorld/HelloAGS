@@ -47,11 +47,11 @@
    </resume_package_selection_contract>
 
    <!-- CONTRACT: resume-current-package-pointer v1 -->
-   - 否则检查 `${PROJECT_ROOT}/HAGSWorks/plan/_current.md`（若存在）：
-     - 读取其中的 `current_package: ...` 路径；若为空则视为不存在
-     - 约束：`current_package` 必须指向 `HAGSWorks/plan/` 下的方案包目录（禁止指向 history/ 或任意路径）
-     - 若该目录存在且看起来是完整方案包（why/how/task 齐全）→ 直接选中（减少断层恢复时的“选包”交互）
-     - 若路径无效/目录不存在/不完整 → 忽略该指针，继续按下述规则扫描 `plan/`
+    - 否则检查 `${PROJECT_ROOT}/HAGSWorks/plan/_current.md`（若存在）：
+      - 读取其中的 `current_package: ...` 路径；若为空则视为不存在
+      - 约束：`current_package` 必须指向 `HAGSWorks/plan/` 下的方案包目录（禁止指向 history/ 或任意路径）
+      - 若该目录存在且看起来是完整方案包（why/how/task 齐全）→ 直接选中（减少断层恢复时的“选包”交互）
+      - 若路径无效/目录不存在/不完整 → 忽略该指针，继续按下述规则扫描 `plan/`；并在允许写入时将 `_current.md` 的 `current_package` 置空（自愈，避免下次断层误选）
 
    - 否则扫描 `${PROJECT_ROOT}/HAGSWorks/plan/`（只看目录；忽略 `_current.md` 等文件）：
       - 0 个：
@@ -158,7 +158,7 @@
 当 `{package}/task.md##上下文快照###待用户输入（Pending）` 有内容时：
 - 本轮输出必须使用 `templates/output-format.md` 的交互格式（带 `回复契约` + `<helloagents_state status: awaiting_user_input>`）
 - 只复述 Pending 中的“问题/选项/影响”，并要求用户按回复契约作答
-- 将下一步唯一动作固定为：等待用户回复（避免“继续排查”式空转）
+- （推荐默认）下一步唯一动作应收口为：等待用户回复（避免“继续排查”式空转）
 
 ---
 
