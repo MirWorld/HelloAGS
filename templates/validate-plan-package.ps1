@@ -311,10 +311,14 @@ foreach ($pkg in $packages) {
           $eventMatches = [regex]::Matches($snapshotBody, '(?im)^\s*-\s*\[SRC:TOOL\]\s*model_event\s*[:：]\s*(?<kind>\S+)(?:\s+#.*)?\s*$')
           if ($eventMatches.Count -gt 0) {
             $lastIncomplete = $null
+            $lastRerouted = $null
             foreach ($m in $eventMatches) {
               $kind = $m.Groups["kind"].Value.Trim("`", '"', "'", ",", ";")
               if ($kind -match '(?i)^response[._]incomplete\b') {
                 $lastIncomplete = $m
+              }
+              if ($kind -match '(?i)^model[._/]rerouted\b') {
+                $lastRerouted = $m
               }
             }
 
@@ -331,6 +335,22 @@ foreach ($pkg in $packages) {
               $hasNextAfter = ($after -match '(?im)下一步唯一动作\s*[:：]\s*\S')
               if (-not ($hasRepoAfter -and $hasNextAfter)) {
                 Add-Error "package '${pkgName}' task.md contains model_event: response_incomplete but has no recovery checkpoint after it. Add a new repo_state + next_unique_action AFTER the response_incomplete event before entering exec mode."
+              }
+            }
+
+            if ($lastRerouted) {
+              $after = ""
+              try {
+                $start = [Math]::Min($snapshotBody.Length, $lastRerouted.Index + $lastRerouted.Length)
+                $after = $snapshotBody.Substring($start)
+              } catch {
+                $after = ""
+              }
+
+              $hasRepoAfter = ($after -match '(?im)\brepo_state\s*[:：]\s*\S')
+              $hasNextAfter = ($after -match '(?im)下一步唯一动作\s*[:：]\s*\S')
+              if (-not ($hasRepoAfter -and $hasNextAfter)) {
+                Add-Warn "package '${pkgName}' task.md contains model_event: model_rerouted but has no recovery checkpoint after it. Recommended: add a new repo_state + next_unique_action AFTER the model_rerouted event to reduce resume/compaction redo risk."
               }
             }
           }
