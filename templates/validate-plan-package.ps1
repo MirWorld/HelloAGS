@@ -305,7 +305,14 @@ foreach ($pkg in $packages) {
         }
 
         # High-risk runtime signals: response.incomplete should hard-stop execution until a recovery checkpoint exists.
-        $snapshotBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '##\s*上下文快照'
+        # NOTE: Get-MarkdownSectionBody stops at the next heading of any level (##/###/...),
+        # so it cannot be used to capture an H2 section that contains H3 subsections.
+        # For snapshots we want the whole H2 block until the next H2.
+        $snapshotBody = ""
+        $snapshotMatch = [regex]::Match($textNoCode, '(?ms)^\s*##\s*上下文快照\s*$\r?\n(?<body>.*?)(?=^\s*##\s+|\z)')
+        if ($snapshotMatch.Success) {
+          $snapshotBody = $snapshotMatch.Groups["body"].Value
+        }
         $snapshotBody = Strip-HtmlComments $snapshotBody
         if (-not [string]::IsNullOrWhiteSpace($snapshotBody)) {
           $eventMatches = [regex]::Matches($snapshotBody, '(?im)^\s*-\s*\[SRC:TOOL\]\s*model_event\s*[:：]\s*(?<kind>\S+)(?:\s+#.*)?\s*$')
