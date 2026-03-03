@@ -15,7 +15,8 @@ HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 ├── active_context.md     # 派生缓存：可验证接口注册表/系统状态（非 SSOT（真值））
 ├── scripts/              # 工具脚本（派生层，可删可重建）
 │   ├── validate-active-context.ps1  # Active Context 校验脚本（loose/strict，可选）
-│   └── validate-plan-package.ps1    # 方案包完整性校验脚本（可选）
+│   ├── validate-plan-package.ps1    # 方案包完整性校验脚本（可选）
+│   └── capture-runtime-events.ps1   # 运行时/模型事件回填（可选；无感增强）
 ├── wiki/                 # 核心文档
 │   ├── overview.md       # 项目概述
 │   ├── arch.md           # 架构设计
@@ -76,6 +77,7 @@ HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 - `HAGSWorks/active_context.md` ← `templates/active-context-template.md`
 - `HAGSWorks/scripts/validate-active-context.ps1` ← `templates/validate-active-context.ps1`
 - `HAGSWorks/scripts/validate-plan-package.ps1` ← `templates/validate-plan-package.ps1`
+- `HAGSWorks/scripts/capture-runtime-events.ps1` ← `templates/capture-runtime-events.ps1`
 - `HAGSWorks/plan/_current.md` ← `templates/current-plan-pointer-template.md`
 - `HAGSWorks/wiki/overview.md` ← `templates/wiki-overview-template.md`
 - `HAGSWorks/wiki/arch.md` ← `templates/wiki-arch-template.md`

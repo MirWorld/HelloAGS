@@ -144,6 +144,7 @@
    - 若发现 `task.md` 的任务状态与当前代码事实/工具证据明显不一致：在 `task.md##上下文快照` 记录一次“纠偏检查点”（标注来源），禁止凭感觉继续
 
 8. **运行时/模型异常信号闭环（触发式，推荐默认；response_incomplete 为高风险）**
+   - （无感增强，最佳努力）若存在 `HAGSWorks/scripts/capture-runtime-events.ps1` 且可运行：先运行一次用于**自动回填**本线程的 `model_event` 到 `task.md##上下文快照`（并追加恢复检查点），再按下述规则补齐/确认。
    - 若本次恢复的触发原因包含 `model/rerouted` 或 `response.incomplete`（或等价系统警告）：
      - 在 `task.md##上下文快照` 记录一条结构化事件（来源 `[SRC:TOOL]`）：
        - `- [SRC:TOOL] model_event: model_rerouted` 或 `response_incomplete`
