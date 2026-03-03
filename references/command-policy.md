@@ -34,6 +34,7 @@
 - 构建/测试/格式化：`build`、`test`、`fmt`、`lint --fix`（通常会产生缓存/产物/改文件）
 - 运行/迁移：启动服务、生成代码、数据库迁移、`docker compose up`
 - 版本控制写操作：`git add`、`git commit`、`git push`、`git merge`、`git rebase`、`git reset`、`git tag`
+- 本地智能体状态：`codex debug clear-memories`（会重置本地 memory；不改仓库文件，但属于有副作用）
 
 ---
 
@@ -42,6 +43,7 @@
 - **规划域（~plan / 方案设计阶段）**：只允许只读命令；禁止有副作用命令（需要验证则写入 `task.md##上下文快照` 的“下一步唯一动作”，等切到执行域再跑）
 - **执行域（~exec / 开发实施阶段）**：允许执行门禁/验证/构建/测试，但必须遵循 `references/quality-gates.md` 与失败协议
 - **版本控制写操作（Git）**：无论是否在执行域，除非用户明确要求，否则不执行 `git add/commit/push/merge/rebase/reset/tag`；若用户要求，先确认目标分支/远端/提交信息规范，并检查是否包含敏感信息
+- **本地智能体状态重置（Codex）**：如需执行 `codex debug clear-memories`，必须先获得用户明确确认（可作为“漂移/重复重做”的兜底止血动作），禁止自动执行
 
 ---
 

@@ -93,4 +93,17 @@ next_unique_action: "等待用户输入序号 1-3"
 - [SRC:TOOL] model_event: model_rerouted        # 对应 Codex 的 model/rerouted（模型被重定向）
 
 高风险硬规则：若出现 `model_event: response_incomplete`，在进入执行域（改代码/跑门禁）前必须先追加新的恢复检查点（至少包含 `repo_state:` 与 `下一步唯一动作:`），否则视为不确定状态，禁止继续执行（防止断层后重做/二次修改）。
+ 
+---
 
+## 5) 记忆止血（可选；高风险需确认）
+
+触发（满足其一即可考虑）：
+- 已按 `references/resume-protocol.md` 基于**磁盘事实**完成恢复（含 No-Redo 判定 + repo_state 双证据），但仍反复出现“已完成任务被再次提起/重复修改/忽略边界”的明显漂移。
+- 你怀疑偏移来自“本地记忆/会话状态污染”，而不是方案包/快照缺失。
+
+动作（必须先获得用户确认，禁止自动执行）：
+1. 在终端执行：`codex debug clear-memories`
+2. 立即重新执行一次 `references/resume-protocol.md` 的断层恢复（尤其是 Reboot Check + repo_state 双证据），再继续推进。
+
+说明：该命令会重置本地 memory 状态（不改动仓库文件），但可能导致非 SSOT 的“个人记忆”消失，因此仅作为兜底止血，不作为默认流程。
