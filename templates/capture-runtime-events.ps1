@@ -186,6 +186,24 @@ function Find-SessionFile([string]$codexHome, [string]$threadId, [string]$sessio
   return $null
 }
 
+function Find-RealtimeTextLog([string]$codexHome) {
+  if ([string]::IsNullOrWhiteSpace($codexHome)) {
+    return $null
+  }
+
+  $candidates = @(
+    (Join-Path $codexHome "log\\codex-tui.log")
+  )
+
+  foreach ($p in $candidates) {
+    if (Test-Path -LiteralPath $p) {
+      return $p
+    }
+  }
+
+  return $null
+}
+
 function Get-RepoState([string]$projectRoot) {
   $state = [ordered]@{
     branch = "unknown"
@@ -271,6 +289,54 @@ function Extract-ModelEvents([string[]]$jsonLines) {
     try { $ts = $obj.timestamp } catch { $ts = $null }
     if (-not ($ts -is [string]) -or [string]::IsNullOrWhiteSpace($ts)) {
       $ts = (Get-Date).ToUniversalTime().ToString("o")
+    }
+
+    $events += [pscustomobject]@{
+      kind = $kind
+      ts = $ts
+    }
+  }
+
+  $events |
+    Sort-Object kind, ts -Unique
+}
+
+function Extract-ModelEventsFromTextLog([string[]]$lines, [string]$threadId) {
+  $events = @()
+
+  $wantThread = -not [string]::IsNullOrWhiteSpace($threadId)
+  $threadNeedle = if ($wantThread) { "thread_id=$threadId" } else { "" }
+
+  foreach ($line in $lines) {
+    if ([string]::IsNullOrWhiteSpace($line)) {
+      continue
+    }
+
+    if ($wantThread -and ($line.IndexOf($threadNeedle, [System.StringComparison]::OrdinalIgnoreCase) -lt 0)) {
+      continue
+    }
+
+    $mTs = [regex]::Match($line, '^(?<ts>\d{4}-\d{2}-\d{2}T[0-9:\.\-]+Z)\s+')
+    if (-not $mTs.Success) {
+      continue
+    }
+
+    $ts = $mTs.Groups["ts"].Value
+    if ([string]::IsNullOrWhiteSpace($ts)) {
+      $ts = (Get-Date).ToUniversalTime().ToString("o")
+    }
+
+    $kind = $null
+    if ($line -match '(?i)\bmodel[/_.-]?rerouted\b') {
+      $kind = "model_rerouted"
+    } elseif ($line -match '(?i)\bserver reported model\b.*\brequested model\b') {
+      $kind = "model_rerouted"
+    } elseif ($line -match '(?i)\bresponse[/_.-]?incomplete\b') {
+      $kind = "response_incomplete"
+    }
+
+    if (-not $kind) {
+      continue
     }
 
     $events += [pscustomobject]@{
@@ -385,14 +451,23 @@ if ($Mode -eq "append") {
 } else {
   $codexHome = Get-CodexHome -codexHomeArg $CodexHome
   $tid = Get-ThreadId -threadIdArg $ThreadId
-  $session = Find-SessionFile -codexHome $codexHome -threadId $tid -sessionFileArg $SessionFile
-  if ([string]::IsNullOrWhiteSpace($session) -or -not (Test-Path -LiteralPath $session)) {
-    Write-Output "SKIP: codex session file not found (CODEX_HOME/CODEX_THREAD_ID missing or no session match)."
-    exit 0
+
+  $textLog = Find-RealtimeTextLog -codexHome $codexHome
+  if (-not [string]::IsNullOrWhiteSpace($textLog)) {
+    $tail = @(Get-Content -LiteralPath $textLog -Tail $TailLines -ErrorAction SilentlyContinue)
+    $events = @(Extract-ModelEventsFromTextLog -lines $tail -threadId $tid)
   }
 
-  $tail = @(Get-Content -LiteralPath $session -Tail $TailLines -ErrorAction SilentlyContinue)
-  $events = @(Extract-ModelEvents -jsonLines $tail)
+  if ($events.Count -eq 0) {
+    $session = Find-SessionFile -codexHome $codexHome -threadId $tid -sessionFileArg $SessionFile
+    if ([string]::IsNullOrWhiteSpace($session) -or -not (Test-Path -LiteralPath $session)) {
+      Write-Output "SKIP: codex logs not found (no text log hit; and session JSONL missing: CODEX_HOME/CODEX_THREAD_ID missing or no session match)."
+      exit 0
+    }
+
+    $tail = @(Get-Content -LiteralPath $session -Tail $TailLines -ErrorAction SilentlyContinue)
+    $events = @(Extract-ModelEvents -jsonLines $tail)
+  }
 }
 
 if ($events.Count -eq 0) {
