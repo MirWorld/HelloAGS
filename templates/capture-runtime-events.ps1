@@ -15,6 +15,24 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$H2_CONTEXT_SNAPSHOT = [string]::Concat(
+  [char]0x4E0A,
+  [char]0x4E0B,
+  [char]0x6587,
+  [char]0x5FEB,
+  [char]0x7167
+)
+
+$LABEL_NEXT_UNIQUE_ACTION = [string]::Concat(
+  [char]0x4E0B,
+  [char]0x4E00,
+  [char]0x6B65,
+  [char]0x552F,
+  [char]0x4E00,
+  [char]0x52A8,
+  [char]0x4F5C
+)
+
 function Get-GitRoot() {
   try {
     $root = (git rev-parse --show-toplevel 2>$null).Trim()
@@ -47,12 +65,18 @@ function Get-ProjectRoot() {
   return (Get-Location).Path
 }
 
-function Read-Text([string]$path) {
-  return (Get-Content -LiteralPath $path -Raw)
+function Read-Utf8Text([string]$path) {
+  $bytes = [System.IO.File]::ReadAllBytes($path)
+  $text = [System.Text.Encoding]::UTF8.GetString($bytes)
+  if ($text.Length -gt 0 -and $text[0] -eq [char]0xFEFF) {
+    $text = $text.Substring(1)
+  }
+  return $text
 }
 
-function Write-Text([string]$path, [string]$text) {
-  Set-Content -LiteralPath $path -Value $text -Encoding UTF8
+function Write-Utf8Text([string]$path, [string]$text) {
+  $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+  [System.IO.File]::WriteAllText($path, $text, $utf8NoBom)
 }
 
 function Resolve-CurrentPackage([string]$projectRoot, [string]$planRoot, [string]$packageArg) {
@@ -69,7 +93,7 @@ function Resolve-CurrentPackage([string]$projectRoot, [string]$planRoot, [string
     return $null
   }
 
-  $text = Read-Text -path $pointer
+  $text = Read-Utf8Text -path $pointer
   $m = [regex]::Match($text, '(?m)^\s*current_package\s*:\s*(?<path>.*)\s*$')
   if (-not $m.Success) {
     return $null
@@ -269,7 +293,7 @@ function Get-RecordedEventKeys([string]$snapshotBody) {
     return $known
   }
 
-  $rx = [regex]::new('(?im)^\s*-\s*\[SRC:TOOL\]\s*model_event\s*[:：]\s*(?<kind>\S+)(?:\s+#\s*ts=(?<ts>\S+))?.*$')
+  $rx = [regex]::new('(?im)^\s*-\s*\[SRC:TOOL\]\s*model_event\s*[:\uFF1A]\s*(?<kind>\S+)(?:\s+#\s*ts=(?<ts>\S+))?.*$')
   $ms = $rx.Matches($snapshotBody)
   foreach ($m in $ms) {
     $kind = $m.Groups["kind"].Value.Trim()
@@ -314,9 +338,9 @@ function Ensure-TrailingNewline([string]$s) {
 function Append-EventsToSnapshot([string]$snapshotBody, [pscustomobject[]]$eventsToAdd, [string]$repoStateLine) {
   $b = Ensure-TrailingNewline -s $snapshotBody
 
-  $hasHeading = ($b -match '(?m)^\s*###\s*运行时/模型事件')
+  $hasHeading = ($b -match '(?m)^\s*###\s*Runtime/Model Events')
   if (-not $hasHeading) {
-    $b += "`n### 运行时/模型事件（可选，结构化）`n"
+    $b += "`n### Runtime/Model Events (optional, structured)`n"
   } elseif ($b -notmatch "(\r?\n)$") {
     $b += "`n"
   }
@@ -326,7 +350,7 @@ function Append-EventsToSnapshot([string]$snapshotBody, [pscustomobject[]]$event
     $ts = $e.ts
     $b += "- [SRC:TOOL] model_event: $kind # ts=$ts`n"
     $b += "- [SRC:TOOL] repo_state: $repoStateLine`n"
-    $b += "- 下一步唯一动作: 按 references/resume-protocol.md 执行断层恢复（Reboot Check）`n`n"
+    $b += "- ${LABEL_NEXT_UNIQUE_ACTION}: Run references/resume-protocol.md (Reboot Check)`n`n"
   }
 
   return $b
@@ -341,10 +365,10 @@ if ([string]::IsNullOrWhiteSpace($taskPath) -or -not (Test-Path -LiteralPath $ta
   exit 0
 }
 
-$taskText = Read-Text -path $taskPath
-$snapshot = Get-H2Section -text $taskText -h2Title "上下文快照"
+$taskText = Read-Utf8Text -path $taskPath
+$snapshot = Get-H2Section -text $taskText -h2Title $H2_CONTEXT_SNAPSHOT
 if ($null -eq $snapshot) {
-  Write-Output "SKIP: task.md has no '## 上下文快照' section."
+  Write-Output "SKIP: task.md has no '## Context Snapshot' section."
   exit 0
 }
 
@@ -405,5 +429,5 @@ if ($DryRun) {
   exit 0
 }
 
-Write-Text -path $taskPath -text $newText
+Write-Utf8Text -path $taskPath -text $newText
 Write-Output "OK: appended $($toAdd.Count) event(s) to '$taskPath'."
