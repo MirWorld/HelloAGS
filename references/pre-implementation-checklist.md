@@ -19,10 +19,7 @@
 
 ### 推荐默认（按触发器/项目现状）
 
-- **语言栈默认值已收敛（如适用）**：若已能明确技术栈但项目命令/规范不完整：按 `references/stack-detection.md` 选取最小闭环命令兜底；并按对应语言 Playbook 收敛实现习惯（少量硬禁止，其余推荐默认）：
-  - Rust：`references/stacks/rust.md`
-  - .NET：`references/stacks/dotnet.md`
-  - Delphi：`references/stacks/delphi.md`
+- **语言栈默认值已收敛（如适用）**：若已能明确技术栈但项目命令/规范不完整：按 `references/stack-detection.md` 选取最小闭环命令兜底；并在允许写入时固化到 `HAGSWorks/project.md#项目能力画像`（标注“启发式兜底”，后续可被 CI/脚本替换）
 - **影响面已圈定**：预计改哪些模块/文件？能否收敛到更小范围（避免“顺手扩大”）
 - **复用检索已做**：`rg` 搜索相似实现/类型/错误码/字段名；优先复用而不是新造
 - **边界与依赖明确**：落点与依赖方向是否正确？是否有跨层 import 风险？

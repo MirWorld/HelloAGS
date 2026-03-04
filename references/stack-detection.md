@@ -84,9 +84,6 @@
 - `fmt`: `cargo fmt --check`（不改文件；如需自动修复则用 `cargo fmt`）
 - `lint`: `cargo clippy -- -D warnings`（可选，视项目约束/耗时）
 
-语言实现 Playbook（命中 Rust 时建议读取）：
-- `references/stacks/rust.md`
-
 推荐最小闭环（通用，兜底）：
 - **快路径（最快验证）**：`cargo test`
 - **标准路径（更强信号）**：`cargo fmt --check` → `cargo clippy -- -D warnings` → `cargo test`
@@ -113,9 +110,6 @@
 可选：
 - `fmt`: `dotnet format --verify-no-changes`（若项目已配置且命令可用；否则跳过/unknown）
 
-语言实现 Playbook（命中 .NET 时建议读取）：
-- `references/stacks/dotnet.md`
-
 推荐最小闭环（通用，兜底）：
 - **快路径（最快验证）**：`dotnet test`
 - **标准路径（更强信号）**：`dotnet build` → `dotnet test`（必要时再加 `dotnet format --verify-no-changes`）
@@ -130,9 +124,6 @@
 - 工程文件：`*.dproj`（最强）/ `*.dpr`
 - 构建脚本：`build*.bat` / `compile*.bat` / `scripts/*.bat|*.ps1`
 - CI：`.github/workflows/*`（是否包含 `msbuild` / `dcc32` / `dcc64`）
-
-语言实现 Playbook（命中 Delphi 时建议读取）：
-- `references/stacks/delphi.md`
 
 常见可用入口（仅作候选，需用户/环境确认）：
 - `build`: `msbuild <project>.dproj /t:Build /p:Config=Release /p:Platform=Win32`（或 Win64）
