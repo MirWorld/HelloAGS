@@ -67,7 +67,7 @@
 | 方案包生命周期 | `references/plan-lifecycle.md` |
 | 上下文快照 | `references/context-snapshot.md` |
 | Active Context 协议 | `references/active-context.md` |
-| 技术栈探测与命令启发式 | `references/stack-detection.md` |
+| 技术栈探测（只做定位，不做猜测） | `references/stack-detection.md` |
 | 质量门禁 | `references/quality-gates.md` |
 | Quick Fix 协议 | `references/quickfix-protocol.md` |
 | Triage Pass 协议 | `references/triage-pass.md` |

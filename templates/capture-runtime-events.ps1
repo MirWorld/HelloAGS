@@ -434,7 +434,7 @@ if ([string]::IsNullOrWhiteSpace($taskPath) -or -not (Test-Path -LiteralPath $ta
 $taskText = Read-Utf8Text -path $taskPath
 $snapshot = Get-H2Section -text $taskText -h2Title $H2_CONTEXT_SNAPSHOT
 if ($null -eq $snapshot) {
-  Write-Output "SKIP: task.md has no '## Context Snapshot' section."
+  Write-Output "SKIP: task.md has no '## 上下文快照' section."
   exit 0
 }
 
