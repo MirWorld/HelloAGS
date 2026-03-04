@@ -416,7 +416,7 @@ function Append-EventsToSnapshot([string]$snapshotBody, [pscustomobject[]]$event
     $ts = $e.ts
     $b += "- [SRC:TOOL] model_event: $kind # ts=$ts`n"
     $b += "- [SRC:TOOL] repo_state: $repoStateLine`n"
-    $b += "- ${LABEL_NEXT_UNIQUE_ACTION}: Run references/resume-protocol.md (Reboot Check)`n`n"
+    $b += "- ${LABEL_NEXT_UNIQUE_ACTION}: 按 references/resume-protocol.md 执行断层恢复（Reboot Check）`n`n"
   }
 
   return $b

@@ -126,7 +126,6 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 | `references/resume-protocol.md` | 断层恢复协议（Resume） | 用户说“继续/接着/上次…”但上下文不足时 |
 | `references/execution-guard.md` | 执行期护栏（写域声明 + Fail→Narrow） | Patch 失败/倾向扩大范围/状态漂移/多人协作时 |
 | `references/subagent-orchestration.md` | 子代理调度协议（只读侦察/独立审查） | 需要并行侦察/独立审查且避免污染主任务时 |
-| `examples/*.md` | 风格示例 | 需要对齐风格时 |
 | `references/failure-protocol.md` | 连续失败升级协议 | 阻断性失败反复出现时 |
 | `references/review-protocol.md` | 两段式 Review + 修复轮次上限 | 最终总结前 / 结构质量回归时 |
 | `references/context-snapshot.md` | 中期落盘（上下文快照） | 长会话/多失败/易中断时防跑偏 |
@@ -174,7 +173,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 - 验证结果需记录质量门禁执行情况（fmt/lint/typecheck/test/security），分级规则见 `references/quality-gates.md`
 
 ### G7 | 版本管理
-- 用户指定优先；否则按 `templates/version-source-map.md` 定位版本文件；再按语义化版本推断增量
+- 用户指定优先；否则以项目内**已有发布/版本入口**为准（脚本/CI/README/配置）；无法确定时写 `unknown` 并把“确认版本来源/是否需要更新版本号”作为下一步唯一动作（不要猜）
 
 ### G8 | 产品设计原则（触发：新项目/新功能/重大重构）
 - 先做用户画像与场景，后做技术方案；成功指标必须可衡量
@@ -210,8 +209,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 ├── kb/SKILL.md
 ├── templates/
 ├── references/
-├── scripts/
-└── examples/
+└── scripts/
 ```
 
 **目标项目工作区结构**（由 `~init` 在项目根目录创建）：

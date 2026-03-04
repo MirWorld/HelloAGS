@@ -99,7 +99,6 @@ HAGSWorks/
 - `templates/`：方案包/知识库模板与校验脚本模板
 - `references/`：协议、门禁与安全准则（单一来源）
 - `scripts/`：本仓库自检脚本
-- `examples/`：使用示例
 
 ## 验证与维护
 
