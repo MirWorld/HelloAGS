@@ -29,7 +29,7 @@
 4. `test`（单元/集成）→ 覆盖成功标准与核心场景  
 5. `security`（依赖/敏感信息/危险用法）→ 特别是外部输入与权限相关改动
 
-命令来源：优先 `HAGSWorks/project.md#项目能力画像`；不足时按 `references/stack-detection.md` 推断并在允许写入时固化。
+命令来源：优先 `HAGSWorks/project.md#项目能力画像`；不足时按 `references/stack-detection.md` 在仓库内定位“真实可用命令”，并在允许写入时固化；若仍无法确认则保持 `unknown` 并向用户索取可执行命令（不要猜默认命令）。
 
 ---
 
@@ -39,7 +39,7 @@
 
 规则（按优先级）：
 1. **贴近改动面的最小验证**：优先跑能覆盖成功标准的最小测试/脚本/命令（越小越快越好）
-   - 若项目尚未固化命令矩阵但已能明确技术栈：可直接采用 `references/stack-detection.md` 中该栈的“推荐最小闭环（兜底）”作为最小验证候选（例如 Rust/.NET 的 `cargo test` / `dotnet test`）。
+   - 若项目尚未固化命令矩阵：先按 `references/stack-detection.md` 从脚本/CI/README 中定位真实入口；若仍无法确认，`verify_min` 先标 `unknown` 并向用户索取 1 条可执行验证动作（不要用“看见哨兵文件就猜默认命令”的方式兜底）。
    - 建议把这条“最小验证动作”在方案包中明确标记为 `verify_min`（见 `references/triage-pass.md`），用于执行期快速收口与中途纠偏后的重新验收。
 2. **再跑门禁序列**：按 `fmt → lint → typecheck → test → security` 扩大覆盖面
 3. **阻断即停**：任一阻断性门禁失败必须停止继续尝试，并按 `references/failure-protocol.md` 记录失败证据与“下一步唯一动作”
