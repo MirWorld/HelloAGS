@@ -452,16 +452,22 @@ if ($Mode -eq "append") {
   $codexHome = Get-CodexHome -codexHomeArg $CodexHome
   $tid = Get-ThreadId -threadIdArg $ThreadId
 
-  $textLog = Find-RealtimeTextLog -codexHome $codexHome
-  if (-not [string]::IsNullOrWhiteSpace($textLog)) {
-    $tail = @(Get-Content -LiteralPath $textLog -Tail $TailLines -ErrorAction SilentlyContinue)
-    $events = @(Extract-ModelEventsFromTextLog -lines $tail -threadId $tid)
+  if (-not [string]::IsNullOrWhiteSpace($tid)) {
+    $textLog = Find-RealtimeTextLog -codexHome $codexHome
+    if (-not [string]::IsNullOrWhiteSpace($textLog)) {
+      $tail = @(Get-Content -LiteralPath $textLog -Tail $TailLines -ErrorAction SilentlyContinue)
+      $events = @(Extract-ModelEventsFromTextLog -lines $tail -threadId $tid)
+    }
   }
 
   if ($events.Count -eq 0) {
     $session = Find-SessionFile -codexHome $codexHome -threadId $tid -sessionFileArg $SessionFile
     if ([string]::IsNullOrWhiteSpace($session) -or -not (Test-Path -LiteralPath $session)) {
-      Write-Output "SKIP: codex logs not found (no text log hit; and session JSONL missing: CODEX_HOME/CODEX_THREAD_ID missing or no session match)."
+      if ([string]::IsNullOrWhiteSpace($tid)) {
+        Write-Output "SKIP: CODEX_THREAD_ID missing; not scanning text logs to avoid cross-thread misattribution. Provide -ThreadId/CODEX_THREAD_ID or pass -SessionFile (or use -Mode append)."
+      } else {
+        Write-Output "SKIP: codex logs not found (no text log hit; and session JSONL missing: no session match)."
+      }
       exit 0
     }
 
