@@ -1,0 +1,5 @@
+{
+  "hook_event_name": "SessionStart",
+  "cwd": "__PROJECT_ROOT__",
+  "thread_id": "thread_demo_001"
+}

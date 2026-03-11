@@ -81,6 +81,9 @@
 - `model_rerouted`：对应 Codex 的 `model/rerouted`（模型被重定向/以不同模型继续）
 - `response_incomplete`：对应 Codex 的 `response.incomplete`（输出不完整；属于高风险信号）
 
+可选元数据（推荐默认，不做硬校验）：
+- `trace_id: <id>`：若可从 Codex 运行时/日志稳定取得，可一并记录；用途仅限去重与防串线，不作为真值字段
+
 执行域门禁（`-Mode exec`）的高风险约束：
 - 若快照中出现 `model_event: response_incomplete`，则必须在其**之后**追加一条“恢复检查点”（至少包含 `repo_state:` 与 `下一步唯一动作:`）；否则不得继续执行（防止在不确定状态下重做/二次修改）。
 

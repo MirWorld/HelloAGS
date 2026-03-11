@@ -281,6 +281,8 @@ $required = @(
   "design/SKILL.md",
   "develop/SKILL.md",
   "kb/SKILL.md",
+  "scripts/hooks/helloagents-stop.ps1",
+  "scripts/hooks/helloagents-sessionstart.ps1",
   "templates/output-format.md",
   "templates/plan-why-template.md",
   "templates/plan-how-template.md",
@@ -290,6 +292,8 @@ $required = @(
   "templates/plan-task-quickfix-template.md",
   "templates/active-context-template.md",
   "templates/current-plan-pointer-template.md",
+  "templates/hooks/stop-hook-fixture.json",
+  "templates/hooks/sessionstart-hook-fixture.json",
   "templates/validate-active-context.ps1",
   "templates/validate-plan-package.ps1",
   "references/routing.md",
@@ -297,6 +301,7 @@ $required = @(
   "references/command-policy.md",
   "references/active-context.md",
   "references/terminology.md",
+  "references/codex-upstream-leverage.md",
   "references/contracts.md",
   "references/context-snapshot.md",
   "references/quickfix-protocol.md",
@@ -370,6 +375,20 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/terminology.md"
   "<!-- CONTRACT: terminology v1 -->",
   "## SSOT Map"
 )
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/codex-upstream-leverage.md" -needles @(
+  "<!-- CONTRACT: codex-upstream-leverage v1 -->"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation.md" -needles @(
+  "scripts/hooks/helloagents-stop.ps1",
+  "scripts/hooks/helloagents-sessionstart.ps1",
+  "templates/hooks/stop-hook-fixture.json",
+  "templates/hooks/sessionstart-hook-fixture.json"
+)
+
+Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-stop.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Stop hook must treat payload as data only; never execute assistant message content."
+Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "SessionStart hook should only validate pointers, not execute payload content."
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -needles @(
   "<!-- CONTRACT: protocol-api v1 -->",

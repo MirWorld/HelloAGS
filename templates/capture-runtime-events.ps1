@@ -8,6 +8,8 @@ param(
   [string]$TaskFile = "",
   [string]$CodexHome = "",
   [string]$ThreadId = "",
+  [string]$TraceId = "",
+  [string]$EventTimestamp = "",
   [string]$SessionFile = "",
   [int]$TailLines = 20000,
   [switch]$DryRun
@@ -155,6 +157,23 @@ function Get-ThreadId([string]$threadIdArg) {
   return $null
 }
 
+function Get-TraceId([string]$traceIdArg) {
+  if (-not [string]::IsNullOrWhiteSpace($traceIdArg)) {
+    return $traceIdArg.Trim()
+  }
+  if (-not [string]::IsNullOrWhiteSpace($env:CODEX_TRACE_ID)) {
+    return $env:CODEX_TRACE_ID.Trim()
+  }
+  return $null
+}
+
+function Get-EventTimestamp([string]$eventTimestampArg) {
+  if (-not [string]::IsNullOrWhiteSpace($eventTimestampArg)) {
+    return $eventTimestampArg.Trim()
+  }
+  return (Get-Date).ToUniversalTime().ToString("o")
+}
+
 function Find-SessionFile([string]$codexHome, [string]$threadId, [string]$sessionFileArg) {
   if (-not [string]::IsNullOrWhiteSpace($sessionFileArg)) {
     if (Test-Path -LiteralPath $sessionFileArg) {
@@ -204,6 +223,50 @@ function Find-RealtimeTextLog([string]$codexHome) {
   return $null
 }
 
+function Get-TraceIdFromObject($obj) {
+  $candidates = @()
+
+  try { $candidates += $obj.trace_id } catch { }
+  try { $candidates += $obj.traceId } catch { }
+  try { $candidates += $obj.payload.trace_id } catch { }
+  try { $candidates += $obj.payload.traceId } catch { }
+  try { $candidates += $obj.metadata.trace_id } catch { }
+  try { $candidates += $obj.metadata.traceId } catch { }
+
+  foreach ($candidate in $candidates) {
+    if ($candidate -is [string] -and -not [string]::IsNullOrWhiteSpace($candidate)) {
+      return $candidate.Trim()
+    }
+  }
+
+  return $null
+}
+
+function Get-TraceIdFromTextLine([string]$line) {
+  if ([string]::IsNullOrWhiteSpace($line)) {
+    return $null
+  }
+
+  $patterns = @(
+    '(?i)\btrace_id=(?<id>\S+)',
+    '(?i)\btraceId=(?<id>\S+)',
+    '(?i)"trace_id"\s*:\s*"(?<id>[^"]+)"',
+    '(?i)"traceId"\s*:\s*"(?<id>[^"]+)"'
+  )
+
+  foreach ($pattern in $patterns) {
+    $m = [regex]::Match($line, $pattern)
+    if ($m.Success) {
+      $id = $m.Groups["id"].Value.Trim([char]0x60, '"', "'", ",", ";")
+      if (-not [string]::IsNullOrWhiteSpace($id)) {
+        return $id
+      }
+    }
+  }
+
+  return $null
+}
+
 function Get-RepoState([string]$projectRoot) {
   $state = [ordered]@{
     branch = "unknown"
@@ -241,6 +304,10 @@ function Get-RepoState([string]$projectRoot) {
 }
 
 function Extract-ModelEvents([string[]]$jsonLines) {
+  return Extract-ModelEventsInternal -jsonLines $jsonLines -wantedTraceId $null
+}
+
+function Extract-ModelEventsInternal([string[]]$jsonLines, [string]$wantedTraceId) {
   $events = @()
 
   foreach ($line in $jsonLines) {
@@ -285,6 +352,13 @@ function Extract-ModelEvents([string[]]$jsonLines) {
       continue
     }
 
+    $traceId = Get-TraceIdFromObject -obj $obj
+    if (-not [string]::IsNullOrWhiteSpace($wantedTraceId)) {
+      if ([string]::IsNullOrWhiteSpace($traceId) -or ($traceId -ne $wantedTraceId)) {
+        continue
+      }
+    }
+
     $ts = $null
     try { $ts = $obj.timestamp } catch { $ts = $null }
     if (-not ($ts -is [string]) -or [string]::IsNullOrWhiteSpace($ts)) {
@@ -294,6 +368,7 @@ function Extract-ModelEvents([string[]]$jsonLines) {
     $events += [pscustomobject]@{
       kind = $kind
       ts = $ts
+      trace_id = $traceId
     }
   }
 
@@ -301,11 +376,12 @@ function Extract-ModelEvents([string[]]$jsonLines) {
     Sort-Object kind, ts -Unique
 }
 
-function Extract-ModelEventsFromTextLog([string[]]$lines, [string]$threadId) {
+function Extract-ModelEventsFromTextLog([string[]]$lines, [string]$threadId, [string]$traceId) {
   $events = @()
 
   $wantThread = -not [string]::IsNullOrWhiteSpace($threadId)
   $threadNeedle = if ($wantThread) { "thread_id=$threadId" } else { "" }
+  $wantTrace = -not [string]::IsNullOrWhiteSpace($traceId)
 
   foreach ($line in $lines) {
     if ([string]::IsNullOrWhiteSpace($line)) {
@@ -314,6 +390,13 @@ function Extract-ModelEventsFromTextLog([string[]]$lines, [string]$threadId) {
 
     if ($wantThread -and ($line.IndexOf($threadNeedle, [System.StringComparison]::OrdinalIgnoreCase) -lt 0)) {
       continue
+    }
+
+    $lineTraceId = Get-TraceIdFromTextLine -line $line
+    if ($wantTrace) {
+      if ([string]::IsNullOrWhiteSpace($lineTraceId) -or ($lineTraceId -ne $traceId)) {
+        continue
+      }
     }
 
     $mTs = [regex]::Match($line, '^(?<ts>\d{4}-\d{2}-\d{2}T[0-9:\.\-]+Z)\s+')
@@ -342,6 +425,7 @@ function Extract-ModelEventsFromTextLog([string[]]$lines, [string]$threadId) {
     $events += [pscustomobject]@{
       kind = $kind
       ts = $ts
+      trace_id = $lineTraceId
     }
   }
 
@@ -353,21 +437,26 @@ function Get-RecordedEventKeys([string]$snapshotBody) {
   $known = [ordered]@{
     kindOnly = @{}
     kindTs = @{}
+    kindTsTrace = @{}
   }
 
   if ([string]::IsNullOrWhiteSpace($snapshotBody)) {
     return $known
   }
 
-  $rx = [regex]::new('(?im)^\s*-\s*\[SRC:TOOL\]\s*model_event\s*[:\uFF1A]\s*(?<kind>\S+)(?:\s+#\s*ts=(?<ts>\S+))?.*$')
+  $rx = [regex]::new('(?im)^\s*-\s*\[SRC:TOOL\]\s*model_event\s*[:\uFF1A]\s*(?<kind>\S+)(?:\s+#\s*ts=(?<ts>\S+))?(?:\s+trace_id=(?<trace>\S+))?.*$')
   $ms = $rx.Matches($snapshotBody)
   foreach ($m in $ms) {
     $kind = $m.Groups["kind"].Value.Trim()
     $ts = $m.Groups["ts"].Value.Trim()
+    $trace = $m.Groups["trace"].Value.Trim()
     if (-not [string]::IsNullOrWhiteSpace($kind)) {
       $known.kindOnly[$kind] = $true
       if (-not [string]::IsNullOrWhiteSpace($ts)) {
         $known.kindTs["$kind@@$ts"] = $true
+        if (-not [string]::IsNullOrWhiteSpace($trace)) {
+          $known.kindTsTrace["$kind@@$ts@@$trace"] = $true
+        }
       }
     }
   }
@@ -414,7 +503,14 @@ function Append-EventsToSnapshot([string]$snapshotBody, [pscustomobject[]]$event
   foreach ($e in $eventsToAdd) {
     $kind = $e.kind
     $ts = $e.ts
-    $b += "- [SRC:TOOL] model_event: $kind # ts=$ts`n"
+    $traceSuffix = ""
+    if (-not [string]::IsNullOrWhiteSpace($e.trace_id)) {
+      $traceSuffix = " trace_id=$($e.trace_id)"
+    }
+    $b += "- [SRC:TOOL] model_event: $kind # ts=$ts$traceSuffix`n"
+    if (-not [string]::IsNullOrWhiteSpace($e.trace_id)) {
+      $b += "- [SRC:TOOL] trace_id: $($e.trace_id)`n"
+    }
     $b += "- [SRC:TOOL] repo_state: $repoStateLine`n"
     $b += "- ${LABEL_NEXT_UNIQUE_ACTION}: 按 references/resume-protocol.md 执行断层恢复（Reboot Check）`n`n"
   }
@@ -444,27 +540,31 @@ if ($Mode -eq "append") {
     Write-Output "SKIP: -Mode append requires -Kind (model_rerouted|response_incomplete)."
     exit 0
   }
+  $appendTraceId = Get-TraceId -traceIdArg $TraceId
+  $appendTimestamp = Get-EventTimestamp -eventTimestampArg $EventTimestamp
   $events = @([pscustomobject]@{
     kind = $Kind
-    ts = (Get-Date).ToUniversalTime().ToString("o")
+    ts = $appendTimestamp
+    trace_id = $appendTraceId
   })
 } else {
   $codexHome = Get-CodexHome -codexHomeArg $CodexHome
   $tid = Get-ThreadId -threadIdArg $ThreadId
+  $traceId = Get-TraceId -traceIdArg $TraceId
 
-  if (-not [string]::IsNullOrWhiteSpace($tid)) {
+  if (-not [string]::IsNullOrWhiteSpace($tid) -or -not [string]::IsNullOrWhiteSpace($traceId)) {
     $textLog = Find-RealtimeTextLog -codexHome $codexHome
     if (-not [string]::IsNullOrWhiteSpace($textLog)) {
       $tail = @(Get-Content -LiteralPath $textLog -Tail $TailLines -ErrorAction SilentlyContinue)
-      $events = @(Extract-ModelEventsFromTextLog -lines $tail -threadId $tid)
+      $events = @(Extract-ModelEventsFromTextLog -lines $tail -threadId $tid -traceId $traceId)
     }
   }
 
   if ($events.Count -eq 0) {
     $session = Find-SessionFile -codexHome $codexHome -threadId $tid -sessionFileArg $SessionFile
     if ([string]::IsNullOrWhiteSpace($session) -or -not (Test-Path -LiteralPath $session)) {
-      if ([string]::IsNullOrWhiteSpace($tid)) {
-        Write-Output "SKIP: CODEX_THREAD_ID missing; not scanning text logs to avoid cross-thread misattribution. Provide -ThreadId/CODEX_THREAD_ID or pass -SessionFile (or use -Mode append)."
+      if ([string]::IsNullOrWhiteSpace($tid) -and [string]::IsNullOrWhiteSpace($traceId)) {
+        Write-Output "SKIP: CODEX_THREAD_ID/CODEX_TRACE_ID missing; not scanning logs to avoid cross-thread misattribution. Provide -ThreadId/-TraceId (or env vars), pass -SessionFile, or use -Mode append."
       } else {
         Write-Output "SKIP: codex logs not found (no text log hit; and session JSONL missing: no session match)."
       }
@@ -472,7 +572,7 @@ if ($Mode -eq "append") {
     }
 
     $tail = @(Get-Content -LiteralPath $session -Tail $TailLines -ErrorAction SilentlyContinue)
-    $events = @(Extract-ModelEvents -jsonLines $tail)
+    $events = @(Extract-ModelEventsInternal -jsonLines $tail -wantedTraceId $traceId)
   }
 }
 
@@ -486,7 +586,11 @@ $toAdd = @()
 foreach ($e in $events) {
   $k = $e.kind
   $ts = $e.ts
+  $eventTraceId = $e.trace_id
   if ($recorded.kindOnly.Contains($k)) {
+    continue
+  }
+  if (-not [string]::IsNullOrWhiteSpace($eventTraceId) -and $recorded.kindTsTrace.Contains("$k@@$ts@@$eventTraceId")) {
     continue
   }
   if ($recorded.kindTs.Contains("$k@@$ts")) {
@@ -506,7 +610,13 @@ $newText = $snapshot.before + $newBody + $snapshot.after
 
 if ($DryRun) {
   Write-Output "DRYRUN: would append $($toAdd.Count) event(s) to '$taskPath'."
-  $toAdd | ForEach-Object { Write-Output ("- model_event: " + $_.kind + " ts=" + $_.ts) }
+  $toAdd | ForEach-Object {
+    $suffix = ""
+    if (-not [string]::IsNullOrWhiteSpace($_.trace_id)) {
+      $suffix = " trace_id=" + $_.trace_id
+    }
+    Write-Output ("- model_event: " + $_.kind + " ts=" + $_.ts + $suffix)
+  }
   exit 0
 }
 

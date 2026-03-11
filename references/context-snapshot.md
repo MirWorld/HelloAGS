@@ -81,6 +81,7 @@
 ### 运行时/模型事件（可选，结构化）
 - [SRC:TOOL] model_event: model_rerouted
 - [SRC:TOOL] model_event: response_incomplete
+- [SRC:TOOL] trace_id: ...
 
 ### Repo 状态（复现/防漂移，推荐）
 - [SRC:TOOL] repo_state: branch=... head=... dirty=... diffstat=...
@@ -123,6 +124,10 @@
 
 若不是 git 仓库或命令不可用：允许省略 `repo_state`，或在“待确认/假设”区标注 `[SRC:INFER][置信度: 中]` 并说明原因（不要编造）。
 
+补充（可选字段）：
+- `trace_id:` 只在可从 Codex 运行时/日志中稳定取得时记录；用途是**同一 turn/同一输出的去重与防串线**，不作为 SSOT（真值）字段，也不替代 `repo_state`
+- 若回填脚本无法获得 `thread_id`，但能稳定获得 `trace_id`，可用其作为日志过滤条件；若两者都缺失，推荐直接 `SKIP`，避免跨 thread 误归因
+
 **写作约束：**
 - 每个小节最多 3–5 条；宁可短而精，避免写成冗长复盘
 - “下一步唯一动作”必须可执行（命令/文件/任务编号），避免“继续排查”式空话
@@ -155,4 +160,3 @@
   - 或追加 `### 修正记录`（≤5条），说明“原结论错在哪里/新证据是什么”
 
 原则：快照必须支持“接手者无需回看聊天记录也能续作”。
-

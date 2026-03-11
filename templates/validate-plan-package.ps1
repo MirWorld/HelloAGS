@@ -63,10 +63,16 @@ function Get-MarkdownSectionBody([string]$text, [string]$headingRegex) {
   if ($null -eq $text) {
     return ""
   }
-  $pattern = '(?ms)^\s*' + $headingRegex + '\s*$\r?\n(?<body>.*?)(?=^\s*#{2,6}\s+|\z)'
+  $pattern = '(?m)^\s*(?:' + $headingRegex + ')\s*$\r?\n'
   $m = [regex]::Match($text, $pattern)
   if ($m.Success) {
-    return $m.Groups["body"].Value
+    $start = $m.Index + $m.Length
+    $tail = $text.Substring($start)
+    $next = [regex]::Match($tail, '(?m)^\s*#{2,6}\s+')
+    if ($next.Success) {
+      return $tail.Substring(0, $next.Index)
+    }
+    return $tail
   }
   return ""
 }
@@ -387,4 +393,3 @@ if (-not $report.ok) {
 }
 
 Write-Output "OK: plan package validation passed ($($packages.Count) package(s))"
-

@@ -61,6 +61,7 @@
 |---|---|
 | 术语口径 | `references/terminology.md` |
 | 协议公共 API 清单 | `references/contracts.md` |
+| Codex 上游借力清单 | `references/codex-upstream-leverage.md` |
 | 路由与写入范围/Delta | `references/routing.md` |
 | 断层恢复（Resume） | `references/resume-protocol.md` |
 | 输出规范 | `templates/output-format.md` |
