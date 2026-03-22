@@ -103,6 +103,30 @@ codex --version
   - 验收：
     - 当 `_current.md` 指向不存在目录时：输出 WARN + 建议下一步，不自动乱写
 
+### P2（接线：让 hooks 真能调用本仓库脚本）
+
+- [x] P2.1 提供 `.codex/hooks.json` 模板（仅接线，不引入额外系统）
+  - 改哪里：
+    - 新增 `templates/hooks/hooks.json`（复制到目标项目 `.codex/hooks.json`）
+  - 验收：
+    - hooks 文件中包含 `SessionStart` / `Stop` / `UserPromptSubmit` 三个事件入口（结构校验）
+
+- [x] P2.2 提供 `codex_hooks` 最小开关片段（config 模板）
+  - 改哪里：
+    - 新增 `templates/hooks/config.toml.snippet`（合并进 `.codex/config.toml` 或 `~/.codex/config.toml`）
+  - 验收：
+    - 仅包含 `[features] codex_hooks=true`（不绑定其它配置）
+
+### P3（强 Guard：Pending 时禁止跑偏）
+
+- [x] P3.1 UserPromptSubmit hook：在 `Pending` 状态下阻断无效输入（减少跑偏/减少上下文噪声）
+  - 改哪里：
+    - 新增 `scripts/hooks/helloagents-userpromptsubmit.ps1`
+    - （可选）新增 `templates/hooks/userpromptsubmit-hook-fixture.json` 用于 dry-run
+  - 验收：
+    - 检测到 `task.md##上下文快照### 待用户输入（Pending）` 非空且用户输入不满足最小回复形态时：返回 `decision=block`
+    - 不依赖自然语言正则（只做结构与极少量高信号规则）
+
 ---
 
 ## 3) 最小闭环（verify_min）建议

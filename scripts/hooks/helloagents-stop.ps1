@@ -7,6 +7,47 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Write-HookOutputJson {
+  param(
+    [string]$SystemMessage = "",
+    [string]$HookEventName = "",
+    [string]$HookMessage = "",
+    [string]$Decision = "",
+    [string]$Reason = "",
+    [string]$AdditionalContext = ""
+  )
+
+  $out = [ordered]@{}
+
+  if (-not [string]::IsNullOrWhiteSpace($SystemMessage)) {
+    $out.systemMessage = $SystemMessage.Trim()
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($Decision)) {
+    $out.decision = $Decision.Trim()
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($Reason)) {
+    $out.reason = $Reason.Trim()
+  }
+
+  $hookSpecific = [ordered]@{}
+  if (-not [string]::IsNullOrWhiteSpace($HookEventName)) {
+    $hookSpecific.hookEventName = $HookEventName.Trim()
+  }
+  if (-not [string]::IsNullOrWhiteSpace($AdditionalContext)) {
+    $hookSpecific.additionalContext = $AdditionalContext
+  }
+  if (-not [string]::IsNullOrWhiteSpace($HookMessage)) {
+    $hookSpecific.hookMessage = $HookMessage
+  }
+  if ($hookSpecific.Count -gt 0) {
+    $out.hookSpecificOutput = $hookSpecific
+  }
+
+  ($out | ConvertTo-Json -Depth 64 -Compress) | Write-Output
+}
+
 function Get-RawInput([string]$inputFile) {
   if (-not [string]::IsNullOrWhiteSpace($inputFile)) {
     if (-not (Test-Path -LiteralPath $inputFile)) {
@@ -158,38 +199,58 @@ function Get-EventEntries($obj, [string]$raw) {
 
 $raw = Get-RawInput -inputFile $InputFile
 if ([string]::IsNullOrWhiteSpace($raw)) {
-  Write-Output "SKIP: no hook payload provided."
+  if ($DryRun) {
+    Write-HookOutputJson -SystemMessage "SKIP: no hook payload provided."
+  } else {
+    Write-HookOutputJson
+  }
   exit 0
 }
 
 $payload = Try-ParseJson -raw $raw
 if ($null -eq $payload) {
-  Write-Output "SKIP: invalid hook payload JSON."
+  if ($DryRun) {
+    Write-HookOutputJson -SystemMessage "SKIP: invalid hook payload JSON."
+  } else {
+    Write-HookOutputJson
+  }
   exit 0
 }
 
 $projectRootResolved = Get-ProjectRootFromPayload -obj $payload -projectRootArg $ProjectRoot
 if ([string]::IsNullOrWhiteSpace($projectRootResolved)) {
-  Write-Output "SKIP: project root could not be resolved."
+  if ($DryRun) {
+    Write-HookOutputJson -SystemMessage "SKIP: project root could not be resolved."
+  } else {
+    Write-HookOutputJson
+  }
+  exit 0
+}
+
+$events = @(Get-EventEntries -obj $payload -raw $raw)
+if ($events.Count -eq 0) {
+  if ($DryRun) {
+    Write-HookOutputJson -SystemMessage "SKIP: no supported runtime/model events found in hook payload."
+  } else {
+    Write-HookOutputJson
+  }
   exit 0
 }
 
 $captureScript = Join-Path $projectRootResolved "HAGSWorks/scripts/capture-runtime-events.ps1"
 if (-not (Test-Path -LiteralPath $captureScript)) {
-  Write-Output "SKIP: capture-runtime-events script not found at '$captureScript'."
+  $kinds = ($events | ForEach-Object { $_.kind } | Sort-Object -Unique) -join ", "
+  $msg = "WARN: runtime/model event(s) detected but capture-runtime-events is missing (kinds=$kinds). 建议运行 ~init 或启用 HAGSWorks/scripts/capture-runtime-events.ps1."
+  Write-HookOutputJson -SystemMessage $msg
   exit 0
 }
 
 $threadId = Get-JsonStringValue $payload @("thread_id", "threadId", "session.thread_id", "session.threadId")
 $traceId = Get-JsonStringValue $payload @("trace_id", "traceId", "session.trace_id", "session.traceId", "metadata.trace_id", "metadata.traceId")
-$events = @(Get-EventEntries -obj $payload -raw $raw)
-
-if ($events.Count -eq 0) {
-  Write-Output "SKIP: no supported runtime/model events found in hook payload."
-  exit 0
-}
 
 $forwarded = 0
+$forwardErrors = 0
+$forwardLogs = @()
 foreach ($eventEntry in $events) {
   try {
     $captureParams = @{
@@ -213,16 +274,48 @@ foreach ($eventEntry in $events) {
       $captureParams.DryRun = $true
     }
 
-    & $captureScript @captureParams | ForEach-Object { Write-Output $_ }
+    $captureOut = & $captureScript @captureParams 2>&1
+    if ($DryRun -and $null -ne $captureOut) {
+      foreach ($line in @($captureOut)) {
+        $forwardLogs += $line.ToString()
+      }
+    }
     $forwarded += 1
   } catch {
-    Write-Output ("SKIP: capture-runtime-events failed for '{0}': {1}" -f $eventEntry.kind, $_.Exception.Message)
+    $forwardErrors += 1
+    if ($DryRun) {
+      $forwardLogs += ("ERR: capture-runtime-events failed for '{0}': {1}" -f $eventEntry.kind, $_.Exception.Message)
+    }
   }
 }
 
 if ($forwarded -eq 0) {
-  Write-Output "SKIP: hook payload was parsed, but no event could be forwarded."
+  $msg = "WARN: hook payload parsed, but no event could be forwarded to capture-runtime-events."
+  $hookMsg = $null
+  if ($DryRun -and $forwardLogs.Count -gt 0) {
+    $hookMsg = ($forwardLogs -join "`n")
+  }
+  Write-HookOutputJson -SystemMessage $msg -HookMessage $hookMsg
   exit 0
 }
 
-Write-Output "OK: stop hook forwarded $forwarded event(s)."
+if ($forwardErrors -gt 0) {
+  $msg = "WARN: stop hook forwarded $forwarded event(s), with $forwardErrors error(s)."
+  $hookMsg = $null
+  if ($DryRun -and $forwardLogs.Count -gt 0) {
+    $hookMsg = ($forwardLogs -join "`n")
+  }
+  Write-HookOutputJson -SystemMessage $msg -HookMessage $hookMsg
+  exit 0
+}
+
+if ($DryRun) {
+  $hookMsg = $null
+  if ($forwardLogs.Count -gt 0) {
+    $hookMsg = ($forwardLogs -join "`n")
+  }
+  Write-HookOutputJson -SystemMessage ("OK: stop hook forwarded {0} event(s)." -f $forwarded) -HookMessage $hookMsg
+  exit 0
+}
+
+Write-HookOutputJson

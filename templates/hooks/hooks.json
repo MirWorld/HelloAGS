@@ -1,0 +1,40 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File scripts/hooks/helloagents-sessionstart.ps1",
+            "timeoutSec": 10,
+            "statusMessage": "helloagents: session start"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File scripts/hooks/helloagents-userpromptsubmit.ps1",
+            "timeoutSec": 10,
+            "statusMessage": "helloagents: prompt guard"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -File scripts/hooks/helloagents-stop.ps1",
+            "timeoutSec": 10,
+            "statusMessage": "helloagents: stop"
+          }
+        ]
+      }
+    ]
+  }
+}

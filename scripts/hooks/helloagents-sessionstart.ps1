@@ -5,6 +5,47 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Write-HookOutputJson {
+  param(
+    [string]$SystemMessage = "",
+    [string]$HookEventName = "",
+    [string]$HookMessage = "",
+    [string]$Decision = "",
+    [string]$Reason = "",
+    [string]$AdditionalContext = ""
+  )
+
+  $out = [ordered]@{}
+
+  if (-not [string]::IsNullOrWhiteSpace($SystemMessage)) {
+    $out.systemMessage = $SystemMessage.Trim()
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($Decision)) {
+    $out.decision = $Decision.Trim()
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($Reason)) {
+    $out.reason = $Reason.Trim()
+  }
+
+  $hookSpecific = [ordered]@{}
+  if (-not [string]::IsNullOrWhiteSpace($HookEventName)) {
+    $hookSpecific.hookEventName = $HookEventName.Trim()
+  }
+  if (-not [string]::IsNullOrWhiteSpace($AdditionalContext)) {
+    $hookSpecific.additionalContext = $AdditionalContext
+  }
+  if (-not [string]::IsNullOrWhiteSpace($HookMessage)) {
+    $hookSpecific.hookMessage = $HookMessage
+  }
+  if ($hookSpecific.Count -gt 0) {
+    $out.hookSpecificOutput = $hookSpecific
+  }
+
+  ($out | ConvertTo-Json -Depth 64 -Compress) | Write-Output
+}
+
 function Get-RawInput([string]$inputFile) {
   if (-not [string]::IsNullOrWhiteSpace($inputFile)) {
     if (-not (Test-Path -LiteralPath $inputFile)) {
@@ -109,38 +150,38 @@ function Resolve-CurrentPackagePath([string]$projectRoot, [string]$pointerValue)
 
 $raw = Get-RawInput -inputFile $InputFile
 if ([string]::IsNullOrWhiteSpace($raw)) {
-  Write-Output "SKIP: no hook payload provided."
+  Write-HookOutputJson
   exit 0
 }
 
 $payload = Try-ParseJson -raw $raw
 if ($null -eq $payload) {
-  Write-Output "SKIP: invalid hook payload JSON."
+  Write-HookOutputJson
   exit 0
 }
 
 $projectRootResolved = Get-ProjectRootFromPayload -obj $payload -projectRootArg $ProjectRoot
 if ([string]::IsNullOrWhiteSpace($projectRootResolved)) {
-  Write-Output "SKIP: project root could not be resolved."
+  Write-HookOutputJson
   exit 0
 }
 
 $pointerFile = Join-Path $projectRootResolved "HAGSWorks/plan/_current.md"
 if (-not (Test-Path -LiteralPath $pointerFile)) {
-  Write-Output "SKIP: current pointer file not found at '$pointerFile'."
+  Write-HookOutputJson
   exit 0
 }
 
 $pointerText = Read-Utf8Text -path $pointerFile
 $match = [regex]::Match($pointerText, '(?m)^\s*current_package\s*:\s*(?<path>.*)\s*$')
 if (-not $match.Success) {
-  Write-Output "WARN: _current.md missing current_package key. next=修复指针格式"
+  Write-HookOutputJson -SystemMessage "WARN: _current.md missing current_package key. next=修复指针格式"
   exit 0
 }
 
 $rawPointer = [regex]::Replace($match.Groups["path"].Value, '\s+#.*$', '').Trim()
 if ([string]::IsNullOrWhiteSpace($rawPointer)) {
-  Write-Output "OK: _current.md current_package is empty."
+  Write-HookOutputJson
   exit 0
 }
 
@@ -153,22 +194,22 @@ try {
   $historyRootFull = [System.IO.Path]::GetFullPath($historyRoot)
   $resolvedPackageFull = [System.IO.Path]::GetFullPath($resolvedPackage)
 } catch {
-  Write-Output "WARN: current_package path cannot be normalized: '$rawPointer'. next=修复指针路径"
+  Write-HookOutputJson -SystemMessage "WARN: current_package path cannot be normalized: '$rawPointer'. next=修复指针路径"
   exit 0
 }
 
 if ($resolvedPackageFull.StartsWith($historyRootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
-  Write-Output "WARN: _current.md points to history: '$rawPointer'. next=改回 HAGSWorks/plan 下的有效方案包"
+  Write-HookOutputJson -SystemMessage "WARN: _current.md points to history: '$rawPointer'. next=改回 HAGSWorks/plan 下的有效方案包"
   exit 0
 }
 
 if (-not $resolvedPackageFull.StartsWith($planRootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
-  Write-Output "WARN: _current.md points outside plan root: '$rawPointer'. next=改回 HAGSWorks/plan 下的有效方案包"
+  Write-HookOutputJson -SystemMessage "WARN: _current.md points outside plan root: '$rawPointer'. next=改回 HAGSWorks/plan 下的有效方案包"
   exit 0
 }
 
 if (-not (Test-Path -LiteralPath $resolvedPackageFull -PathType Container)) {
-  Write-Output "WARN: _current.md current_package directory not found: '$rawPointer'. next=修复指针或重新选包"
+  Write-HookOutputJson -SystemMessage "WARN: _current.md current_package directory not found: '$rawPointer'. next=修复指针或重新选包"
   exit 0
 }
 
@@ -188,8 +229,8 @@ foreach ($name in $requiredFiles) {
 }
 
 if ($missing.Count -gt 0) {
-  Write-Output ("WARN: _current.md points to incomplete package: '{0}' missing={1}. next=修复方案包或重新选包" -f $rawPointer, ($missing -join ","))
+  Write-HookOutputJson -SystemMessage ("WARN: _current.md points to incomplete package: '{0}' missing={1}. next=修复方案包或重新选包" -f $rawPointer, ($missing -join ","))
   exit 0
 }
 
-Write-Output "OK: _current.md current_package is valid: $rawPointer"
+Write-HookOutputJson

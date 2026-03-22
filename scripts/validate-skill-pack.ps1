@@ -283,6 +283,7 @@ $required = @(
   "kb/SKILL.md",
   "scripts/hooks/helloagents-stop.ps1",
   "scripts/hooks/helloagents-sessionstart.ps1",
+  "scripts/hooks/helloagents-userpromptsubmit.ps1",
   "templates/output-format.md",
   "templates/plan-why-template.md",
   "templates/plan-how-template.md",
@@ -294,6 +295,9 @@ $required = @(
   "templates/current-plan-pointer-template.md",
   "templates/hooks/stop-hook-fixture.json",
   "templates/hooks/sessionstart-hook-fixture.json",
+  "templates/hooks/userpromptsubmit-hook-fixture.json",
+  "templates/hooks/hooks.json",
+  "templates/hooks/config.toml.snippet",
   "templates/validate-active-context.ps1",
   "templates/validate-plan-package.ps1",
   "references/routing.md",
@@ -383,12 +387,31 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/codex-upstream-
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation.md" -needles @(
   "scripts/hooks/helloagents-stop.ps1",
   "scripts/hooks/helloagents-sessionstart.ps1",
+  "scripts/hooks/helloagents-userpromptsubmit.ps1",
   "templates/hooks/stop-hook-fixture.json",
-  "templates/hooks/sessionstart-hook-fixture.json"
+  "templates/hooks/sessionstart-hook-fixture.json",
+  "templates/hooks/userpromptsubmit-hook-fixture.json",
+  "templates/hooks/hooks.json",
+  "templates/hooks/config.toml.snippet"
 )
 
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-stop.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Stop hook must treat payload as data only; never execute assistant message content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "SessionStart hook should only validate pointers, not execute payload content."
+Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "UserPromptSubmit hook should only guard/augment via JSON output; never execute payload content."
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/hooks.json" -needles @(
+  '"SessionStart"',
+  '"UserPromptSubmit"',
+  '"Stop"',
+  "helloagents-sessionstart.ps1",
+  "helloagents-userpromptsubmit.ps1",
+  "helloagents-stop.ps1"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/config.toml.snippet" -needles @(
+  "[features]",
+  "codex_hooks"
+)
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -needles @(
   "<!-- CONTRACT: protocol-api v1 -->",
