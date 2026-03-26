@@ -16,3 +16,7 @@ jobs:
       - name: Validate skill pack
         shell: pwsh
         run: ./scripts/validate-skill-pack.ps1
+
+      - name: Smoke validate skill pack
+        shell: pwsh
+        run: ./scripts/validate-skill-pack-smoke.ps1

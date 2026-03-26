@@ -215,6 +215,36 @@ next_unique_action: "等待用户输入序号 1-2"
 </helloagents_state>
 ```
 
+**功能删减确认:**
+```
+⚠️【HelloAGENTS】- 功能删减确认
+
+检测到当前实现可能需要减少既有功能，已暂停执行。
+- 目标: [目标]
+- 可能删减: [入口/API/默认行为/模块/配置项]
+- 原因: [为什么当前路径会导致删减]
+- 替代路径: [保持现有功能但实现更复杂的路径]
+
+[1] 允许本次删减并继续
+[2] 不允许删减，请保持现有功能并改走更复杂实现
+[3] 取消本次任务
+
+────
+🔄 下一步: 请输入序号选择
+回复契约: 只回复 `1`、`2` 或 `3`
+
+<helloagents_state>
+version: 1
+mode: auto
+phase: design
+status: awaiting_user_input
+awaiting_kind: choice
+awaiting_topic: feature_removal_guard
+package: HAGSWorks/plan/YYYYMMDDHHMM_<feature>/
+next_unique_action: "等待用户确认是否允许本次功能删减"
+</helloagents_state>
+```
+
 **无效输入再次询问:**
 ```
 ❓【HelloAGENTS】- [当前阶段]
@@ -306,6 +336,7 @@ next_unique_action: "等待用户补充需求信息或取消"
 - `mode/phase/awaiting_kind` 必须填**单值**（不得出现 `|`）
 - `package` 必须为空或真实路径（不得出现 `...`）
 - `next_unique_action` 建议以“等待用户…”开头，并与“回复契约”一致（下一轮只处理用户回复）
+- 可选：`awaiting_topic` 使用稳定标签（例如 `feature_removal_guard`），用于 specialized wait state 的低噪声识别
 - 允许用户在**满足回复契约后**追加“Delta 纠偏行”（例如 `新增约束:` / `纠偏:` / `非目标:` / `允许:` / `禁止:`；或直接写“不要/禁止/必须/只允许…”等强约束句），系统会先处理 Delta 再处理回复（细则：`references/routing.md` 的“等待态输入解析”）
 
 ```
@@ -369,4 +400,3 @@ next_unique_action: "等待用户输入序号 1-2"
 3. **其他交互场景** - 格式见对应规则文件（方案构思选择、测试失败、代码质量询问等）
 
 </interactive_output_format>
-

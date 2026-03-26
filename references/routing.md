@@ -31,6 +31,7 @@
 4. **包含 `~` 命令** → 进入命令模式；但仍必须遵守 `write_scope`，如冲突则阻断并请求裁决（见第 2.3 节）
 5. **目标路由为开发实施/执行，但缺少可执行方案包** → 输出错误并路由回 `~plan`/方案设计
 6. **EHRB 风险信号未确认** → 必须先停下做风险确认，再决定是否继续（见 `references/safety.md`）
+7. **疑似功能删减但未获批准** → 必须阻断并进入“功能删减确认”；尤其是会减少用户可见表面、公开契约、默认能力时，不得把“简化实现/最小改动面/更易维护”解释为删功能授权（见 `references/feature-removal-guard.md`）
 
 需要阻断交互时：优先使用 `templates/output-format.md` 的 `❓/⚠️/❌` 交互模板，给 2–3 个可选决策。
 
@@ -259,6 +260,28 @@ next_unique_action: "等待用户输入序号 1-3"
 3) **强制更新执行域声明**（Allow/Deny/NewFiles/Refactor）：把更新后的结论写入快照“决策”区（细则见 `references/execution-guard.md`）  
 4) **强制更新“下一步唯一动作”**：用 1 条可执行动作收口（继续实现/切换路径/先补验证/等待确认），写入快照“下一步唯一动作”区（细则见 `references/context-snapshot.md`）
 
+### 6.2 功能删减确认（Feature Removal Confirmation）
+
+命中任一情形时，必须暂停并进入确认，不得继续实施：
+- 用户显式要求删除、隐藏、禁用、去掉某项既有功能
+- 方案推导或执行过程中发现“只有减少既有功能才能完成任务”
+- 命中“用户可见 / 公开表面识别”且行为会减少/降级
+- 无法证明“这是删冗余，不是删功能”（按 `references/feature-removal-guard.md` 的歧义处理与判定顺序）
+
+固定动作：
+1) 把删减目标、原因、审批状态写入 `task.md##上下文快照`
+2) 将 `feature_removal_approved` 保持为 `no`
+3) 输出“功能删减确认”交互模板并进入 `Pending`
+4) 未获用户明确批准前，不得继续修改相关文件
+
+审批通过后的落盘要求：
+- `feature_removal_approved: yes`
+- `approved_scope: ...`
+- `approved_target: ...`
+- `approved_reason: ...`
+- `replacement_behavior: ...`
+- `source: [SRC:USER]`
+
 ---
 
 ## 7) 上下文打断（新需求插入）
@@ -286,4 +309,3 @@ package:
 next_unique_action: "等待用户输入序号 1-2"
 </helloagents_state>
 ```
-

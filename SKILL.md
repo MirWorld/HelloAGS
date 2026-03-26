@@ -27,6 +27,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 - **术语口径**：统一见 `references/terminology.md`（校验/`loose`/`strict`/漂移等）
 <!-- CONTRACT: skill-no-redo v1 -->
 - **防重复执行（No-Redo）**：断层续作/自动压缩后，以 `task.md` 状态为准；若任务已全部完成且无 Pending，则判定已完成并归档/等待新需求；任何“重做/二次触碰已完成改动”必须先写 Delta 到 `task.md##上下文快照` 并新增任务承接（细则：`references/resume-protocol.md`、`references/context-snapshot.md`）
+- **功能删减保护（Feature Removal Guard）**：默认保留现有功能；任何可能通过删除、隐藏、禁用、短路、降级既有功能来完成任务的路径，都必须先按 `references/feature-removal-guard.md` 询问用户并获得明确批准；不得把“简化实现/最小改动面/更易维护”解释为删功能授权
 - **失败/Review 闭环**：阻断性失败遵循 `references/failure-protocol.md`（默认连续 3 次升级）；最终输出前强制执行 `references/review-protocol.md` 的两段式 Review 并记录（防止漂移与耦合回潮）
 - **中期落盘（上下文快照）**：在关键决策/需求变更/阻断失败/会话可能中断/最终输出前，必须将“关键决策/约束/下一步唯一动作”写入 `task.md##上下文快照`，并为每条结论标注来源标签；推断必须隔离到待确认区（详见 `references/context-snapshot.md`）
 - **Active Context（接口注册表）**：维护 `HAGSWorks/active_context.md` 作为派生缓存（非 SSOT（真值））的公共接口入口清单；每条 Public API 必须包含 `[SRC:CODE] path symbol` 指针（行号可选）；与代码冲突时以代码为准并修正文档（详见 `references/active-context.md`）
@@ -236,4 +237,3 @@ HAGSWorks/
     ├── index.md
     └── YYYY-MM/YYYYMMDDHHMM_<feature>/
 ```
-

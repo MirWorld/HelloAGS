@@ -42,6 +42,7 @@
 - **Deny（禁止修改）**：明确不碰的目录/模块/协议层（至少 1 条）
 - **New Files（是否允许新增文件）**：默认 `否`；若是，限定允许目录
 - **Refactor（是否允许顺手重构）**：默认 `否`；若是，必须绑定预算与不变量（见 `references/refactoring-anti-coupling.md`）
+- **Feature Removal（是否允许功能删减）**：默认 `否`；只要会减少用户可见表面、公开契约或默认能力，就必须先有 `[SRC:USER]` 的明确批准记录（见 `references/feature-removal-guard.md`）
 
 ### 1.2 写到哪里（落盘要求）
 
@@ -54,7 +55,9 @@
 当用户/方案包未明确授权时，默认：
 - `New Files = 否`
 - `Refactor = 否`
+- `Feature Removal = 否`
 - `Deny` 至少包含：数据库迁移/协议变更/权限模型重做（除非对齐摘要允许）
+- 仅当能证明属于 `references/feature-removal-guard.md` 的“内部-only 白名单”且外部行为不变时，才不按功能删减处理
 
 ---
 
@@ -89,6 +92,7 @@
 - 无法确认问题是否在当前模块/文件范围内
 - 继续修改会触碰 `Deny` 范围
 - 需要变更契约/协议/数据库才能实现，但对齐摘要未允许
+- 继续修改会导致删除、隐藏、禁用、短路、降级用户可见表面、公开契约或默认能力，且当前不存在 `feature_removal_approved: yes` 的批准记录
 
 提问要求（最小信息包）：
 - 当前不确定点是什么（1 句话）
@@ -104,4 +108,3 @@
 - 上下文快照与可恢复检查点：见 `references/context-snapshot.md`、`references/context-budget.md`
 - 连续失败升级：见 `references/failure-protocol.md`、`references/break-loop-checklist.md`
 - 结构质量与重构预算：见 `references/refactoring-anti-coupling.md`、`references/architecture-boundaries.md`
-

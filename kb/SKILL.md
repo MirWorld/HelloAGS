@@ -63,27 +63,12 @@ HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 
 ### 3) 初始化的最小必需集（缺什么补什么；默认不覆盖）
 
-**目录（缺失即创建）**
-- `HAGSWorks/`
-- `HAGSWorks/wiki/`
-- `HAGSWorks/wiki/modules/`
-- `HAGSWorks/scripts/`
-- `HAGSWorks/plan/`
-- `HAGSWorks/history/`
+唯一来源：`../templates/workspace-bootstrap-manifest.json`
 
-**文件（缺失即按模板创建）**
-- `HAGSWorks/CHANGELOG.md` ← `templates/changelog-template.md`
-- `HAGSWorks/project.md` ← `templates/project-template.md`
-- `HAGSWorks/active_context.md` ← `templates/active-context-template.md`
-- `HAGSWorks/scripts/validate-active-context.ps1` ← `templates/validate-active-context.ps1`
-- `HAGSWorks/scripts/validate-plan-package.ps1` ← `templates/validate-plan-package.ps1`
-- `HAGSWorks/scripts/capture-runtime-events.ps1` ← `templates/capture-runtime-events.ps1`
-- `HAGSWorks/plan/_current.md` ← `templates/current-plan-pointer-template.md`
-- `HAGSWorks/wiki/overview.md` ← `templates/wiki-overview-template.md`
-- `HAGSWorks/wiki/arch.md` ← `templates/wiki-arch-template.md`
-- `HAGSWorks/wiki/api.md` ← `templates/wiki-api-template.md`
-- `HAGSWorks/wiki/data.md` ← `templates/wiki-data-template.md`
-- `HAGSWorks/history/index.md` ← `templates/history-index-template.md`
+规则：
+- `~init` / 隐式初始化必须按该 manifest 的 `directories` 与 `files` 补齐最小骨架
+- 新增/删除初始化目录或文件时，只改 manifest；本文件不再逐项重复展开
+- `files[].template` 指向的模板文件必须存在，且仅在目标文件缺失时创建
 
 说明：
 - `project.md` 中“项目能力画像”未知项写 `unknown`，不要凭空猜测；后续在执行域取证补齐。
@@ -339,4 +324,3 @@ for each 选定的方案包:
 
 🔄 下一步: 知识库操作已完成，可进行其他任务
 ```
-

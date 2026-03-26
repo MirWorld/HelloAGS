@@ -111,6 +111,87 @@ function Get-JsonStringValue($obj, [string[]]$paths) {
   return $null
 }
 
+function Normalize-StateValue([string]$raw) {
+  if ($null -eq $raw) {
+    return ""
+  }
+
+  $v = [regex]::Replace($raw, '\s+#.*$', '')
+  $v = $v.Trim()
+  if (($v.StartsWith('"') -and $v.EndsWith('"')) -or ($v.StartsWith("'") -and $v.EndsWith("'"))) {
+    if ($v.Length -ge 2) {
+      $v = $v.Substring(1, $v.Length - 2)
+    }
+  }
+  return $v.Trim()
+}
+
+function Parse-HelloAgentsState([string]$message) {
+  if ([string]::IsNullOrWhiteSpace($message)) {
+    return $null
+  }
+
+  $m = [regex]::Match($message, '(?ms)<helloagents_state>\s*(?<body>.*?)\s*</helloagents_state>')
+  if (-not $m.Success) {
+    return $null
+  }
+
+  $kv = @{}
+  foreach ($line in ($m.Groups["body"].Value -split "`r?`n")) {
+    $t = $line.Trim()
+    if ([string]::IsNullOrWhiteSpace($t)) {
+      continue
+    }
+    $colon = $t.IndexOf(":")
+    if ($colon -lt 0) {
+      continue
+    }
+    $key = $t.Substring(0, $colon).Trim()
+    $value = Normalize-StateValue ($t.Substring($colon + 1).Trim())
+    $kv[$key] = $value
+  }
+
+  if ($kv.Count -eq 0) {
+    return $null
+  }
+
+  return $kv
+}
+
+function Get-FeatureRemovalWaitInfo($obj) {
+  $message = Get-JsonStringValue $obj @("last_assistant_message", "lastAssistantMessage", "payload.last_assistant_message", "payload.lastAssistantMessage")
+  if ([string]::IsNullOrWhiteSpace($message)) {
+    return $null
+  }
+
+  $state = Parse-HelloAgentsState -message $message
+  if ($null -eq $state) {
+    return $null
+  }
+
+  $status = ""
+  $topic = ""
+  $nextAction = ""
+  $package = ""
+  if ($state.ContainsKey("status")) { $status = $state["status"] }
+  if ($state.ContainsKey("awaiting_topic")) { $topic = $state["awaiting_topic"] }
+  if ($state.ContainsKey("next_unique_action")) { $nextAction = $state["next_unique_action"] }
+  if ($state.ContainsKey("package")) { $package = $state["package"] }
+
+  if ($status -ne "awaiting_user_input") {
+    return $null
+  }
+  if ($topic -ne "feature_removal_guard") {
+    return $null
+  }
+
+  return [pscustomobject]@{
+    topic = $topic
+    next_unique_action = $nextAction
+    package = $package
+  }
+}
+
 function Normalize-EventKind([string]$value) {
   if ([string]::IsNullOrWhiteSpace($value)) {
     return $null
@@ -228,9 +309,10 @@ if ([string]::IsNullOrWhiteSpace($projectRootResolved)) {
 }
 
 $events = @(Get-EventEntries -obj $payload -raw $raw)
-if ($events.Count -eq 0) {
+$featureRemovalWait = Get-FeatureRemovalWaitInfo -obj $payload
+if ($events.Count -eq 0 -and $null -eq $featureRemovalWait) {
   if ($DryRun) {
-    Write-HookOutputJson -SystemMessage "SKIP: no supported runtime/model events found in hook payload."
+    Write-HookOutputJson -SystemMessage "SKIP: no supported runtime/model events or feature-removal wait state found in hook payload."
   } else {
     Write-HookOutputJson
   }
@@ -238,7 +320,7 @@ if ($events.Count -eq 0) {
 }
 
 $captureScript = Join-Path $projectRootResolved "HAGSWorks/scripts/capture-runtime-events.ps1"
-if (-not (Test-Path -LiteralPath $captureScript)) {
+if ($events.Count -gt 0 -and -not (Test-Path -LiteralPath $captureScript)) {
   $kinds = ($events | ForEach-Object { $_.kind } | Sort-Object -Unique) -join ", "
   $msg = "WARN: runtime/model event(s) detected but capture-runtime-events is missing (kinds=$kinds). 建议运行 ~init 或启用 HAGSWorks/scripts/capture-runtime-events.ps1."
   Write-HookOutputJson -SystemMessage $msg
@@ -289,23 +371,40 @@ foreach ($eventEntry in $events) {
   }
 }
 
+$featureWaitMessage = $null
+$featureWaitContext = $null
+if ($null -ne $featureRemovalWait) {
+  $featureWaitMessage = "INFO: 检测到功能删减确认等待态；下一轮应先回答是否允许本次删减。"
+  $featureWaitContextLines = @("awaiting_topic: feature_removal_guard")
+  if (-not [string]::IsNullOrWhiteSpace($featureRemovalWait.package)) {
+    $featureWaitContextLines += ("package: {0}" -f $featureRemovalWait.package)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($featureRemovalWait.next_unique_action)) {
+    $featureWaitContextLines += ("next_unique_action: {0}" -f $featureRemovalWait.next_unique_action)
+  }
+  $featureWaitContext = ($featureWaitContextLines -join "`n")
+}
+
 if ($forwarded -eq 0) {
-  $msg = "WARN: hook payload parsed, but no event could be forwarded to capture-runtime-events."
+  $msg = if ($featureWaitMessage) { $featureWaitMessage } else { "WARN: hook payload parsed, but no event could be forwarded to capture-runtime-events." }
   $hookMsg = $null
   if ($DryRun -and $forwardLogs.Count -gt 0) {
     $hookMsg = ($forwardLogs -join "`n")
   }
-  Write-HookOutputJson -SystemMessage $msg -HookMessage $hookMsg
+  Write-HookOutputJson -SystemMessage $msg -HookMessage $hookMsg -AdditionalContext $featureWaitContext
   exit 0
 }
 
 if ($forwardErrors -gt 0) {
   $msg = "WARN: stop hook forwarded $forwarded event(s), with $forwardErrors error(s)."
+  if ($featureWaitMessage) {
+    $msg += " $featureWaitMessage"
+  }
   $hookMsg = $null
   if ($DryRun -and $forwardLogs.Count -gt 0) {
     $hookMsg = ($forwardLogs -join "`n")
   }
-  Write-HookOutputJson -SystemMessage $msg -HookMessage $hookMsg
+  Write-HookOutputJson -SystemMessage $msg -HookMessage $hookMsg -AdditionalContext $featureWaitContext
   exit 0
 }
 
@@ -314,7 +413,16 @@ if ($DryRun) {
   if ($forwardLogs.Count -gt 0) {
     $hookMsg = ($forwardLogs -join "`n")
   }
-  Write-HookOutputJson -SystemMessage ("OK: stop hook forwarded {0} event(s)." -f $forwarded) -HookMessage $hookMsg
+  $msg = ("OK: stop hook forwarded {0} event(s)." -f $forwarded)
+  if ($featureWaitMessage) {
+    $msg += " " + $featureWaitMessage
+  }
+  Write-HookOutputJson -SystemMessage $msg -HookMessage $hookMsg -AdditionalContext $featureWaitContext
+  exit 0
+}
+
+if ($featureWaitMessage) {
+  Write-HookOutputJson -SystemMessage $featureWaitMessage -AdditionalContext $featureWaitContext
   exit 0
 }
 

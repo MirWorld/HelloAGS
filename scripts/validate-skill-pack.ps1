@@ -261,14 +261,30 @@ function Assert-NoDeprecatedTerms([string]$repoRoot, [string[]]$trackedFiles) {
   }
 }
 
+function Get-WorkspaceBootstrapManifest([string]$repoRoot) {
+  $relativePath = "templates/workspace-bootstrap-manifest.json"
+  $full = Join-Path $repoRoot (Normalize-RelativePath $relativePath)
+  if (-not (Test-Path -LiteralPath $full)) {
+    Fail "Missing required file: $relativePath"
+  }
+
+  try {
+    return (Get-Content -LiteralPath $full -Raw | ConvertFrom-Json -Depth 32)
+  } catch {
+    Fail ("Invalid JSON in {0}: {1}" -f $relativePath, $_.Exception.Message)
+  }
+}
+
 $repoRoot = Get-RepoRoot
 $tracked = Get-TrackedFiles $repoRoot
+$workspaceBootstrapManifest = Get-WorkspaceBootstrapManifest -repoRoot $repoRoot
 
 Info "RepoRoot: $repoRoot"
 Info "Tracked files: $($tracked.Count)"
 
 # Required files (minimal contract for this repo as a skill pack)
 $required = @(
+  ".gitignore",
   ".gitattributes",
   "SKILL.md",
   "README.md",
@@ -281,6 +297,7 @@ $required = @(
   "design/SKILL.md",
   "develop/SKILL.md",
   "kb/SKILL.md",
+  "scripts/validate-skill-pack-smoke.ps1",
   "scripts/hooks/helloagents-stop.ps1",
   "scripts/hooks/helloagents-sessionstart.ps1",
   "scripts/hooks/helloagents-userpromptsubmit.ps1",
@@ -291,9 +308,9 @@ $required = @(
   "templates/plan-why-quickfix-template.md",
   "templates/plan-how-quickfix-template.md",
   "templates/plan-task-quickfix-template.md",
-  "templates/active-context-template.md",
-  "templates/current-plan-pointer-template.md",
+  "templates/workspace-bootstrap-manifest.json",
   "templates/hooks/stop-hook-fixture.json",
+  "templates/hooks/stop-hook-feature-removal-fixture.json",
   "templates/hooks/sessionstart-hook-fixture.json",
   "templates/hooks/userpromptsubmit-hook-fixture.json",
   "templates/hooks/hooks.json",
@@ -305,6 +322,7 @@ $required = @(
   "references/command-policy.md",
   "references/active-context.md",
   "references/terminology.md",
+  "references/feature-removal-guard.md",
   "references/codex-upstream-leverage.md",
   "references/contracts.md",
   "references/context-snapshot.md",
@@ -317,6 +335,16 @@ $required = @(
   "references/failure-protocol.md",
   "references/review-protocol.md"
 )
+
+$bootstrapTemplatePaths = @()
+foreach ($entry in @($workspaceBootstrapManifest.files)) {
+  $templatePath = ""
+  try { $templatePath = $entry.template } catch { $templatePath = "" }
+  if (-not [string]::IsNullOrWhiteSpace($templatePath)) {
+    $bootstrapTemplatePaths += $templatePath.Trim()
+  }
+}
+$required += ($bootstrapTemplatePaths | Sort-Object -Unique)
 
 foreach ($r in $required) {
   Assert-FileExists -repoRoot $repoRoot -relativePath $r
@@ -339,6 +367,9 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md
   "package:",
   "next_unique_action:"
 )
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @(
+  "awaiting_topic: feature_removal_guard"
+)
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/active-context-template.md" -needles @(
   "## Modules (Public Surface)",
   "## Contracts Index",
@@ -351,6 +382,25 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/current-plan-poi
   "current_package:"
 )
 
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/workspace-bootstrap-manifest.json" -needles @(
+  '"contract": "workspace-bootstrap-manifest v1"',
+  '"workspace_root": "HAGSWorks"',
+  '"directories"',
+  '"files"'
+)
+Assert-ContainsAll -repoRoot $repoRoot -relativePath ".gitignore" -needles @(
+  "/HAGSWorks/",
+  "/_codex_temp/"
+)
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "kb/SKILL.md" -needles @(
+  "templates/workspace-bootstrap-manifest.json",
+  "唯一来源"
+)
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/SKILL.md" -needles @(
+  "templates/workspace-bootstrap-manifest.json",
+  "唯一来源"
+)
+
 Assert-NotMatches -repoRoot $repoRoot -relativePath "templates/active-context-template.md" -pattern '\[SRC:CODE\][^\r\n]*(?::\d+|#L\d+)\b' -hint "Don't include resolvable [SRC:CODE] pointers in the template; ~init runs before real files/line numbers exist."
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-template.md" -needles @(
@@ -361,7 +411,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-templa
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-how-template.md" -needles @(
   "## 执行域声明（Allow/Deny）",
-  "## 中期落盘（上下文快照）"
+  "## 中期落盘（上下文快照）",
+  "## 功能删减审批（如触发）",
+  "feature_removal_approved:",
+  "Feature Removal（允许功能删减）"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -needles @(
@@ -377,7 +430,22 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -ne
 # Core invariants (keep small but strict; prevents semantic drift)
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/terminology.md" -needles @(
   "<!-- CONTRACT: terminology v1 -->",
-  "## SSOT Map"
+  "## SSOT Map",
+  "references/feature-removal-guard.md"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/feature-removal-guard.md" -needles @(
+  "<!-- CONTRACT: feature-removal-guard v1 -->",
+  "## 默认原则",
+  "## 用户可见 / 公开表面识别",
+  "## 视为功能删减",
+  "## 不视为功能删减",
+  "### 内部-only 白名单",
+  "## 歧义处理",
+  "## 判定顺序",
+  "## 审批令牌",
+  "feature_removal_approved:",
+  "## 命中后的固定动作"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/codex-upstream-leverage.md" -needles @(
@@ -389,6 +457,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation
   "scripts/hooks/helloagents-sessionstart.ps1",
   "scripts/hooks/helloagents-userpromptsubmit.ps1",
   "templates/hooks/stop-hook-fixture.json",
+  "templates/hooks/stop-hook-feature-removal-fixture.json",
   "templates/hooks/sessionstart-hook-fixture.json",
   "templates/hooks/userpromptsubmit-hook-fixture.json",
   "templates/hooks/hooks.json",
@@ -412,11 +481,16 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/config.tom
   "[features]",
   "codex_hooks"
 )
+Assert-ContainsAll -repoRoot $repoRoot -relativePath ".github/workflows/validate-skill-pack.yml" -needles @(
+  "./scripts/validate-skill-pack.ps1",
+  "./scripts/validate-skill-pack-smoke.ps1"
+)
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -needles @(
   "<!-- CONTRACT: protocol-api v1 -->",
   "<helloagents_state>",
   "model_event:",
+  "awaiting_topic:",
   "HAGSWorks/plan/_current.md"
 )
 
@@ -431,7 +505,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
-  "<!-- CONTRACT: skill-no-redo v1 -->"
+  "<!-- CONTRACT: skill-no-redo v1 -->",
+  "references/feature-removal-guard.md"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "develop/SKILL.md" -needles @(
@@ -471,6 +546,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-quickf
   "## 上下文快照",
   "model_event:",
   "### Repo 状态",
+  "### 功能删减审批",
+  "feature_removal_approved:",
   "### 待用户输入（Pending）",
   "### 错误与尝试",
   "### 下一步唯一动作",
@@ -497,9 +574,39 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-templa
   "### 错误与尝试",
   "model_event:",
   "### Repo 状态",
+  "### 功能删减审批",
+  "feature_removal_approved:",
   "### 待用户输入（Pending）",
   "### 下一步唯一动作",
   "下一步唯一动作:"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -needles @(
+  "## 0) 阻断式路由（Hard Stop）",
+  "疑似功能删减但未获批准",
+  "### 6.2 功能删减确认（Feature Removal Confirmation）",
+  "feature_removal_approved: yes"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/execution-guard.md" -needles @(
+  "Feature Removal（是否允许功能删减）",
+  "Feature Removal = 否",
+  "feature_removal_approved: yes"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/review-protocol.md" -needles @(
+  "references/feature-removal-guard.md",
+  "不得删减用户可见表面、默认能力或既有契约",
+  "功能删减"
+)
+
+Assert-NotContainsAny -repoRoot $repoRoot -relativePath "references/review-protocol.md" -needles @(
+  "优先删减到最小必要改动面"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @(
+  "功能删减确认",
+  "等待用户确认是否允许本次功能删减"
 )
 
 Info "OK: skill pack validation passed"

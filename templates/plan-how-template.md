@@ -46,6 +46,14 @@
 - **不变量:** [行为/接口/性能/兼容要求]
 - **禁止触碰:** [明确不改的模块/接口/数据层]
 
+## 功能删减审批（如触发）
+- `feature_removal_approved: no`
+- `approved_scope:`
+- `approved_target:`
+- `approved_reason:`
+- `replacement_behavior:`
+- `fallback_if_rejected:`
+
 ## 变更请求（Change/Verify/Don't，推荐 ≤10 行）
 
 > 用途：把本次改动压缩成可复用的“请求资产”（类似 PR 描述），方便中途纠偏与最终验收。
@@ -62,6 +70,7 @@
 - **Deny（禁止修改）:** [明确不碰的模块/目录/协议层]
 - **New Files（允许新增文件）:** [否 / 是（限定目录：...）]
 - **Refactor（允许顺手重构）:** [否 / 是（绑定预算与不变量）]
+- **Feature Removal（允许功能删减）:** [否 / 是（必须对应 `feature_removal_approved: yes`）]
 
 ## 跨层一致性（如触发）
 

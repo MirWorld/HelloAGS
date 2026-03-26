@@ -1,0 +1,74 @@
+{
+  "contract": "workspace-bootstrap-manifest v1",
+  "workspace_root": "HAGSWorks",
+  "directories": [
+    "HAGSWorks",
+    "HAGSWorks/wiki",
+    "HAGSWorks/wiki/modules",
+    "HAGSWorks/scripts",
+    "HAGSWorks/plan",
+    "HAGSWorks/history"
+  ],
+  "files": [
+    {
+      "target": "HAGSWorks/CHANGELOG.md",
+      "template": "templates/changelog-template.md",
+      "description": "变更日志"
+    },
+    {
+      "target": "HAGSWorks/project.md",
+      "template": "templates/project-template.md",
+      "description": "项目能力画像与协作偏好"
+    },
+    {
+      "target": "HAGSWorks/active_context.md",
+      "template": "templates/active-context-template.md",
+      "description": "Active Context"
+    },
+    {
+      "target": "HAGSWorks/scripts/validate-active-context.ps1",
+      "template": "templates/validate-active-context.ps1",
+      "description": "Active Context 校验脚本"
+    },
+    {
+      "target": "HAGSWorks/scripts/validate-plan-package.ps1",
+      "template": "templates/validate-plan-package.ps1",
+      "description": "方案包完整性校验脚本"
+    },
+    {
+      "target": "HAGSWorks/scripts/capture-runtime-events.ps1",
+      "template": "templates/capture-runtime-events.ps1",
+      "description": "运行时/模型事件回填脚本"
+    },
+    {
+      "target": "HAGSWorks/plan/_current.md",
+      "template": "templates/current-plan-pointer-template.md",
+      "description": "当前方案包指针"
+    },
+    {
+      "target": "HAGSWorks/wiki/overview.md",
+      "template": "templates/wiki-overview-template.md",
+      "description": "Wiki 总览"
+    },
+    {
+      "target": "HAGSWorks/wiki/arch.md",
+      "template": "templates/wiki-arch-template.md",
+      "description": "架构文档"
+    },
+    {
+      "target": "HAGSWorks/wiki/api.md",
+      "template": "templates/wiki-api-template.md",
+      "description": "API 文档"
+    },
+    {
+      "target": "HAGSWorks/wiki/data.md",
+      "template": "templates/wiki-data-template.md",
+      "description": "数据模型文档"
+    },
+    {
+      "target": "HAGSWorks/history/index.md",
+      "template": "templates/history-index-template.md",
+      "description": "历史索引"
+    }
+  ]
+}

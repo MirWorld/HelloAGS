@@ -1,0 +1,5 @@
+{
+  "hook_event_name": "Stop",
+  "project_root": "__PROJECT_ROOT__",
+  "last_assistant_message": "⚠️【HelloAGENTS】- 功能删减确认\n\n检测到当前实现可能需要减少既有功能，已暂停执行。\n\n<helloagents_state>\nversion: 1\nmode: auto\nphase: design\nstatus: awaiting_user_input\nawaiting_kind: choice\nawaiting_topic: feature_removal_guard\npackage: HAGSWorks/plan/202603260204_feature_removal_guard_refine_hooks/\nnext_unique_action: \"等待用户确认是否允许本次功能删减\"\n</helloagents_state>\n"
+}

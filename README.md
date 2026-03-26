@@ -13,9 +13,10 @@
 ## 一分钟上手（复制即用）
 
 1. **安装**：把本仓库放到 Codex CLI 的 skills 搜索路径（例如 `~/.codex/skills/helloagents/`）
+   - 说明：这里的“复制即用”指 **核心 skill 协议、模板与仓库内脚本** 可直接使用；复制到 skills 路径本身**不会自动启用 hooks**
 2. （可选）**初始化**：在目标项目根目录对话中输入 `~init`（补齐 `HAGSWorks/` 工作区骨架；可反复执行，幂等）
-   - 若你直接提需求：在你未声明 `no_write` 的前提下，Skill 会在首次需要写入 `HAGSWorks/` 时自动补齐（无需你先手动 `~init`）
-   - 若你之前使用过旧目录名（历史拼写错误）`HAGWroks/`（错误拼写）：执行 `~init` 会自动迁移为 `HAGSWorks/`
+   - 若你直接提需求：在你未声明 `no_write` 的前提下，helloagents 会按协议先执行一次“隐式初始化”，补齐 `HAGSWorks/` 最小骨架（无需你先手动 `~init`）
+   - 若项目里残留旧目录名 `HAGWroks/`（错误拼写）：`~init` / 隐式初始化路径会先处理该迁移；若 `HAGSWorks/` 与 `HAGWroks/` 同时存在，则先阻断并要求你选择，避免写到两处
 3. **直接开干**：在目标项目里直接提需求即可（默认 `~auto`；只想出方案用 `~plan`）
 4. （维护者可选）**自检**：修改本 Skill 后先跑 `pwsh -NoProfile -File ./scripts/validate-skill-pack.ps1`
 
@@ -25,6 +26,14 @@
 - `~plan`：只做对齐与方案（会产出 why/how/task），不进入改代码/跑门禁
 - `~exec`：执行已有方案包（按 task 清单改代码、验证、归档）
 - `~auto`：一口气跑完整链路（对齐 → 方案 → 执行）
+
+## hooks 说明（可选增强，不是前提）
+
+- hooks 是 **Codex CLI 的可选能力**，不是本 skill 自带的独立运行时
+- 本仓库只提供 hooks 的**接线脚本与模板**，用于在支持 hooks 的 Codex 环境中做辅助增强
+- 即使完全不配置 hooks，helloagents 的核心流程（路由、方案包、验证、Review、resume）仍然可用
+- 仅把 skill 仓库复制到 skills 路径，**不会自动安装/启用 hooks**
+- 若要启用 hooks，再按 `references/hook-simulation.md` 把 `templates/hooks/hooks.json` 与 `templates/hooks/config.toml.snippet` 接到你的 `.codex` 配置中
 
 ## 常见场景怎么选
 
@@ -103,11 +112,14 @@ HAGSWorks/
 ## 验证与维护
 
 - 本仓库自检（CI 同款）：`pwsh -NoProfile -File ./scripts/validate-skill-pack.ps1`
+- 本仓库最小行为冒烟：`pwsh -NoProfile -File ./scripts/validate-skill-pack-smoke.ps1`
 - Windows PowerShell 5.1 兼容入口：`powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/validate-skill-pack-ps51.ps1`
 - 目标项目 Active Context 校验：`pwsh -NoProfile -File ./HAGSWorks/scripts/validate-active-context.ps1`
 - 目标项目方案包完整性校验：`pwsh -NoProfile -File ./HAGSWorks/scripts/validate-plan-package.ps1`
 
-说明：本仓库脚本与文档包含大量 UTF-8 中文内容；PowerShell 7（`pwsh`）下可直接运行 `./scripts/validate-skill-pack.ps1`，Windows PowerShell 5.1 请使用上面的兼容入口脚本。
+说明：
+- `validate-skill-pack.ps1` 负责结构/契约校验；`validate-skill-pack-smoke.ps1` 负责最小行为自证（workspace bootstrap、hooks fixture、feature-removal wait）
+- 本仓库脚本与文档包含大量 UTF-8 中文内容；PowerShell 7（`pwsh`）下可直接运行上述脚本，Windows PowerShell 5.1 请使用上面的兼容入口脚本。
 
 ## Acknowledgments
 
@@ -117,4 +129,3 @@ HAGSWorks/
 ## License
 
 双许可：代码 Apache-2.0 / 文档 CC BY 4.0。详见 `LICENSE`、`LICENSE-CC-BY-4.0`、`LICENSE-SUMMARY.md` 与 `NOTICE`。
-

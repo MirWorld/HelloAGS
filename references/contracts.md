@@ -49,6 +49,9 @@
 - `package:`（可空或真实路径；不得使用 `...` 占位）
 - `next_unique_action:`（必须非空；不校验具体措辞）
 
+可选稳定扩展字段：
+- `awaiting_topic:`（用于标记专门的等待主题；推荐枚举之一：`feature_removal_guard`）
+
 来源：`templates/output-format.md`（交互输出格式）与 `scripts/validate-skill-pack.ps1`（结构校验）。
 
 ---

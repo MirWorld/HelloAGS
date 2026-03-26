@@ -238,6 +238,132 @@ function Get-NextUniqueAction([string]$taskText) {
   return $matches[$matches.Count - 1].Groups["v"].Value.Trim()
 }
 
+function Get-FeatureRemovalApprovalState([string[]]$texts) {
+  $state = "no"
+  foreach ($text in $texts) {
+    if ([string]::IsNullOrWhiteSpace($text)) {
+      continue
+    }
+
+    $matches = [regex]::Matches($text, '(?im)feature_removal_approved\s*:\s*(?<v>yes|no)\b')
+    if ($matches.Count -gt 0) {
+      $state = $matches[$matches.Count - 1].Groups["v"].Value.Trim().ToLowerInvariant()
+    }
+  }
+
+  return $state
+}
+
+function Get-MetadataFieldValue([string[]]$texts, [string]$fieldName) {
+  foreach ($text in $texts) {
+    if ([string]::IsNullOrWhiteSpace($text)) {
+      continue
+    }
+
+    foreach ($line in ($text -split "`r?`n")) {
+      $trimmed = $line.Trim()
+      if (-not $trimmed.StartsWith("-")) {
+        continue
+      }
+
+      $trimmed = $trimmed.Substring(1).Trim()
+      $trimmed = $trimmed.Trim([char]0x60).Trim()
+      if (-not $trimmed.StartsWith($fieldName, [System.StringComparison]::OrdinalIgnoreCase)) {
+        continue
+      }
+
+      $colon = $trimmed.IndexOf(":")
+      if ($colon -lt 0) {
+        continue
+      }
+
+      $value = $trimmed.Substring($colon + 1).Trim().Trim([char]0x60).Trim()
+      if (-not [string]::IsNullOrWhiteSpace($value)) {
+        return $value
+      }
+    }
+  }
+
+  return ""
+}
+
+function Test-FeatureRemovalRiskFromPrompt([string]$prompt) {
+  if ([string]::IsNullOrWhiteSpace($prompt)) {
+    return $false
+  }
+
+  $patterns = @(
+    '(?i)\b(remove|delete|drop|disable|deprecate|hide|turn\s+off)\b',
+    '删除',
+    '移除',
+    '去掉',
+    '去除',
+    '禁用',
+    '隐藏',
+    '下线',
+    '砍掉',
+    '缩减'
+  )
+
+  foreach ($pattern in $patterns) {
+    if ($prompt -match $pattern) {
+      return $true
+    }
+  }
+
+  return $false
+}
+
+function Test-FeatureRemovalGuardShouldInject(
+  [string]$approvalState,
+  [string]$taskText,
+  [string]$howText,
+  [string]$pendingBody,
+  [string]$nextUniqueAction,
+  [string]$promptTrimmed
+) {
+  if ($approvalState -eq "yes") {
+    return $false
+  }
+
+  $stateTexts = @($taskText, $howText) -join "`n"
+  if ($stateTexts -match '(?i)\bawaiting_topic\s*:\s*feature_removal_guard\b') {
+    return $true
+  }
+
+  $liveSignalTexts = @($pendingBody, $nextUniqueAction, $promptTrimmed) -join "`n"
+  if ($liveSignalTexts -match '功能删减') {
+    return $true
+  }
+  if ($liveSignalTexts -match '(?i)\bfeature[_-]?removal\b') {
+    return $true
+  }
+
+  foreach ($fieldName in @("approved_scope", "approved_target", "approved_reason", "replacement_behavior", "fallback_if_rejected")) {
+    $value = Get-MetadataFieldValue -texts @($taskText, $howText) -fieldName $fieldName
+    if (-not [string]::IsNullOrWhiteSpace($value)) {
+      return $true
+    }
+  }
+
+  return (Test-FeatureRemovalRiskFromPrompt -prompt $promptTrimmed)
+}
+
+function Build-FeatureRemovalGuardLines([string]$approvalState, [string]$packagePointer) {
+  if ($approvalState -eq "yes") {
+    return @()
+  }
+
+  $lines = @()
+  $lines += "[HelloAGENTS Guard] 默认保留用户可见表面、公开契约与默认能力；未获 [SRC:USER] 明确批准前，不得删除、隐藏、禁用、短路或降级这些能力。"
+  $lines += "[HelloAGENTS Guard] 若只是死代码/不可达分支/未使用 helper 清理，且外部行为与公开契约不变，可按内部清理处理。"
+  $lines += ("feature_removal_approved: {0}" -f $approvalState)
+  if (-not [string]::IsNullOrWhiteSpace($packagePointer)) {
+    $lines += ("feature_removal_package: {0}" -f $packagePointer)
+  }
+  return $lines
+}
+
 try {
   $raw = Get-RawInput -inputFile $InputFile
   if ([string]::IsNullOrWhiteSpace($raw)) {
@@ -292,42 +418,68 @@ try {
   }
 
   $taskFile = Join-Path $packageFull "task.md"
+  $howFile = Join-Path $packageFull "how.md"
   $taskText = Read-Utf8Text -path $taskFile
+  $howText = ""
+  if (Test-Path -LiteralPath $howFile -PathType Leaf) {
+    $howText = Read-Utf8Text -path $howFile
+  }
   $pendingBody = Extract-SectionBody -text $taskText -headerText "### 待用户输入（Pending）"
   $pendingLines = @()
   if ($null -ne $pendingBody) {
     $pendingLines = @(Get-SignificantLines -text $pendingBody -maxLines 20)
   }
+  $nextUniqueAction = Get-NextUniqueAction -taskText $taskText
+  $featureRemovalApproval = Get-FeatureRemovalApprovalState -texts @($taskText, $howText)
+  $shouldInjectFeatureRemovalGuard = Test-FeatureRemovalGuardShouldInject `
+    -approvalState $featureRemovalApproval `
+    -taskText $taskText `
+    -howText $howText `
+    -pendingBody $pendingBody `
+    -nextUniqueAction $nextUniqueAction `
+    -promptTrimmed $promptTrimmed
+  $featureRemovalGuardLines = @()
+  if ($shouldInjectFeatureRemovalGuard) {
+    $featureRemovalGuardLines = @(Build-FeatureRemovalGuardLines -approvalState $featureRemovalApproval -packagePointer $packagePointer)
+  }
 
-  if ($pendingLines.Count -eq 0) {
+  $additionalContextLines = @()
+  if ($pendingLines.Count -gt 0) {
+    $additionalContextLines += "[HelloAGENTS Guard] 检测到待用户输入（Pending），本轮必须只处理用户回复，禁止进入执行/重开流程。"
+    $additionalContextLines += ("current_package: {0}" -f $packagePointer)
+    if (-not [string]::IsNullOrWhiteSpace($nextUniqueAction)) {
+      $additionalContextLines += ("next_unique_action: {0}" -f $nextUniqueAction)
+    }
+    $additionalContextLines += "pending:"
+    foreach ($line in $pendingLines) {
+      $additionalContextLines += ("- {0}" -f $line)
+    }
+  }
+  if ($featureRemovalGuardLines.Count -gt 0) {
+    if ($additionalContextLines.Count -gt 0) {
+      $additionalContextLines += ""
+    }
+    $additionalContextLines += $featureRemovalGuardLines
+  }
+
+  if ($pendingLines.Count -eq 0 -and $featureRemovalGuardLines.Count -eq 0) {
     Write-HookOutputJson
     exit 0
   }
 
-  $nextUniqueAction = Get-NextUniqueAction -taskText $taskText
-  $additionalContextLines = @()
-  $additionalContextLines += "[HelloAGENTS Guard] 检测到待用户输入（Pending），本轮必须只处理用户回复，禁止进入执行/重开流程。"
-  $additionalContextLines += ("current_package: {0}" -f $packagePointer)
-  if (-not [string]::IsNullOrWhiteSpace($nextUniqueAction)) {
-    $additionalContextLines += ("next_unique_action: {0}" -f $nextUniqueAction)
-  }
-  $additionalContextLines += "pending:"
-  foreach ($line in $pendingLines) {
-    $additionalContextLines += ("- {0}" -f $line)
-  }
   $additionalContext = ($additionalContextLines -join "`n")
   if ($additionalContext.Length -gt 2400) {
     $additionalContext = $additionalContext.Substring(0, 2400) + "`n…(truncated)"
   }
 
-  if ($promptTrimmed.StartsWith("~")) {
+  if ($pendingLines.Count -gt 0 -and $promptTrimmed.StartsWith("~")) {
     $msg = "当前处于 Pending（等待你回复上一轮问题/选择/确认），为避免跑偏已阻断命令执行。"
     $reason = "请先按回复契约回答（或回复 `取消` 结束等待），再执行其它命令/发起新需求。"
     Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext $additionalContext
     exit 0
   }
 
-  if ([string]::IsNullOrWhiteSpace($promptTrimmed)) {
+  if ($pendingLines.Count -gt 0 -and [string]::IsNullOrWhiteSpace($promptTrimmed)) {
     $msg = "输入为空且当前处于 Pending，已阻断以避免误触发。"
     $reason = "请按回复契约输入有效回复；如需结束等待，回复 `取消`。"
     Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext $additionalContext

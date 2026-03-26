@@ -52,12 +52,20 @@
   - 理由: …
   - 影响: …
 
+### 功能删减审批
+- `feature_removal_approved: no`
+- `approved_scope:`
+- `approved_target:`
+- `approved_reason:`
+- `replacement_behavior:`
+
 ### 待确认 / 假设（推断必须在此）
 - [SRC:INFER][置信度: 中] 假设: …
 - [SRC:TODO] 缺失信息: …
 
 ### 待用户输入（Pending）
 <!-- 无则留空 -->
+<!-- 触发“功能删减确认”时示例：- [SRC:TODO] 等待用户确认是否允许本次功能删减（影响: 未获批准前不得继续相关修改） -->
 
 ### 错误与尝试（防重复，按需）
 
@@ -79,4 +87,3 @@
 
 ## Review 记录
 （实现完成后填写：发现的问题/采取的修复/复测结果）
-
