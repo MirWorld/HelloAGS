@@ -9,7 +9,7 @@
 ## Checklist（按优先级）
 
 - **对齐不漂移**：`why.md#对齐摘要` 与实现/任务/验证一致（Review-规格一致性）
-- **证据可复现**：fmt/lint/typecheck/test/security 的执行情况与结果可复现记录（命令来自 `HAGSWorks/project.md#项目能力画像`）
+- **证据可复现**：fmt/lint/typecheck/build/test/security 的执行情况与结果可复现记录（命令来自 `HAGSWorks/project.md#项目能力画像`）
 - **任务真实**：`task.md` 所有任务状态已更新；`[X]/[-]/[?]` 具备注释说明
 - **快照可续作**：`task.md##上下文快照` 覆盖关键决策/约束/失败/下一步，事实/推断隔离且来源标签齐全
 - **未违反执行域**：本次实际改动未违反执行域声明（Allow/Deny/NewFiles/Refactor）；必要时在 `task.md##上下文快照` 记录纠偏检查点（见 `references/execution-guard.md`）
@@ -24,4 +24,3 @@
 
 - 阻断性门禁失败：按 `references/quality-gates.md` 停止并走失败协议
 - 连续失败≥3：按 `references/failure-protocol.md` 升级，必要时执行 `references/break-loop-checklist.md`
-

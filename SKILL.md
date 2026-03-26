@@ -148,7 +148,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 - **对齐摘要**：写入 `why.md##对齐摘要`，作为任务清单与测试验收的最高约束
 - **项目能力画像**：项目的命令矩阵与环境约束（build/test/fmt/lint/typecheck），用于跨栈稳定执行（详见 `references/project-profile.md`）
 - **外部知识协议**：外部资料的来源/版本/时效/失效条件与落盘位置（详见 `references/external-knowledge.md`）
-- **质量门禁**：fmt/lint/typecheck/test/security 的分级与执行顺序，输出时必须给证据（详见 `references/quality-gates.md`）
+- **质量门禁**：fmt/lint/typecheck/build/test/security 的分级与执行顺序，输出时必须给证据（详见 `references/quality-gates.md`）
 - **只读命令 / 有副作用命令**：命令分级口径，用于约束 `~plan`（规划域）与 `~exec`（执行域）的可执行动作（详见 `references/command-policy.md`）
 - **失败协议**：只统计阻断性失败；默认连续 3 次失败即停止空转并升级为用户决策（详见 `references/failure-protocol.md`）
 - **Review 协议**：最终输出前强制两段式审查（对齐一致性→结构质量），最多 3 轮“Review→修复→复测”，并写入 `task.md##Review 记录`（详见 `references/review-protocol.md`）
@@ -171,7 +171,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 ### G6 | 阶段输出规范
 - 统一输出格式定义：`templates/output-format.md`
 - 任何“完成类输出”必须包含：改动了什么 / 改在哪里（纵向文件清单）/ 验证结果
-- 验证结果需记录质量门禁执行情况（fmt/lint/typecheck/test/security），分级规则见 `references/quality-gates.md`
+- 验证结果需记录质量门禁执行情况（fmt/lint/typecheck/build/test/security），分级规则见 `references/quality-gates.md`
 
 ### G7 | 版本管理
 - 用户指定优先；否则以项目内**已有发布/版本入口**为准（脚本/CI/README/配置）；无法确定时写 `unknown` 并把“确认版本来源/是否需要更新版本号”作为下一步唯一动作（不要猜）

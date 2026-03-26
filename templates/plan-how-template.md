@@ -117,4 +117,4 @@ flowchart TD
 ## 测试与部署
 - **测试:** [策略]
 - **部署:** [流程]
-- **质量门禁:** [fmt/lint/typecheck/test/security 的执行顺序与阻断规则，命令来自 project.md 的“项目能力画像”]
+- **质量门禁:** [fmt/lint/typecheck/build/test/security 的执行顺序与阻断规则，命令来自 project.md 的“项目能力画像”]

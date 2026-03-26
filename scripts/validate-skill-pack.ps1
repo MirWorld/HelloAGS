@@ -567,10 +567,14 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/pre-implementat
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quality-gates.md" -needles @(
   "<!-- CONTRACT: quality-gates v1 -->",
-  "verify_min"
+  "verify_min",
+  "typecheck → build → test",
+  "编译/构建失败"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-template.md" -needles @(
+  "执行 build",
+  "重跑受影响门禁（通常为 fmt/lint/typecheck/build/test）",
   "### 错误与尝试",
   "model_event:",
   "### Repo 状态",
@@ -579,6 +583,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-templa
   "### 待用户输入（Pending）",
   "### 下一步唯一动作",
   "下一步唯一动作:"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/finish-checklist.md" -needles @(
+  "fmt/lint/typecheck/build/test/security"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -needles @(

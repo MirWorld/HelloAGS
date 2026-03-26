@@ -9,7 +9,7 @@
 
 ## 0. 对齐确认
 - [ ] 0.1 阅读 `why.md#对齐摘要`，确认目标/成功标准/边界/约束无误；如有偏差先修正 why.md 再执行后续任务
-- [ ] 0.2 确认 `HAGSWorks/project.md#项目能力画像` 已包含可用命令矩阵（test/fmt/lint/typecheck 等）；并为核心成功标准绑定至少 1 条 `verify_min`（最小验证动作，命令/测试/脚本/可复现手动步骤皆可）；如缺失则补齐后再继续
+- [ ] 0.2 确认 `HAGSWorks/project.md#项目能力画像` 已包含可用命令矩阵（build/test/fmt/lint/typecheck 等）；并为核心成功标准绑定至少 1 条 `verify_min`（最小验证动作，命令/测试/脚本/可复现手动步骤皆可）；如缺失则补齐后再继续
 - [ ] 0.3（推荐）执行复用检索：按 `references/code-reuse-checklist.md` 搜索现有相似实现与可复用组件，避免重复造轮子；在 how.md 的“复用与去重策略”记录结论
 - [ ] 0.4（推荐）确认边界与依赖方向：新增/修改代码应落在正确模块层，避免跨层 import；在 how.md 的“边界与依赖”记录约束
 
@@ -53,8 +53,9 @@
 - [ ] 5.1（推荐默认）执行 fmt（命令来自 `HAGSWorks/project.md#项目能力画像`）；若命令不存在则标记 `[-]` 并写明原因
 - [ ] 5.2（推荐默认）执行 lint（命令来自 `HAGSWorks/project.md#项目能力画像`）；若命令不存在则标记 `[-]` 并写明原因
 - [ ] 5.3（推荐默认）执行 typecheck（命令来自 `HAGSWorks/project.md#项目能力画像`，如适用）；若不适用/命令不存在则标记 `[-]` 并写明原因
-- [ ] 5.4（推荐默认）执行 test（命令来自 `HAGSWorks/project.md#项目能力画像`）；若项目无测试入口则标记 `[-]` 并写明原因（但必须保留 `verify_min` 闭环）
-- [ ] 5.5（触发式）如涉及依赖/外部输入/权限，执行 security 门禁（命令来自 `HAGSWorks/project.md#项目能力画像` 或项目既有检查）
+- [ ] 5.4（触发式推荐默认）若本次改动触及可编译/可发布路径且项目存在 build 命令，执行 build；若不触发/命令不存在则标记 `[-]` 并写明原因
+- [ ] 5.5（推荐默认）执行 test（命令来自 `HAGSWorks/project.md#项目能力画像`）；若项目无测试入口则标记 `[-]` 并写明原因（但必须保留 `verify_min` 闭环）
+- [ ] 5.6（触发式）如涉及依赖/外部输入/权限，执行 security 门禁（命令来自 `HAGSWorks/project.md#项目能力画像` 或项目既有检查）
 
 ---
 
@@ -62,7 +63,7 @@
 - [ ] 6.1 Review-规格一致性：对齐摘要（目标/成功标准/非目标/约束）与实现/任务/验证保持一致；`## 上下文快照` 覆盖关键决策/约束/下一步唯一动作且来源标签齐全；`HAGSWorks/active_context.md` 可续作且 Public APIs 具备 `[SRC:CODE]` 指针
 - [ ] 6.2 Review-结构与质量：边界/依赖方向正确；不新增重复；命名与抽象可读；避免 utils 膨胀；快照“事实区”不得混入推断；active_context 不得出现“无来源事实”
 - [ ] 6.3 记录 Review：在文末 `## Review 记录` 填写（问题≤5条/修复≤5条/复测摘要）
-- [ ] 6.4 如 Review 引入修复：重跑受影响门禁（通常 fmt/lint/typecheck/test），最多 3 轮“Review→修复→复测”
+- [ ] 6.4 如 Review 引入修复：重跑受影响门禁（通常为 fmt/lint/typecheck/build/test），最多 3 轮“Review→修复→复测”
 - [ ] 6.5 交付前收尾：按 `references/finish-checklist.md` 自检（证据/快照/active_context/输出格式）
 
 ---

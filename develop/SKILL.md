@@ -217,7 +217,7 @@ IF 不满足任何条件:
   - 严格按 task.md 逐项执行
 
 任务成功处理:
-  - 每个任务执行成功后，立即将状态从 [ ] 更新为 [√]
+  - 每个任务执行成功后，只有在本任务对应的 `verify_min` 与已触发的 build/test 门禁通过（或明确 `[-]` 并写明原因）后，才将状态从 [ ] 更新为 [√]
   - 如本任务触碰了新的关键文件/入口：将其加入 `task.md##上下文快照` 的 Workset（≤7 个），作为可恢复检查点
   - 如本任务影响公共接口/契约/数据流:
        - 更新 `HAGSWorks/active_context.md`（补齐/修正 Public APIs 的 `[SRC:CODE]` 指针）
@@ -265,8 +265,9 @@ IF 不满足任何条件:
 
 ```yaml
 质量门禁执行（顺序建议）:
-  - fmt → lint → typecheck → test → security
+  - fmt → lint → typecheck → build → test → security
   - 命令优先来自 HAGSWorks/project.md#项目能力画像；不足则按需探测并在允许写入时固化（参考 `../references/project-profile.md`）
+  - `build` 触发式推荐默认：项目已声明 build 命令，且本次改动触及可编译/可发布路径、公共入口、依赖图或生成产物时，至少运行 1 次 build；仅文档/知识库/注释改动可标 `[-]`
 
 测试执行: 运行task.md中定义的测试任务，或项目已有测试套件
 测试覆盖: 测试用例应覆盖 why.md 中的成功标准与核心场景（否则视为验证不足）
@@ -346,7 +347,7 @@ next_unique_action: "等待用户输入序号 1-3"
   - 超过 3 轮仍不通过: 按 `../references/failure-protocol.md` 升级为用户决策（收敛范围/补充信息/终止）
 
 复测要求:
-  - Review 引入代码改动后，至少重跑受影响的门禁（通常为 fmt/lint/typecheck/test）
+  - Review 引入代码改动后，至少重跑受影响的门禁（通常为 fmt/lint/typecheck/build/test）
 
 Review 记录:
   - 写入 task.md 末尾 `## Review 记录`（问题≤5条/修复≤5条/复测摘要）
@@ -558,4 +559,3 @@ next_unique_action: "等待用户输入方案包序号"
   全授权命令/执行命令: 在总结中标注测试失败，流程正常结束
   后续用户消息按路由优先级处理
 ```
-
