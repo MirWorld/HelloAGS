@@ -2,60 +2,50 @@
 
 目录: `HAGSWorks/plan/YYYYMMDDHHMM_<feature>/`
 
-最小闭环（建议只盯这几项，其他按触发/推荐执行）：
+最小默认闭环（先做这些，其他只在命中时展开）：
 - 必做：0.1（对齐）/ 0.2（verify_min 绑定）/ 0.6（快照）/ 0.8（执行域声明）/ 5.0（verify_min）/ 6.x（Review）
+- 触发再展开：复用检索 / 跨层一致性 / Active Context / 子代理 / 安全检查 / 文档更新 / 额外门禁
 
 ---
 
 ## 0. 对齐确认
 - [ ] 0.1 阅读 `why.md#对齐摘要`，确认目标/成功标准/边界/约束无误；如有偏差先修正 why.md 再执行后续任务
 - [ ] 0.2 确认 `HAGSWorks/project.md#项目能力画像` 已包含可用命令矩阵（build/test/fmt/lint/typecheck 等）；并为核心成功标准绑定至少 1 条 `verify_min`（最小验证动作，命令/测试/脚本/可复现手动步骤皆可）；如缺失则补齐后再继续
-- [ ] 0.3（推荐）执行复用检索：按 `references/code-reuse-checklist.md` 搜索现有相似实现与可复用组件，避免重复造轮子；在 how.md 的“复用与去重策略”记录结论
-- [ ] 0.4（推荐）确认边界与依赖方向：新增/修改代码应落在正确模块层，避免跨层 import；在 how.md 的“边界与依赖”记录约束
+- [ ] 0.3（触发式推荐）如存在相似实现、公共入口或边界风险，再按 `references/code-reuse-checklist.md` / `references/architecture-boundaries.md` 补齐复用与依赖结论；未命中可标 `[-]`
 
-## 0.5 跨层一致性（触发式）
-- [ ] 0.5.1 触发判定：按 `references/checklist-triggers.md` 判断是否命中跨层触发器（≥3层/改契约/多消费者/语义承诺变化等）
-- [ ] 0.5.2 如触发：按 `references/cross-layer-checklist.md` 清点受影响层/契约/消费者；补齐 how.md 的契约与兼容策略；必要时同步更新 `HAGSWorks/active_context.md`
+## 0.5 跨层一致性（仅触发时展开）
+- [ ] 0.5.1 仅当涉及 ≥3 层 / 改契约 / 多消费者 / 语义承诺变化时，按 `references/checklist-triggers.md` 与 `references/cross-layer-checklist.md` 补齐受影响层、契约、兼容策略与消费者；未命中可标 `[-]`
 
 ## 0.6 上下文快照（中期落盘，触发式必做）
 - [ ] 0.6.1 初始化：确认文末存在 `## 上下文快照` 区块（缺失则创建）
 - [ ] 0.6.2 触发式维护：关键决策/需求变更/阻断失败/会话可能中断/最终输出前，按 `references/context-snapshot.md` 追加/更新快照并标注来源标签；每次快照更新必须包含“下一步唯一动作”；推断只能写入“待确认/假设”区
 
-## 0.7 Active Context（可验证接口注册表，触发式必做）
-- [ ] 0.7.1 阅读 `HAGSWorks/active_context.md`：把它当作公共接口入口清单（派生层，非 SSOT（真值）），只信带 `[SRC:CODE]` 的 Public APIs 条目
-- [ ] 0.7.2 如本次变更影响公共接口/契约/数据流：更新 `HAGSWorks/active_context.md`（每条 Public API 必须包含 `[SRC:CODE] path symbol`；行号可选），并在 Review 前完成校验（可选运行 `HAGSWorks/scripts/validate-active-context.ps1 -Mode loose|strict`）
+## 0.7 Active Context（仅触发时展开）
+- [ ] 0.7.1 仅当本次变更影响公共接口 / 契约 / 数据流时，更新 `HAGSWorks/active_context.md` 并补齐 `[SRC:CODE] path symbol`；未命中可标 `[-]`
 
 ## 0.8 执行期护栏（执行域声明 + Fail→Narrow）
 - [ ] 0.8.1 写域声明（必须）：按 `references/execution-guard.md` 明确 Allow/Deny/NewFiles/Refactor，并把结论写入 `task.md##上下文快照` 的“决策”区（作为可恢复检查点）
 - [ ] 0.8.2 失败即收敛：当 Patch/修改不符合预期或开始扩大范围时，先按 `references/execution-guard.md` 执行 Fail→Narrow（最多 1 轮），并把失败证据/已尝试/下一步唯一动作写入 `task.md##上下文快照`；禁止直接扩大边界继续“硬修”
 
-## 0.9 子代理侦察/独立审查（触发式，可选）
-- [ ] 0.9.1 触发判定：按 `references/checklist-triggers.md` 判断是否命中“子代理侦察/独立审查”
-- [ ] 0.9.2 如触发：按 `references/subagent-orchestration.md` 进行只读侦察/独立审查（子代理禁止写入/禁止再分裂），并将“结论+证据指针+风险/不确定点+下一步唯一动作”写入 `task.md##上下文快照`
+## 0.9 子代理侦察/独立审查（仅触发时展开）
+- [ ] 0.9.1 仅当存在高不确定性且需要并行侦察 / 独立审查时，按 `references/checklist-triggers.md` 与 `references/subagent-orchestration.md` 执行；未命中可标 `[-]`
 
-## 1. [核心功能模块名称]
+## 1. 执行任务
 - [ ] 1.1 在 `path/to/file.ts` 中实现 [具体功能]，验证 why.md#[需求标题anchor]-[场景标题anchor]
 - [ ] 1.2 在 `path/to/file.ts` 中实现 [具体功能]，验证 why.md#[需求标题anchor]-[场景标题anchor]，依赖任务1.1
 
-## 2. [次要功能模块名称]
-- [ ] 2.1 在 `path/to/file.ts` 中实现 [具体功能]，验证 why.md#[需求标题anchor]-[场景标题anchor]，依赖任务1.2
+## 3. 安全检查（仅触发时展开）
+- [ ] 3.1 仅当涉及外部输入 / 权限 / 支付 / 生产变更 / 敏感信息等信号时，执行安全检查（输入验证、敏感信息处理、权限控制、EHRB 风险规避）；未命中可标 `[-]`
 
-## 3. 安全检查
-（触发式：外部输入/权限/支付/生产变更/敏感信息等信号命中时必做）
-- [ ] 3.1 执行安全检查（输入验证、敏感信息处理、权限控制、EHRB 风险规避）
-
-## 4. 文档更新
-（触发式：契约/公共接口/数据模型/架构变化时必做）
-- [ ] 4.1 更新 <知识库文件>
+## 4. 文档更新（仅触发时展开）
+- [ ] 4.1 仅当契约 / 公共接口 / 数据模型 / 架构变化时，更新对应知识库或说明文件；未命中可标 `[-]`
 
 ## 5. 质量门禁与验证
 - [ ] 5.0 运行 `verify_min`（最小-最快-最高信号）：优先用能覆盖成功标准的最小验证动作收口；记录证据（命令+结果摘要），失败则按失败协议收敛升级（参考 `references/quality-gates.md`、`references/failure-protocol.md`）
-- [ ] 5.1（推荐默认）执行 fmt（命令来自 `HAGSWorks/project.md#项目能力画像`）；若命令不存在则标记 `[-]` 并写明原因
-- [ ] 5.2（推荐默认）执行 lint（命令来自 `HAGSWorks/project.md#项目能力画像`）；若命令不存在则标记 `[-]` 并写明原因
-- [ ] 5.3（推荐默认）执行 typecheck（命令来自 `HAGSWorks/project.md#项目能力画像`，如适用）；若不适用/命令不存在则标记 `[-]` 并写明原因
-- [ ] 5.4（触发式推荐默认）若本次改动触及可编译/可发布路径且项目存在 build 命令，执行 build；若不触发/命令不存在则标记 `[-]` 并写明原因
-- [ ] 5.5（推荐默认）执行 test（命令来自 `HAGSWorks/project.md#项目能力画像`）；若项目无测试入口则标记 `[-]` 并写明原因（但必须保留 `verify_min` 闭环）
-- [ ] 5.6（触发式）如涉及依赖/外部输入/权限，执行 security 门禁（命令来自 `HAGSWorks/project.md#项目能力画像` 或项目既有检查）
+- [ ] 5.1（按适用项展开）从 `fmt/lint/typecheck/build/test/security` 中只保留本次适用且项目已定义命令的项；未触发项标 `[-]` 并写明原因
+  - 建议顺序：fmt → lint → typecheck → build → test → security
+  - `build` 触发式推荐默认：若本次改动触及可编译/可发布路径且项目存在 build 命令，执行 build
+  - `test` 默认推荐执行；若项目无测试入口则标 `[-]`，但必须保留 `verify_min` 闭环
 
 ---
 
