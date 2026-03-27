@@ -81,6 +81,7 @@
 ### 运行时/模型事件（可选，结构化）
 - [SRC:TOOL] model_event: model_rerouted
 - [SRC:TOOL] model_event: response_incomplete
+- [SRC:TOOL] turn_id: ...
 - [SRC:TOOL] trace_id: ...
 
 ### Repo 状态（复现/防漂移，推荐）
@@ -125,7 +126,9 @@
 若不是 git 仓库或命令不可用：允许省略 `repo_state`，或在“待确认/假设”区标注 `[SRC:INFER][置信度: 中]` 并说明原因（不要编造）。
 
 补充（可选字段）：
+- `turn_id:` 只在可从 Codex hooks/运行时稳定取得时记录；用途是**把事件绑定到当前 turn**，优先级高于 `trace_id`，可显著降低跨轮误归因
 - `trace_id:` 只在可从 Codex 运行时/日志中稳定取得时记录；用途是**同一 turn/同一输出的去重与防串线**，不作为 SSOT（真值）字段，也不替代 `repo_state`
+- 若回填脚本能同时获得 `thread_id + turn_id`：优先用两者一起绑定当前事件；若缺 `turn_id` 再回退到 `thread_id + trace_id`
 - 若回填脚本无法获得 `thread_id`，但能稳定获得 `trace_id`，可用其作为日志过滤条件；若两者都缺失，推荐直接 `SKIP`，避免跨 thread 误归因
 
 **写作约束：**

@@ -85,6 +85,7 @@
 - `response_incomplete`：对应 Codex 的 `response.incomplete`（输出不完整；属于高风险信号）
 
 可选元数据（推荐默认，不做硬校验）：
+- `turn_id: <id>`：若 Codex hooks/运行时可稳定提供，优先记录；用途是把事件绑定到**当前 turn**，降低续作/压缩后的跨轮误归因
 - `trace_id: <id>`：若可从 Codex 运行时/日志稳定取得，可一并记录；用途仅限去重与防串线，不作为真值字段
 
 执行域门禁（`-Mode exec`）的高风险约束：

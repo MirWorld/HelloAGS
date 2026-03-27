@@ -490,6 +490,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -
   "<!-- CONTRACT: protocol-api v1 -->",
   "<helloagents_state>",
   "model_event:",
+  "turn_id:",
   "awaiting_topic:",
   "HAGSWorks/plan/_current.md"
 )
@@ -531,6 +532,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapshot.md" -needles @(
   "### 错误与尝试",
   "model_event:",
+  "turn_id:",
   "### Repo 状态",
   "### 待用户输入（Pending）",
   "### 下一步唯一动作",
@@ -545,6 +547,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quickfix-protoc
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-quickfix-template.md" -needles @(
   "## 上下文快照",
   "model_event:",
+  "turn_id:",
   "### Repo 状态",
   "### 功能删减审批",
   "feature_removal_approved:",
@@ -577,6 +580,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-templa
   "重跑受影响门禁（通常为 fmt/lint/typecheck/build/test）",
   "### 错误与尝试",
   "model_event:",
+  "turn_id:",
   "### Repo 状态",
   "### 功能删减审批",
   "feature_removal_approved:",

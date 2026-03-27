@@ -33,20 +33,28 @@ codex --version
 
 > 说明：这里不展开所有 release 内容，只关注“减少跑偏/重做/噪声”的能力。
 
-### 1.1 `trace_id`（用于回填防串线/去重）
+### 1.1 `turn_id`（用于按轮次绑定回填）
+- **上游能力**：`Stop` / `UserPromptSubmit` hooks payload 带 `turn_id`
+- **能解决的痛点**：当前回填主要按 thread/package 绑定，压缩/续作后仍可能把别轮事件归到当前轮
+- **建议落点**：
+  - hooks 把 `turn_id` 传给 `capture-runtime-events.ps1`
+  - 快照里可选记录 `turn_id`
+  - 事件去重优先使用 `kind + turn_id`（或更强的 `kind + ts + turn_id`）
+
+### 1.2 `trace_id`（用于回填防串线/去重）
 - **上游能力**：每个 turn 产生 `trace_id`
 - **能解决的痛点**：回填脚本在缺 thread_id 时容易误归因；或同一事件重复落盘
 - **建议落点**：
   - 在快照里记录 `trace_id`（若可得），作为“同一轮/同一输出”的去重键
-  - 回填脚本优先用 `thread_id`，其次用 `trace_id`（可选），两者都缺则 **SKIP**
+  - 回填脚本优先用 `thread_id + turn_id`，其次用 `thread_id + trace_id`，再其次用 `trace_id`；两者都缺则 **SKIP**
 
-### 1.2 `request_permissions` + 授权持久化（减少审批噪声）
+### 1.3 `request_permissions` + 授权持久化（减少审批噪声）
 - **上游能力**：运行中可请求额外权限；授权可以跨 turns 持久；并与 `apply_patch` 等写操作一致
 - **能解决的痛点**：为了跑一个脚本/写一个文件，反复卡在审批对话，破坏“无感”
 - **建议落点**：
   - 在 `references/command-policy.md` 补一条：若工具链支持 `request_permissions`，优先使用；否则走“用户确认→继续/停止”的协议
 
-### 1.3（实验性）Hooks Engine：`SessionStart` / `Stop`（自动回填的最薄入口）
+### 1.4（实验性）Hooks Engine：`SessionStart` / `Stop`（自动回填的最薄入口）
 - **上游能力**：会话生命周期 hooks（实验性）
 - **能解决的痛点**：你现在的事件回填不是 CLI 原生 hook，只能 best-effort；hooks 可把“回填触发”变成更稳定的系统事件
 - **建议落点**：
@@ -78,11 +86,27 @@ codex --version
   - 验收：
     - `pwsh -NoProfile -File HAGSWorks/scripts/capture-runtime-events.ps1 -Mode detect -DryRun` 输出明确的 SKIP/OK（不落盘）
 
+- [x] P0.4 将 `turn_id` 纳入 hooks → 回填 → 快照链路（优先级高于 `trace_id`）
+  - 改哪里：
+    - `scripts/hooks/helloagents-stop.ps1`：从 hook payload 读取并转发 `turn_id`
+    - `scripts/hooks/helloagents-userpromptsubmit.ps1`：在注入的最小上下文里附带 `current_turn_id`
+    - `HAGSWorks/scripts/capture-runtime-events.ps1`：增加 `-TurnId` 参数与去重/过滤逻辑
+    - `references/contracts.md`、`references/context-snapshot.md`：补 `turn_id` 为可选结构字段
+  - 验收：
+    - 带 `turn_id` 的 fixture / smoke 通过
+
 - [x] P0.3 把 `request_permissions` 写入“命令策略”作为可选能力（不改变默认流程）
   - 改哪里：
     - `references/command-policy.md`
   - 验收：
     - `scripts/validate-skill-pack.ps1` 通过
+
+- [x] P0.5 将 `thread/resume` 复用已持久化 `model/reasoning effort` 写入恢复协议假设
+  - 改哪里：
+    - `references/resume-protocol.md`
+    - `references/codex-upstream-leverage.md`
+  - 验收：
+    - 恢复协议明确“resume 后仍以磁盘事实为准，不把模型临时漂移当成可依赖信号”
 
 ### P1（可选：收益高，但依赖上游实验能力）
 

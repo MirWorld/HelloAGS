@@ -144,6 +144,10 @@ function Get-PromptFromPayload($obj) {
   return (Get-JsonStringValue $obj @("prompt", "user_prompt", "userPrompt", "payload.prompt", "payload.user_prompt", "payload.userPrompt"))
 }
 
+function Get-TurnIdFromPayload($obj) {
+  return (Get-JsonStringValue $obj @("turn_id", "turnId", "payload.turn_id", "payload.turnId", "session.turn_id", "session.turnId", "metadata.turn_id", "metadata.turnId"))
+}
+
 function Resolve-PackagePath([string]$projectRoot, [string]$pointerValue) {
   if ([string]::IsNullOrWhiteSpace($pointerValue)) {
     return $null
@@ -388,6 +392,7 @@ try {
     $prompt = ""
   }
   $promptTrimmed = $prompt.Trim()
+  $turnId = Get-TurnIdFromPayload -obj $payload
 
   $packagePointer = $null
   if (-not [string]::IsNullOrWhiteSpace($Package)) {
@@ -447,6 +452,9 @@ try {
   if ($pendingLines.Count -gt 0) {
     $additionalContextLines += "[HelloAGENTS Guard] 检测到待用户输入（Pending），本轮必须只处理用户回复，禁止进入执行/重开流程。"
     $additionalContextLines += ("current_package: {0}" -f $packagePointer)
+    if (-not [string]::IsNullOrWhiteSpace($turnId)) {
+      $additionalContextLines += ("current_turn_id: {0}" -f $turnId)
+    }
     if (-not [string]::IsNullOrWhiteSpace($nextUniqueAction)) {
       $additionalContextLines += ("next_unique_action: {0}" -f $nextUniqueAction)
     }
@@ -458,6 +466,9 @@ try {
   if ($featureRemovalGuardLines.Count -gt 0) {
     if ($additionalContextLines.Count -gt 0) {
       $additionalContextLines += ""
+    }
+    if (-not [string]::IsNullOrWhiteSpace($turnId) -and -not ($additionalContextLines -contains ("current_turn_id: {0}" -f $turnId))) {
+      $additionalContextLines += ("current_turn_id: {0}" -f $turnId)
     }
     $additionalContextLines += $featureRemovalGuardLines
   }

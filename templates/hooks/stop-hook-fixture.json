@@ -1,15 +1,18 @@
 {
   "hook_event_name": "Stop",
   "thread_id": "thread_demo_001",
+  "turn_id": "turn_demo_stop_001",
   "trace_id": "trace_demo_stop_001",
   "events": [
     {
       "type": "model.rerouted",
-      "timestamp": "2026-03-11T13:34:00Z"
+      "timestamp": "2026-03-11T13:34:00Z",
+      "turn_id": "turn_demo_stop_001"
     },
     {
       "type": "response.incomplete",
-      "timestamp": "2026-03-11T13:34:05Z"
+      "timestamp": "2026-03-11T13:34:05Z",
+      "turn_id": "turn_demo_stop_001"
     }
   ],
   "last_assistant_message": "plain text only; hook must never execute this content"

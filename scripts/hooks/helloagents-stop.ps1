@@ -234,6 +234,7 @@ function Get-ProjectRootFromPayload($obj, [string]$projectRootArg) {
 
 function Get-EventEntries($obj, [string]$raw) {
   $items = @()
+  $payloadTurnId = Get-JsonStringValue $obj @("turn_id", "turnId", "session.turn_id", "session.turnId", "metadata.turn_id", "metadata.turnId")
 
   $eventContainers = @()
   try { if ($null -ne $obj.events) { $eventContainers += $obj.events } } catch { }
@@ -247,9 +248,14 @@ function Get-EventEntries($obj, [string]$raw) {
       }
 
       $ts = Get-JsonStringValue $item @("timestamp", "ts", "time", "occurred_at", "created_at")
+      $turnId = Get-JsonStringValue $item @("turn_id", "turnId", "metadata.turn_id", "metadata.turnId")
+      if ([string]::IsNullOrWhiteSpace($turnId)) {
+        $turnId = $payloadTurnId
+      }
       $items += [pscustomobject]@{
         kind = $kind
         ts = $ts
+        turn_id = $turnId
       }
     }
   }
@@ -260,20 +266,22 @@ function Get-EventEntries($obj, [string]$raw) {
       $items += [pscustomobject]@{
         kind = $topKind
         ts = (Get-JsonStringValue $obj @("timestamp", "ts", "time", "occurred_at", "created_at"))
+        turn_id = $payloadTurnId
       }
     }
   }
 
   if ($items.Count -eq 0 -and -not [string]::IsNullOrWhiteSpace($raw)) {
     if ($raw -match '(?i)\bmodel[/_.-]?rerouted\b' -or $raw -match '(?i)\bserver reported model\b.*\brequested model\b' -or $raw -match '(?i)\bfallback\b') {
-      $items += [pscustomobject]@{ kind = "model_rerouted"; ts = $null }
+      $items += [pscustomobject]@{ kind = "model_rerouted"; ts = $null; turn_id = $payloadTurnId }
     }
     if ($raw -match '(?i)\bresponse[/_.-]?incomplete\b') {
-      $items += [pscustomobject]@{ kind = "response_incomplete"; ts = $null }
+      $items += [pscustomobject]@{ kind = "response_incomplete"; ts = $null; turn_id = $payloadTurnId }
     }
   }
 
   $items |
+    Sort-Object kind, ts, turn_id -Unique |
     Group-Object kind |
     ForEach-Object { $_.Group | Select-Object -First 1 }
 }
@@ -328,6 +336,7 @@ if ($events.Count -gt 0 -and -not (Test-Path -LiteralPath $captureScript)) {
 }
 
 $threadId = Get-JsonStringValue $payload @("thread_id", "threadId", "session.thread_id", "session.threadId")
+$turnId = Get-JsonStringValue $payload @("turn_id", "turnId", "session.turn_id", "session.turnId", "metadata.turn_id", "metadata.turnId")
 $traceId = Get-JsonStringValue $payload @("trace_id", "traceId", "session.trace_id", "session.traceId", "metadata.trace_id", "metadata.traceId")
 
 $forwarded = 0
@@ -345,6 +354,11 @@ foreach ($eventEntry in $events) {
     }
     if (-not [string]::IsNullOrWhiteSpace($threadId)) {
       $captureParams.ThreadId = $threadId
+    }
+    if (-not [string]::IsNullOrWhiteSpace($eventEntry.turn_id)) {
+      $captureParams.TurnId = $eventEntry.turn_id
+    } elseif (-not [string]::IsNullOrWhiteSpace($turnId)) {
+      $captureParams.TurnId = $turnId
     }
     if (-not [string]::IsNullOrWhiteSpace($traceId)) {
       $captureParams.TraceId = $traceId
@@ -378,6 +392,9 @@ if ($null -ne $featureRemovalWait) {
   $featureWaitContextLines = @("awaiting_topic: feature_removal_guard")
   if (-not [string]::IsNullOrWhiteSpace($featureRemovalWait.package)) {
     $featureWaitContextLines += ("package: {0}" -f $featureRemovalWait.package)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($turnId)) {
+    $featureWaitContextLines += ("current_turn_id: {0}" -f $turnId)
   }
   if (-not [string]::IsNullOrWhiteSpace($featureRemovalWait.next_unique_action)) {
     $featureWaitContextLines += ("next_unique_action: {0}" -f $featureRemovalWait.next_unique_action)

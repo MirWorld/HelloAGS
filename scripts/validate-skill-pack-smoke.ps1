@@ -62,10 +62,13 @@ function Invoke-HookJson([string]$scriptPath, [string]$inputFile, [string]$proje
   return (($raw -join "`n") | ConvertFrom-Json -Depth 64)
 }
 
-function New-SmokePayload([string]$path, [string]$prompt, [string]$projectRoot) {
+function New-SmokePayload([string]$path, [string]$prompt, [string]$projectRoot, [string]$turnId = "") {
   $payload = [ordered]@{
     prompt = $prompt
     project_root = $projectRoot
+  }
+  if (-not [string]::IsNullOrWhiteSpace($turnId)) {
+    $payload.turn_id = $turnId
   }
   Write-Utf8Text -path $path -text (($payload | ConvertTo-Json -Depth 16) + "`n")
 }
@@ -177,20 +180,21 @@ try {
   Assert-True ([string]::IsNullOrWhiteSpace($sessionMessage)) "SessionStart smoke should pass silently for a valid current package."
 
   $payloadNormal = Join-Path $scratchRoot "userpromptsubmit-normal.json"
-  New-SmokePayload -path $payloadNormal -prompt "1" -projectRoot $projectRoot
+  New-SmokePayload -path $payloadNormal -prompt "1" -projectRoot $projectRoot -turnId "turn_demo_prompt_001"
   $userNormalOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadNormal -projectRoot $projectRoot
   $userNormalContext = $userNormalOut.hookSpecificOutput.additionalContext
   Assert-Contains $userNormalContext "pending:" "UserPromptSubmit should inject pending context when task.md has pending items."
   Assert-Contains $userNormalContext "[HelloAGENTS Guard] 检测到待用户输入（Pending）" "UserPromptSubmit should mark pending waiting state."
+  Assert-Contains $userNormalContext "current_turn_id: turn_demo_prompt_001" "UserPromptSubmit should propagate turn_id into minimal context."
   Assert-NotContains $userNormalContext "feature_removal_approved:" "Ordinary pending prompts should not pay feature-removal guard context tax."
 
   $payloadCommand = Join-Path $scratchRoot "userpromptsubmit-command.json"
-  New-SmokePayload -path $payloadCommand -prompt "~plan" -projectRoot $projectRoot
+  New-SmokePayload -path $payloadCommand -prompt "~plan" -projectRoot $projectRoot -turnId "turn_demo_prompt_002"
   $userCommandOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadCommand -projectRoot $projectRoot
   Assert-True ($userCommandOut.decision -eq "block") "Pending command input should be blocked."
 
   $payloadFeature = Join-Path $scratchRoot "userpromptsubmit-feature-removal.json"
-  New-SmokePayload -path $payloadFeature -prompt "请删除旧入口并简化实现" -projectRoot $projectRoot
+  New-SmokePayload -path $payloadFeature -prompt "请删除旧入口并简化实现" -projectRoot $projectRoot -turnId "turn_demo_prompt_003"
   $userFeatureOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadFeature -projectRoot $projectRoot
   $userFeatureContext = $userFeatureOut.hookSpecificOutput.additionalContext
   Assert-Contains $userFeatureContext "feature_removal_approved: no" "Feature-removal risk prompt should inject guard context."
@@ -199,12 +203,14 @@ try {
   $stopFeatureContext = $stopFeatureOut.hookSpecificOutput.additionalContext
   Assert-Contains $stopFeatureOut.systemMessage "功能删减确认等待态" "Stop hook should surface feature-removal waiting state."
   Assert-Contains $stopFeatureContext "awaiting_topic: feature_removal_guard" "Stop hook should emit awaiting_topic context for feature-removal wait."
+  Assert-Contains $stopFeatureContext "current_turn_id: turn_demo_feature_wait_001" "Stop hook should include current turn id in feature-removal wait context."
 
   $stopEventOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-stop.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/stop-hook-fixture.json") -projectRoot $projectRoot -DryRun
   Assert-Contains $stopEventOut.systemMessage "OK: stop hook forwarded 2 event(s)." "Stop hook should forward runtime/model events in dry-run mode."
   Assert-Contains $stopEventOut.hookSpecificOutput.hookMessage "DRYRUN: would append 1 event(s)" "Stop hook dry-run should expose append preview from capture-runtime-events."
   Assert-Contains $stopEventOut.hookSpecificOutput.hookMessage "model_event: model_rerouted" "Stop hook dry-run should include model_rerouted preview."
   Assert-Contains $stopEventOut.hookSpecificOutput.hookMessage "model_event: response_incomplete" "Stop hook dry-run should include response_incomplete preview."
+  Assert-Contains $stopEventOut.hookSpecificOutput.hookMessage "turn_id=turn_demo_stop_001" "Stop hook dry-run should pass turn_id through to capture-runtime-events."
 
   Write-Output "OK: skill pack smoke validation passed"
 } finally {
