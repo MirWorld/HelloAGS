@@ -99,6 +99,7 @@
   - 影响: …
 
 ### 功能删减审批
+<!-- 仅在命中功能删减风险时填写；未命中保持默认占位 -->
 - `feature_removal_approved: no`
 - `approved_scope:`
 - `approved_target:`
@@ -123,9 +124,9 @@
 ---
 
 ## Active Context 更新记录
-（如本次影响公共接口/契约/数据流，在此记录更新摘要；每条 Public API 必须带 `[SRC:CODE] path symbol`（行号可选））
+（仅当本次影响公共接口/契约/数据流时填写；未命中留空。每条 Public API 必须带 `[SRC:CODE] path symbol`（行号可选））
 
 ---
 
 ## Review 记录
-（实现完成后填写：发现的问题/采取的修复/复测结果）
+（仅在完成收尾时填写；小任务可只写关键问题/修复/复测摘要）
