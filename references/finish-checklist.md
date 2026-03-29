@@ -14,6 +14,7 @@
 - **快照可续作**：`task.md##上下文快照` 覆盖关键决策/约束/失败/下一步，事实/推断隔离且来源标签齐全
 - **未违反执行域**：本次实际改动未违反执行域声明（Allow/Deny/NewFiles/Refactor）；必要时在 `task.md##上下文快照` 记录纠偏检查点（见 `references/execution-guard.md`）
 - **Active Context 可续作**：涉及 Public API/契约变更时，`HAGSWorks/active_context.md` 已更新且每条具备 `[SRC:CODE] path symbol`（行号可选）；必要时运行 `HAGSWorks/scripts/validate-active-context.ps1 -Mode loose|strict`（细则见 `references/active-context.md`）
+- **结果结构已对账（命中时）**：若本次交付包含多个产物、多个固定 section、多个页面/模块，已完成结构完整性检查（产物齐全、汇总/明细一致、对象数/结果数可对账）
 - **文档同步（按项目启用）**：`project.md` 命令矩阵、wiki、CHANGELOG、history/index 等与代码一致
 - **版本控制（按需且需授权）**：未在未授权情况下执行 `git add/commit/push/merge/rebase/reset/tag`；如用户要求提交/推送，确认目标分支/远端/提交规范，并检查是否包含敏感信息
 - **输出格式**：最终输出严格按 `templates/output-format.md`（文件清单纵向列出 + 验证结果）

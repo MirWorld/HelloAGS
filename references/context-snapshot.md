@@ -94,6 +94,8 @@
 - [SRC:CODE|USER|TOOL] 决策: …
   - 理由: …
   - 影响: …
+- [SRC:CODE|TOOL] contract_checkpoint: ok | needs_realign
+  - 说明: 仅在 `model_rerouted` / `response_incomplete` / 压缩续作后使用；用于标记当前 contract 是否仍成立
 
 ### 待确认 / 假设（推断必须在此）
 - [SRC:INFER][置信度: 中] 假设: …
@@ -145,6 +147,7 @@
 2. **下一步唯一动作**：只允许 1 条（命令/任务号/文件修改）
 3. （推荐）**Repo 状态**：`branch/head/diffstat` 的最小戳（用于识别“包外改动/状态漂移”，避免断层续作误重做）
 4. （可选）**运行时/模型事件**：若出现 `model/rerouted` / `response.incomplete` 等信号，把事件以 `model_event:` 结构化写入（并在高风险事件后追加新的恢复检查点）
+5. （高风险事件后推荐）**Contract Checkpoint**：若出现 `model/rerouted` / `response.incomplete` / 压缩续作，建议在“决策”区补 1 条 `contract_checkpoint: ok | needs_realign`，避免“恢复成功 ≠ contract 仍正确”被忽略
 
 推荐放置位置：
 - Workset：写在“已确认事实/决策”或单独追加 1 条清单
