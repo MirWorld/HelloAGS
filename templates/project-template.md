@@ -27,6 +27,13 @@
 - **Node/Python/Java/...:** [版本或unknown]
 - **OS/架构:** [如有约束]
 
+### 架构不变量（按需）
+- **依赖方向:** [例如：UI -> App -> Domain -> Infra / unknown]
+- **默认禁区:** [例如：禁止新增跨层 import / 公共层不放项目专用 helper / unknown]
+- **不应扩散的模式:** [例如：认证逻辑不得散落到 handler/controller 外 / unknown]
+
+> 小项目可留空；存在明确分层/模块边界的项目，建议只写最关键 3–5 条。
+
 ---
 
 ## 开发约定
@@ -56,4 +63,3 @@
 - **代码风格:** 最小改动/可读性优先/性能优先
 - **上下文快照:** 触发式必做（关键决策/需求变更/阻断失败/会话可能中断/最终输出前），并为结论标注来源标签
 - **Active Context:** 变更公共接口/契约/数据流时必须更新 `HAGSWorks/active_context.md`，每条 Public API 必须包含 `[SRC:CODE] path symbol`（行号可选）
-

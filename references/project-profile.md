@@ -32,6 +32,14 @@
 - **版本/环境约束**：如 Node/Python/Java 等版本、OS/CPU 架构要求（可从 `.nvmrc`、`pyproject.toml`、CI 配置推断）
 - **多工作区（可选）**：monorepo 时按子目录分组记录（如 `apps/web`、`services/api`）
 
+### 架构不变量（命中时填写）
+
+仅当项目存在明确分层 / 模块边界 / 长期稳定约束时填写；小项目可留空。  
+建议只写最关键的 3–5 条，优先包含：
+- **依赖方向**：例如 `UI -> App -> Domain -> Infra`
+- **默认禁区**：例如“禁止新增跨层 import”“公共层不得承载项目专用 helper”
+- **不应扩散的模式**：例如“认证逻辑不得散落到 handler/controller 外”
+
 ---
 
 ## 3) 获取流程（栈无关）
@@ -63,3 +71,5 @@
 
 质量门禁分级与阻断规则：见 `references/quality-gates.md`。
 
+补充：
+- 若 `HAGSWorks/project.md` 已定义“架构不变量”，执行阶段应将其视为**项目级上位约束**，优先级高于当前局部代码形态；除非本轮 `why/how` 已明确批准调整。

@@ -96,6 +96,8 @@
   - 影响: …
 - [SRC:CODE|TOOL] contract_checkpoint: ok | needs_realign
   - 说明: 仅在 `model_rerouted` / `response_incomplete` / 压缩续作后使用；用于标记当前 contract 是否仍成立
+- [SRC:CODE|TOOL] progress_checkpoint: advanced | stalled
+  - 说明: 仅在连续两轮 Workset 基本不变、且没有新增证据 / verify 结果时推荐记录；用于识别“没失败，但没前进”
 
 ### 待确认 / 假设（推断必须在此）
 - [SRC:INFER][置信度: 中] 假设: …
@@ -133,6 +135,11 @@
 - 若回填脚本能同时获得 `thread_id + turn_id`：优先用两者一起绑定当前事件；若缺 `turn_id` 再回退到 `thread_id + trace_id`
 - 若回填脚本无法获得 `thread_id`，但能稳定获得 `trace_id`，可用其作为日志过滤条件；若两者都缺失，推荐直接 `SKIP`，避免跨 thread 误归因
 
+可选信号等级（轻量，不强制）：
+- **Green**：可继续（例如 `contract_checkpoint: ok` 且无 Pending / 无漂移）
+- **Yellow**：先复核 / 先补快照（例如 `model_rerouted`、轻度 `repo_state` 漂移）
+- **Red**：禁止继续改代码，必须等待 / 恢复 / 重规划（例如 Pending 非空、`response_incomplete`、`contract_checkpoint: needs_realign`）
+
 **写作约束：**
 - 每个小节最多 3–5 条；宁可短而精，避免写成冗长复盘
 - “下一步唯一动作”必须可执行（命令/文件/任务编号），避免“继续排查”式空话
@@ -148,6 +155,7 @@
 3. （推荐）**Repo 状态**：`branch/head/diffstat` 的最小戳（用于识别“包外改动/状态漂移”，避免断层续作误重做）
 4. （可选）**运行时/模型事件**：若出现 `model/rerouted` / `response.incomplete` 等信号，把事件以 `model_event:` 结构化写入（并在高风险事件后追加新的恢复检查点）
 5. （高风险事件后推荐）**Contract Checkpoint**：若出现 `model/rerouted` / `response.incomplete` / 压缩续作，建议在“决策”区补 1 条 `contract_checkpoint: ok | needs_realign`，避免“恢复成功 ≠ contract 仍正确”被忽略
+6. （空转时推荐）**Progress Checkpoint**：若连续两轮快照的 Workset 基本相同、且没有新增证据 / verify 结果，建议在“决策”区补 1 条 `progress_checkpoint: stalled`，并把“下一步唯一动作”改为高信息增益动作，而不是重复旧动作
 
 推荐放置位置：
 - Workset：写在“已确认事实/决策”或单独追加 1 条清单

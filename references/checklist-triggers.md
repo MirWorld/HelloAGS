@@ -19,7 +19,7 @@
 | 复用与去重 | 准备新增 util/helper；或同类改动散落多文件；或新增文件/模块但不确定落点 | 实现前（必要时 Review 时复核） | `references/code-reuse-checklist.md` | `how.md##复用与去重策略` |
 | 子代理侦察/独立审查 | 大型项目（G4）/跨模块/跨层（≥3 层）/信息缺口大/需要方案对比/需要独立 Review/连续失败≥2 | 方案设计（收集信息/方案对比）或开发实施（动手前/Review 前/破局时） | `references/subagent-orchestration.md` | `task.md##上下文快照`（事实/推断隔离 + 下一步唯一动作） |
 | 执行期护栏 | Patch/修改不符合预期；或开始扩大修改范围；或状态漂移；或多 Agent/多人协作有冲突风险 | 实现前（写域声明）+ 失败时（Fail→Narrow） | `references/execution-guard.md` | `task.md##上下文快照`（决策/下一步唯一动作）+ `how.md##重构范围与不变量` |
-| 结构完整性检查 | 交付物 ≥2；或存在固定 section 契约；或多页面/多模块/多对象结果需要对账 | Review 前 / 交付前收尾 | `references/review-protocol.md` + `references/finish-checklist.md` | `task.md##Review 记录` + `how.md##测试与部署`（如需固定验收点） |
+| 结构完整性检查 | 交付物 ≥2；或存在固定 section 契约；或多页面/多模块/多对象结果需要对账 | 命中时优先在设计阶段写清结构目标；Review 前 / 交付前收尾做对账 | `references/review-protocol.md` + `references/finish-checklist.md` | `how.md##测试与部署`（先写结构目标） + `task.md##Review 记录` |
 | 交付前收尾 | 准备输出最终总结/交付；或准备合并/提交/发版 | 最终输出前（Review 前后均可） | `references/finish-checklist.md` | `task.md##Review 记录` + 输出“验证结果”证据 |
 | 断层恢复（Resume/Reboot） | 用户说“继续/接着/上次…”但当前不处于追问/确认；或会话不连续/被压缩；或你无法解释“当前目标/下一步” | 任何阶段开始前（优先于继续执行） | `references/resume-protocol.md` | `task.md##上下文快照`（检查点 + 下一步唯一动作） |
 | 破局（停止空转） | 连续阻断失败达到阈值；或同一错误反复出现且原因不明 | 达到阈值立即执行 | `references/break-loop-checklist.md` + `references/failure-protocol.md` | `task.md##上下文快照` + 向用户给 2–3 个决策选项 |
