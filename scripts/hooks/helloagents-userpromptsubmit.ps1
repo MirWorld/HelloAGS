@@ -395,12 +395,32 @@ function Get-MetadataFieldValue([string[]]$texts, [string]$fieldName) {
   return ""
 }
 
-function Test-FeatureRemovalRiskFromPrompt([string]$prompt) {
+function Get-FeatureRemovalRiskState([string[]]$texts) {
+  $state = ""
+  foreach ($text in $texts) {
+    if ([string]::IsNullOrWhiteSpace($text)) {
+      continue
+    }
+
+    $matches = [regex]::Matches($text, '(?im)feature_removal_risk\s*:\s*(?<v>clear|suspected|approved)\b')
+    if ($matches.Count -gt 0) {
+      $state = $matches[$matches.Count - 1].Groups["v"].Value.Trim().ToLowerInvariant()
+    }
+  }
+
+  if ([string]::IsNullOrWhiteSpace($state)) {
+    return ""
+  }
+
+  return $state
+}
+
+function Test-FeatureRemovalPromptHighRisk([string]$prompt) {
   if ([string]::IsNullOrWhiteSpace($prompt)) {
     return $false
   }
 
-  $patterns = @(
+  $actionPatterns = @(
     '(?i)\b(remove|delete|drop|disable|deprecate|hide|turn\s+off)\b',
     '删除',
     '移除',
@@ -413,7 +433,40 @@ function Test-FeatureRemovalRiskFromPrompt([string]$prompt) {
     '缩减'
   )
 
-  foreach ($pattern in $patterns) {
+  $targetPatterns = @(
+    '(?i)\b(old|legacy|existing|current|default|public|api|route|button|menu|command|flag|config|event|export)\b',
+    '旧',
+    '老',
+    '原有',
+    '现有',
+    '默认',
+    '入口',
+    '页面',
+    '路由',
+    '按钮',
+    '菜单',
+    '命令',
+    '配置',
+    '事件',
+    '导出',
+    '兼容',
+    '能力',
+    '功能',
+    '接口'
+  )
+
+  $hasAction = $false
+  foreach ($pattern in $actionPatterns) {
+    if ($prompt -match $pattern) {
+      $hasAction = $true
+      break
+    }
+  }
+  if (-not $hasAction) {
+    return $false
+  }
+
+  foreach ($pattern in $targetPatterns) {
     if ($prompt -match $pattern) {
       return $true
     }
@@ -423,6 +476,7 @@ function Test-FeatureRemovalRiskFromPrompt([string]$prompt) {
 }
 
 function Test-FeatureRemovalGuardShouldInject(
+  [string]$riskState,
   [string]$approvalState,
   [string]$taskText,
   [string]$howText,
@@ -430,8 +484,12 @@ function Test-FeatureRemovalGuardShouldInject(
   [string]$nextUniqueAction,
   [string]$promptTrimmed
 ) {
-  if ($approvalState -eq "yes") {
+  if (($approvalState -eq "yes") -or ($riskState -eq "approved")) {
     return $false
+  }
+
+  if ($riskState -eq "suspected") {
+    return $true
   }
 
   $stateTexts = @($taskText, $howText) -join "`n"
@@ -454,17 +512,20 @@ function Test-FeatureRemovalGuardShouldInject(
     }
   }
 
-  return (Test-FeatureRemovalRiskFromPrompt -prompt $promptTrimmed)
+  return (Test-FeatureRemovalPromptHighRisk -prompt $promptTrimmed)
 }
 
-function Build-FeatureRemovalGuardLines([string]$approvalState, [string]$packagePointer) {
-  if ($approvalState -eq "yes") {
+function Build-FeatureRemovalGuardLines([string]$riskState, [string]$approvalState, [string]$packagePointer) {
+  if (($approvalState -eq "yes") -or ($riskState -eq "approved")) {
     return @()
   }
 
   $lines = @()
   $lines += "[HelloAGENTS Guard] 默认保留用户可见表面、公开契约与默认能力；未获 [SRC:USER] 明确批准前，不得删除、隐藏、禁用、短路或降级这些能力。"
   $lines += "[HelloAGENTS Guard] 若只是死代码/不可达分支/未使用 helper 清理，且外部行为与公开契约不变，可按内部清理处理。"
+  if (-not [string]::IsNullOrWhiteSpace($riskState)) {
+    $lines += ("feature_removal_risk: {0}" -f $riskState)
+  }
   $lines += ("feature_removal_approved: {0}" -f $approvalState)
   if (-not [string]::IsNullOrWhiteSpace($packagePointer)) {
     $lines += ("feature_removal_package: {0}" -f $packagePointer)
@@ -536,11 +597,13 @@ try {
   $pendingBody = Extract-SectionBody -text $taskText -headerText "### 待用户输入（Pending）"
   $pendingLines = @(Get-PendingLines -taskText $taskText)
   $nextUniqueAction = Get-NextUniqueAction -taskText $taskText
+  $featureRemovalRiskState = Get-FeatureRemovalRiskState -texts @($taskText, $howText)
   $featureRemovalApproval = Get-FeatureRemovalApprovalState -texts @($taskText, $howText)
   $packageCompleted = Test-PackageCompleted -taskText $taskText -pendingLines $pendingLines
   $hasUnresolvedResponseIncomplete = Test-UnresolvedResponseIncomplete -taskText $taskText
   $isResumeOrExecutePrompt = Test-ResumeOrExecutePrompt -promptTrimmed $promptTrimmed
   $shouldInjectFeatureRemovalGuard = Test-FeatureRemovalGuardShouldInject `
+    -riskState $featureRemovalRiskState `
     -approvalState $featureRemovalApproval `
     -taskText $taskText `
     -howText $howText `
@@ -549,7 +612,7 @@ try {
     -promptTrimmed $promptTrimmed
   $featureRemovalGuardLines = @()
   if ($shouldInjectFeatureRemovalGuard) {
-    $featureRemovalGuardLines = @(Build-FeatureRemovalGuardLines -approvalState $featureRemovalApproval -packagePointer $packagePointer)
+    $featureRemovalGuardLines = @(Build-FeatureRemovalGuardLines -riskState $featureRemovalRiskState -approvalState $featureRemovalApproval -packagePointer $packagePointer)
   }
 
   $additionalContextLines = @()
@@ -612,7 +675,7 @@ try {
       exit 0
     }
 
-    if (($featureRemovalApproval -ne "yes") -and (Test-FeatureRemovalRiskFromPrompt -prompt $promptTrimmed)) {
+    if (($featureRemovalApproval -ne "yes") -and (($featureRemovalRiskState -eq "suspected") -or (Test-FeatureRemovalPromptHighRisk -prompt $promptTrimmed))) {
       $additionalContext = ($featureRemovalGuardLines -join "`n")
       $msg = "检测到当前输入命中功能删减高风险，已阻断并等待明确批准。"
       $reason = "请明确允许删减的目标、范围与替代行为；若不允许，请改成保留现有功能的实现路径。"
@@ -643,7 +706,7 @@ try {
     exit 0
   }
 
-  if (($featureRemovalApproval -ne "yes") -and (Test-FeatureRemovalRiskFromPrompt -prompt $promptTrimmed)) {
+  if (($featureRemovalApproval -ne "yes") -and (($featureRemovalRiskState -eq "suspected") -or (Test-FeatureRemovalPromptHighRisk -prompt $promptTrimmed))) {
     $msg = "检测到当前输入命中功能删减高风险，已阻断并等待明确批准。"
     $reason = "请明确允许删减的目标、范围与替代行为；若不允许，请改成保留现有功能的实现路径。"
     Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext $additionalContext

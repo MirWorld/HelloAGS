@@ -42,6 +42,7 @@
 - **禁止触碰:** [明确不改的模块/接口/数据层]
 
 ## 功能删减审批（如触发）
+- `feature_removal_risk: clear`
 - `feature_removal_approved: no`
 - `approved_scope:`
 - `approved_target:`

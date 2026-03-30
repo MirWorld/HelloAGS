@@ -100,6 +100,7 @@
 
 ### 功能删减审批
 <!-- 仅在命中功能删减风险时填写；未命中保持默认占位 -->
+- `feature_removal_risk: clear`
 - `feature_removal_approved: no`
 - `approved_scope:`
 - `approved_target:`

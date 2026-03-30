@@ -31,3 +31,11 @@
 - 回滚动作：…
 - 风险：…
 
+## 功能删减审批（如触发）
+
+- `feature_removal_risk: clear`
+- `feature_removal_approved: no`
+- `approved_scope:`
+- `approved_target:`
+- `approved_reason:`
+- `replacement_behavior:`

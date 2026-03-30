@@ -92,6 +92,16 @@
 执行域门禁（`-Mode exec`）的高风险约束：
 - 若快照中出现 `model_event: response_incomplete`，则必须在其**之后**追加一条“恢复检查点”（至少包含 `repo_state:` 与 `下一步唯一动作:`）；否则不得继续执行（防止在不确定状态下重做/二次修改）。
 
+### 3.2 功能删减风控键（结构化，可选）
+
+当方案包需要表达“当前是否命中删功能风险”时，可使用稳定键：
+- `feature_removal_risk: clear|suspected|approved`
+- `feature_removal_approved: yes|no`
+
+用途：
+- 供 hooks / 主流程优先消费结构事实，而不是反复依赖 prompt 启发式猜测
+- 其中 `feature_removal_risk: suspected` 且 `feature_removal_approved: no` 时，应优先视为 Red 信号
+
 ---
 
 ## 4) 当前方案包指针：`HAGSWorks/plan/_current.md`

@@ -95,6 +95,7 @@
 
 ## 审批令牌
 
+- `feature_removal_risk: clear|suspected|approved`
 - `feature_removal_approved: yes|no`
 - `approved_scope:`
 - `approved_target:`
@@ -103,6 +104,9 @@
 - `source: [SRC:USER]`
 
 规则：
+- `feature_removal_risk: clear`：当前无删功能风险，可按正常路径推进
+- `feature_removal_risk: suspected`：当前存在删功能风险，且尚未完成用户批准；hooks / 主流程应优先把它当作结构化强信号
+- `feature_removal_risk: approved`：用户已明确批准当前删功能路径；仍需保留批准范围、目标与替代行为
 - 默认值必须为 `feature_removal_approved: no`
 - 只有当来源为 `[SRC:USER]` 的明确批准存在时，才允许改为 `yes`
 - 若用户拒绝删减，必须回到“保留现有功能”的实现路径或停止任务

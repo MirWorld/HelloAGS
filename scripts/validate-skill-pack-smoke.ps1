@@ -107,6 +107,7 @@ function New-SmokePackage([string]$projectRoot) {
 # 技术设计: smoke
 
 ## 功能删减审批（如触发）
+- `feature_removal_risk: clear`
 - `feature_removal_approved: no`
 - `approved_scope:`
 - `approved_target:`
@@ -132,6 +133,7 @@ function New-SmokePackage([string]$projectRoot) {
 - [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
 
 ### 功能删减审批
+- `feature_removal_risk: clear`
 - `feature_removal_approved: no`
 - `approved_scope:`
 - `approved_target:`
@@ -208,6 +210,12 @@ try {
   Assert-Contains $userFeatureOut.systemMessage "功能删减高风险" "Feature-removal risk block should explain why it was stopped."
   Assert-Contains $userFeatureContext "feature_removal_approved: no" "Feature-removal risk prompt should carry guard context."
 
+  $payloadCleanup = Join-Path $scratchRoot "userpromptsubmit-internal-cleanup.json"
+  New-SmokePayload -path $payloadCleanup -prompt "删除未使用 helper 并整理注释" -projectRoot $projectRoot -turnId "turn_demo_prompt_003b"
+  $userCleanupOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadCleanup -projectRoot $projectRoot
+  try { $cleanupDecision = $userCleanupOut.decision } catch { $cleanupDecision = $null }
+  Assert-True ([string]::IsNullOrWhiteSpace($cleanupDecision)) "Internal cleanup prompt should not be blocked by feature-removal guard fallback."
+
   $responseIncompleteTask = @"
 # 任务清单: smoke
 
@@ -220,6 +228,10 @@ try {
 
 ### Repo 状态（复现/防漂移，执行域必填）
 - [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 功能删减审批
+- `feature_removal_risk: clear`
+- `feature_removal_approved: no`
 
 ### 运行时/模型事件（可选，结构化）
 - [SRC:TOOL] model_event: response_incomplete
@@ -250,6 +262,10 @@ try {
 
 ### Repo 状态（复现/防漂移，执行域必填）
 - [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 功能删减审批
+- `feature_removal_risk: clear`
+- `feature_removal_approved: no`
 
 ### 待用户输入（Pending）
 

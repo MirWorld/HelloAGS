@@ -276,7 +276,7 @@ function Assert-SignalSeveritySSOT([string]$repoRoot, [string[]]$trackedFiles) {
     $fullMd = Join-Path $repoRoot (Normalize-RelativePath $md)
     $text = Get-Content -LiteralPath $fullMd -Raw
     if (($text -match $patternGreen) -and ($text -match $patternYellow) -and ($text -match $patternRed)) {
-      Info "WARN: Signal severity definitions should live only in ${signalFile}; found duplicated level definitions in ${md}."
+      Fail "Signal severity definitions should live only in ${signalFile}; found duplicated level definitions in ${md}."
     }
   }
 }
@@ -435,6 +435,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-how-templat
   "## 执行域声明（Allow/Deny）",
   "## 中期落盘（上下文快照）",
   "## 功能删减审批（如触发）",
+  "feature_removal_risk:",
   "feature_removal_approved:",
   "Feature Removal（允许功能删减）"
 )
@@ -476,6 +477,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/feature-removal
   "## 歧义处理",
   "## 判定顺序",
   "## 审批令牌",
+  "feature_removal_risk:",
   "feature_removal_approved:",
   "## 命中后的固定动作"
 )
@@ -524,6 +526,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -
   "model_event:",
   "turn_id:",
   "awaiting_topic:",
+  "feature_removal_risk:",
   "HAGSWorks/plan/_current.md",
   "<!-- CONTRACT: signal-severity v1 -->"
 )
@@ -592,6 +595,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-quickf
   "turn_id:",
   "### Repo 状态",
   "### 功能删减审批",
+  "feature_removal_risk:",
   "feature_removal_approved:",
   "### 待用户输入（Pending）",
   "### 错误与尝试",
@@ -625,6 +629,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-templa
   "turn_id:",
   "### Repo 状态",
   "### 功能删减审批",
+  "feature_removal_risk:",
   "feature_removal_approved:",
   "### 待用户输入（Pending）",
   "### 下一步唯一动作",
