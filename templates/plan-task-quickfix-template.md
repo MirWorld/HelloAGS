@@ -11,7 +11,7 @@
 ## 0. 对齐与取证（必做）
 
 - [ ] 0.1 阅读 `why.md##对齐摘要`，确认目标/成功标准/非目标/约束无误
-- [ ] 0.2 按 `references/quickfix-protocol.md` 执行“参数变更微清单”（如适用），并把结论写入 `## 上下文快照`；同时确定至少 1 条 `verify_min`（最小验证动作）
+- [ ] 0.2 按 `references/quickfix-protocol.md` 执行“参数变更微清单”（如适用），并把结论写入 `## 上下文快照`；同时确定至少 1 条 `verify_min`（最小验证动作）；若本包后续还会再次触碰同一 Workset，再补 1 条 `carry_forward_verify`
 - [ ] 0.3 执行域声明：按 `references/execution-guard.md` 明确 Allow/Deny/NewFiles/Refactor，并写入 `## 上下文快照` 的决策区
 - [ ] 0.4 写检查点：在 `## 上下文快照` 更新 Workset + 下一步唯一动作（防断层）
 
@@ -23,6 +23,7 @@
 
 - [ ] 2.1 运行：`[command]`，预期：[…]
 - [ ] 2.2（触发式）若本次改动触及可编译/可发布路径且项目存在 build 命令，执行 build；若项目存在相关 test，则运行最贴近改动面的 test
+- [ ] 2.3（同 Workset 再次触碰时）补跑 `carry_forward_verify` 或明确记录“不受影响”
 
 ---
 
@@ -58,6 +59,12 @@
 - [SRC:CODE|USER|TOOL] 决策: …
   - 理由: …
   - 影响: …
+- [SRC:CODE|TOOL] progress_phase: start | mid | late | final
+
+### 结构债务（可选，明确知道是权宜实现时填写）
+- [SRC:CODE|USER|TOOL] design_debt: …
+- [SRC:CODE|USER|TOOL] why_now: …
+- [SRC:CODE|USER|TOOL] revisit_trigger: …
 
 ### 功能删减审批
 <!-- 仅在命中功能删减风险时填写；未命中保持默认占位 -->
@@ -96,4 +103,4 @@
 ---
 
 ## Review 记录
-（仅在完成收尾时填写；优先记录遗漏 / 缩水 / 越界 / 返工 / contract 偏移及其修正。极小任务可只写 1–2 条）
+（仅在完成收尾时填写；优先记录遗漏 / 缩水 / 越界 / 返工 / contract 偏移 / 累计回归 / 设计债务及其修正。极小任务可只写 1–2 条）

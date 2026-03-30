@@ -77,6 +77,7 @@
    - 产出：1 条 `verify_min`（最小验证动作：命令/脚本/测试/可复现手动步骤）+ 预期  
      - `how.md`：写入 `verify_min: ...` 作为 SSOT（推荐放在 Verify/验证计划区）  
      - `task.md##上下文快照`：记录“为什么选它/运行证据/失败收敛决策”（可在“下一步唯一动作”引用）
+   - 若预期在**同一方案包**里还会再次触碰同一 Workset：额外写 1 条 `carry_forward_verify:`，列出后续每次都要顺带确认的既有验证，防止后置小改动把前面的完成态打穿
 
 ---
 
@@ -87,6 +88,7 @@
 3. **执行域声明（边界收口）**：按 `references/execution-guard.md` 明确 Allow/Deny/NewFiles/Refactor，并落盘到快照决策区
 4. **最小改动**：只做必要修改；默认不新增文件、不顺手重构
 5. **最小验证**：按 `references/quality-gates.md` 选择最小门禁/验证（失败则按 `references/failure-protocol.md` 收敛升级）
+   - 若本包内再次触碰同一 Workset：除当前 `verify_min` 外，顺带重跑 `carry_forward_verify` 中列出的既有验证（或明确写“不受影响”）
 6. **收尾与归档**：按 `references/plan-lifecycle.md` 把方案包迁移到 `HAGSWorks/history/YYYY-MM/`，避免 `plan/` 堆积
 
 若任务影响 Public API/契约/数据流：必须更新 `HAGSWorks/active_context.md`（见 `references/active-context.md`）。

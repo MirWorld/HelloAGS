@@ -30,6 +30,7 @@
 4. **会话抗打断**：预计任务会跨多轮工具调用、跨时段继续、或存在被中断风险（例如：长时间排查、多人协作交接）
 5. **最终输出前**：在 `references/review-protocol.md` 的 Review 前，快照必须是最新的（否则 Review 基于过时信息）
 6. **交互等待**：本轮输出需要用户输入/选择/确认，且下一轮必须只处理用户回复（建议写入 `### 待用户输入（Pending）` + “下一步唯一动作”）
+7. **长任务阶段推进**：同一方案包已进入中程/后程（多任务 / 多轮 / 重复触碰同一 Workset）时，建议追加 `progress_phase:`，不要只在最终输出前才补一次总快照
 
 补充：当新增约束/非目标会影响“允许改哪里/是否允许新增文件/是否允许顺手重构”时，必须同步更新执行域声明（Allow/Deny/NewFiles/Refactor），并把新结论写入快照的“决策”区（细则见 `references/execution-guard.md`）。
 
@@ -98,6 +99,13 @@
   - 说明: 仅在 `model_rerouted` / `response_incomplete` / 压缩续作后使用；用于标记当前 contract 是否仍成立
 - [SRC:CODE|TOOL] progress_checkpoint: advanced | stalled
   - 说明: 仅在连续两轮 Workset 基本不变、且没有新增证据 / verify 结果时推荐记录；用于识别“没失败，但没前进”
+- [SRC:CODE|TOOL] progress_phase: start | mid | late | final
+  - 说明: `start` 为默认起点；长任务建议至少出现 1 次 `mid`；Review 前应更新到 `late` 或 `final`
+
+### 结构债务（可选，明确知道是权宜实现时填写）
+- [SRC:CODE|USER|TOOL] design_debt: …
+- [SRC:CODE|USER|TOOL] why_now: …
+- [SRC:CODE|USER|TOOL] revisit_trigger: …
 
 ### 待确认 / 假设（推断必须在此）
 - [SRC:INFER][置信度: 中] 假设: …
@@ -155,6 +163,8 @@
 4. （可选）**运行时/模型事件**：若出现 `model/rerouted` / `response.incomplete` 等信号，把事件以 `model_event:` 结构化写入（并在高风险事件后追加新的恢复检查点）
 5. （高风险事件后推荐）**Contract Checkpoint**：若出现 `model/rerouted` / `response.incomplete` / 压缩续作，建议在“决策”区补 1 条 `contract_checkpoint: ok | needs_realign`，避免“恢复成功 ≠ contract 仍正确”被忽略
 6. （空转时推荐）**Progress Checkpoint**：若连续两轮快照的 Workset 基本相同、且没有新增证据 / verify 结果，建议在“决策”区补 1 条 `progress_checkpoint: stalled`，并把“下一步唯一动作”改为高信息增益动作，而不是重复旧动作
+7. （长任务推荐）**Progress Phase**：若当前包已进入中程/后程，建议把 `progress_phase` 更新为 `mid / late / final`，不要长期停留在 `start`
+8. （权宜路径推荐）**Design Debt**：若当前实现明确是临时收口，建议同步记录 `design_debt / why_now / revisit_trigger`
 
 推荐放置位置：
 - Workset：写在“已确认事实/决策”或单独追加 1 条清单

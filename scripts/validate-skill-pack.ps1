@@ -435,6 +435,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-how-templat
   "## 执行域声明（Allow/Deny）",
   "## 中期落盘（上下文快照）",
   "## 功能删减审批（如触发）",
+  "carry_forward_verify:",
+  "## 相邻变化压力（命中时最小展开）",
   "feature_removal_risk:",
   "feature_removal_approved:",
   "Feature Removal（允许功能删减）"
@@ -569,6 +571,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapsho
   "### 错误与尝试",
   "model_event:",
   "turn_id:",
+  "progress_phase:",
+  "### 结构债务（可选，明确知道是权宜实现时填写）",
   "### Repo 状态",
   "### 待用户输入（Pending）",
   "### 下一步唯一动作",
@@ -586,13 +590,27 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quickfix-protocol.md" -needles @(
   "<!-- CONTRACT: quickfix-protocol v1 -->",
-  "verify_min"
+  "verify_min",
+  "carry_forward_verify"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/break-loop-checklist.md" -needles @(
+  "结构侵蚀",
+  "热点文件",
+  "临时胶水"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/project-profile.md" -needles @(
+  "架构不变量",
+  "相邻变化压力"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-quickfix-template.md" -needles @(
   "## 上下文快照",
   "model_event:",
   "turn_id:",
+  "progress_phase:",
+  "### 结构债务（可选，明确知道是权宜实现时填写）",
   "### Repo 状态",
   "### 功能删减审批",
   "feature_removal_risk:",
@@ -624,9 +642,12 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quality-gates.m
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-template.md" -needles @(
   "执行 build",
   "重跑受影响门禁（通常为 fmt/lint/typecheck/build/test）",
+  "carry_forward_verify",
   "### 错误与尝试",
   "model_event:",
   "turn_id:",
+  "progress_phase:",
+  "### 结构债务（可选，明确知道是权宜实现时填写）",
   "### Repo 状态",
   "### 功能删减审批",
   "feature_removal_risk:",
@@ -656,11 +677,22 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/execution-guard
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/review-protocol.md" -needles @(
   "references/feature-removal-guard.md",
   "不得删减用户可见表面、默认能力或既有契约",
-  "功能删减"
+  "功能删减",
+  "结构侵蚀",
+  "carry_forward_verify",
+  "相邻变化压力",
+  "design_debt"
 )
 
 Assert-NotContainsAny -repoRoot $repoRoot -relativePath "references/review-protocol.md" -needles @(
   "优先删减到最小必要改动面"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/validate-plan-package.ps1" -needles @(
+  "carry_forward_verify",
+  "progress_phase",
+  "design_debt",
+  "revisit_trigger"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @(

@@ -143,7 +143,7 @@ if (Test-Path -LiteralPath $currentPointer) {
     $raw = $raw.Trim()
 
     if (-not [string]::IsNullOrWhiteSpace($raw)) {
-      $pathValue = $raw.Trim('"', "'", "`")
+      $pathValue = $raw.Trim('"', "'", [char]0x60)
       $looksPlaceholder = [regex]::IsMatch($pathValue, '^(?:\.{3}|…)$')
       if ($looksPlaceholder) {
         Add-Warn "_current.md current_package looks like a placeholder: '$raw'"
@@ -233,6 +233,13 @@ foreach ($pkg in $packages) {
           Add-Error "package '${pkgName}' how.md verify_min is unknown (exec mode requires a runnable verify_min)"
         }
       }
+
+      $textNoCode = Strip-FencedCodeBlocks $text
+      if ($textNoCode -notmatch '(?mi)carry_forward_verify\s*[:：]\s*\S') {
+        Add-Warn "package '${pkgName}' how.md missing carry_forward_verify. Recommended: explicitly state '无' or list the previous validations that must be rerun when the same Workset is touched again."
+      } elseif ($textNoCode -match '(?mi)carry_forward_verify\s*[:：]\s*(unknown|…|\.\.\.)\b') {
+        Add-Warn "package '${pkgName}' how.md carry_forward_verify still looks like a placeholder. Replace it with a concrete list or explicit '无'."
+      }
     }
 
     if ($fileName -eq "task.md") {
@@ -283,6 +290,16 @@ foreach ($pkg in $packages) {
           }
         }
 
+        if ($textNoCode -notmatch '(?mi)progress_phase\s*[:：]\s*(start|mid|late|final)\b') {
+          Add-Warn "package '${pkgName}' task.md snapshot missing progress_phase. Recommended: record start|mid|late|final so long tasks do not wait until the end to expose drift."
+        } else {
+          $taskCount = ([regex]::Matches($textNoCode, $taskItemAnyPattern)).Count
+          $hasMidOrLater = ($textNoCode -match '(?mi)progress_phase\s*[:：]\s*(mid|late|final)\b')
+          if ($taskCount -ge 4 -and -not $hasMidOrLater) {
+            Add-Warn "package '${pkgName}' looks like a long task (>=4 task items) but snapshot has no mid/late/final progress_phase checkpoint yet. Add at least one mid-phase checkpoint before final Review."
+          }
+        }
+
         if ($gitRoot) {
           $repoBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '###\s*Repo\s*状态.*'
           $repoBody = Strip-HtmlComments $repoBody
@@ -310,6 +327,18 @@ foreach ($pkg in $packages) {
           }
         }
 
+        $designDebtBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '###\s*结构债务.*'
+        $designDebtBody = Strip-HtmlComments $designDebtBody
+        $designDebtLines = $designDebtBody -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+        $hasDesignDebt = ($designDebtLines | Where-Object { $_ -match 'design_debt\s*[:：]\s*\S' }).Count -gt 0
+        if ($hasDesignDebt) {
+          $hasWhyNow = ($designDebtLines | Where-Object { $_ -match 'why_now\s*[:：]\s*\S' }).Count -gt 0
+          $hasRevisitTrigger = ($designDebtLines | Where-Object { $_ -match 'revisit_trigger\s*[:：]\s*\S' }).Count -gt 0
+          if (-not ($hasWhyNow -and $hasRevisitTrigger)) {
+            Add-Error "package '${pkgName}' task.md records design_debt but is missing why_now or revisit_trigger. Temporary paths must leave a concrete debt trail."
+          }
+        }
+
         # High-risk runtime signals: response.incomplete should hard-stop execution until a recovery checkpoint exists.
         # NOTE: Get-MarkdownSectionBody stops at the next heading of any level (##/###/...),
         # so it cannot be used to capture an H2 section that contains H3 subsections.
@@ -326,7 +355,7 @@ foreach ($pkg in $packages) {
             $lastIncomplete = $null
             $lastRerouted = $null
             foreach ($m in $eventMatches) {
-              $kind = $m.Groups["kind"].Value.Trim("`", '"', "'", ",", ";")
+              $kind = $m.Groups["kind"].Value.Trim([char]0x60, '"', "'", ",", ";")
               if ($kind -match '(?i)^response[._]incomplete\b') {
                 $lastIncomplete = $m
               }
@@ -384,6 +413,10 @@ foreach ($pkg in $packages) {
 
 if ($Json) {
   Emit-Json
+  if (-not $report.ok) {
+    exit 1
+  }
+  exit 0
 }
 
 if (-not $report.ok) {

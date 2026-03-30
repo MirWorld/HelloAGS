@@ -55,9 +55,27 @@ function Invoke-HookJson([string]$scriptPath, [string]$inputFile, [string]$proje
     $args += "-DryRun"
   }
 
-  $raw = & pwsh @args
+  $raw = & pwsh @args 2>$null
   if ([string]::IsNullOrWhiteSpace(($raw -join ""))) {
     throw "Hook '$scriptPath' returned empty output."
+  }
+  return (($raw -join "`n") | ConvertFrom-Json -Depth 64)
+}
+
+function Invoke-PlanValidatorJson([string]$projectRoot, [string]$mode = "plan", [string]$package = "") {
+  $scriptPath = Join-Path $projectRoot "HAGSWorks/scripts/validate-plan-package.ps1"
+  $args = @(
+    "-NoProfile",
+    "-File", $scriptPath,
+    "-Mode", $mode,
+    "-Json"
+  )
+  if (-not [string]::IsNullOrWhiteSpace($package)) {
+    $args += @("-Package", $package)
+  }
+  $raw = & pwsh @args
+  if ([string]::IsNullOrWhiteSpace(($raw -join ""))) {
+    throw "Plan validator returned empty output."
   }
   return (($raw -join "`n") | ConvertFrom-Json -Depth 64)
 }
@@ -106,6 +124,10 @@ function New-SmokePackage([string]$projectRoot) {
   $howText = @"
 # 技术设计: smoke
 
+## 技术方案
+- **verify_min:** `pwsh -NoProfile -Command "Write-Output smoke"`
+- **carry_forward_verify:** `无`
+
 ## 功能删减审批（如触发）
 - `feature_removal_risk: clear`
 - `feature_removal_approved: no`
@@ -131,6 +153,9 @@ function New-SmokePackage([string]$projectRoot) {
 
 ### Repo 状态（复现/防漂移，执行域必填）
 - [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: start
 
 ### 功能删减审批
 - `feature_removal_risk: clear`
@@ -229,6 +254,9 @@ try {
 ### Repo 状态（复现/防漂移，执行域必填）
 - [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
 
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: mid
+
 ### 功能删减审批
 - `feature_removal_risk: clear`
 - `feature_removal_approved: no`
@@ -263,6 +291,9 @@ try {
 ### Repo 状态（复现/防漂移，执行域必填）
 - [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
 
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: final
+
 ### 功能删减审批
 - `feature_removal_risk: clear`
 - `feature_removal_approved: no`
@@ -282,6 +313,88 @@ try {
   $userCompletedOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadCompleted -projectRoot $projectRoot
   Assert-True ($userCompletedOut.decision -eq "block") "Completed package should block resume/execute-like prompts."
   Assert-Contains $userCompletedOut.systemMessage "已完成且无 Pending" "Completed-package block should explain why execution was stopped."
+
+  $missingCarryForwardHow = @"
+# 技术设计: smoke
+
+## 执行域声明（Allow/Deny）
+- Allow: [`a.ps1`]
+
+verify_min: `pwsh -NoProfile -Command ""Write-Output smoke""`
+"@
+  Write-Utf8Text -path (Join-Path $projectRoot ($packageRel.Replace('/', '\') + "\how.md")) -text $missingCarryForwardHow
+  $validatorMissingCarry = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "plan" -package $packageRel
+  $carryWarnText = ($validatorMissingCarry.warnings -join "`n")
+  Assert-Contains $carryWarnText "carry_forward_verify" "Plan validator should warn when how.md omits carry_forward_verify."
+
+  $longTaskHow = @"
+# 技术设计: smoke
+
+## 执行域声明（Allow/Deny）
+- Allow: [`a.ps1`]
+
+verify_min: `pwsh -NoProfile -Command ""Write-Output smoke""`
+carry_forward_verify: 无
+"@
+  $longTaskText = @"
+# 任务清单: smoke
+
+- [ ] 1.0 第一步
+- [ ] 1.1 第二步
+- [ ] 1.2 第三步
+- [ ] 1.3 第四步
+
+## 上下文快照
+
+### 已确认事实（可验证）
+- [SRC:CODE] smoke package fixture is present
+
+### Repo 状态（复现/防漂移，执行域必填）
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: start
+
+### 待用户输入（Pending）
+
+### 下一步唯一动作（可执行）
+- 下一步唯一动作: `继续第一个任务` 预期: 完成第一个任务
+"@
+  Write-Utf8Text -path (Join-Path $projectRoot ($packageRel.Replace('/', '\') + "\how.md")) -text $longTaskHow
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $longTaskText
+  $validatorLongTask = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "exec" -package $packageRel
+  $longTaskWarnText = ($validatorLongTask.warnings -join "`n")
+  Assert-Contains $longTaskWarnText "mid/late/final progress_phase" "Plan validator should warn when long tasks never advance progress_phase beyond start."
+
+  $designDebtTask = @"
+# 任务清单: smoke
+
+- [ ] 1.0 临时方案
+
+## 上下文快照
+
+### 已确认事实（可验证）
+- [SRC:CODE] smoke package fixture is present
+
+### Repo 状态（复现/防漂移，执行域必填）
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: mid
+
+### 结构债务（可选，明确知道是权宜实现时填写）
+- [SRC:CODE|USER|TOOL] design_debt: 临时把逻辑收在单点，后续需要拆分
+
+### 待用户输入（Pending）
+
+### 下一步唯一动作（可执行）
+- 下一步唯一动作: `继续实现` 预期: 完成临时方案
+"@
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $designDebtTask
+  $validatorDebt = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "exec" -package $packageRel
+  Assert-True (-not $validatorDebt.ok) "Plan validator should fail when design_debt is recorded without why_now/revisit_trigger."
+  $debtErrorText = ($validatorDebt.errors -join "`n")
+  Assert-Contains $debtErrorText "revisit_trigger" "Design debt validation should require revisit_trigger."
 
   $stopFeatureOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-stop.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/stop-hook-feature-removal-fixture.json") -projectRoot $projectRoot -DryRun
   $stopFeatureContext = $stopFeatureOut.hookSpecificOutput.additionalContext

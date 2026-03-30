@@ -10,7 +10,7 @@
 
 ## 0. 对齐确认
 - [ ] 0.1 阅读 `why.md#对齐摘要`，确认目标/成功标准/边界/约束无误；如有偏差先修正 why.md 再执行后续任务
-- [ ] 0.2 确认 `HAGSWorks/project.md#项目能力画像` 已包含可用命令矩阵（build/test/fmt/lint/typecheck 等）；并为核心成功标准绑定至少 1 条 `verify_min`（最小验证动作，命令/测试/脚本/可复现手动步骤皆可）；如缺失则补齐后再继续
+- [ ] 0.2 确认 `HAGSWorks/project.md#项目能力画像` 已包含可用命令矩阵（build/test/fmt/lint/typecheck 等）；并为核心成功标准绑定至少 1 条 `verify_min`（最小验证动作，命令/测试/脚本/可复现手动步骤皆可）；若本包后续会再次触碰同一 Workset，再补 1 条 `carry_forward_verify`（累计回归验证）；如缺失则补齐后再继续
 - [ ] 0.3（触发式推荐）如存在相似实现、公共入口或边界风险，再按 `references/code-reuse-checklist.md` / `references/architecture-boundaries.md` 补齐复用与依赖结论；未命中可标 `[-]`
 
 ## 0.5 跨层一致性（仅触发时展开）
@@ -41,7 +41,7 @@
 - [ ] 4.1 仅当契约 / 公共接口 / 数据模型 / 架构变化时，更新对应知识库或说明文件；未命中可标 `[-]`
 
 ## 5. 质量门禁与验证
-- [ ] 5.0 运行 `verify_min`（最小-最快-最高信号）：优先用能覆盖成功标准的最小验证动作收口；记录证据（命令+结果摘要），失败则按失败协议收敛升级（参考 `references/quality-gates.md`、`references/failure-protocol.md`）
+- [ ] 5.0 运行 `verify_min`（最小-最快-最高信号）：优先用能覆盖成功标准的最小验证动作收口；记录证据（命令+结果摘要），失败则按失败协议收敛升级（参考 `references/quality-gates.md`、`references/failure-protocol.md`）；若本任务再次触碰同一 Workset，则顺带执行 `carry_forward_verify` 或明确记录“不受影响”
 - [ ] 5.1（按适用项展开）从 `fmt/lint/typecheck/build/test/security` 中只保留本次适用且项目已定义命令的项；未触发项标 `[-]` 并写明原因
   - 建议顺序：fmt → lint → typecheck → build → test → security
   - `build` 触发式推荐默认：若本次改动触及可编译/可发布路径且项目存在 build 命令，执行 build
@@ -51,8 +51,8 @@
 
 ## 6. Review（必做）
 - [ ] 6.1 Review-规格一致性：对齐摘要（目标/成功标准/非目标/约束）与实现/任务/验证保持一致；`## 上下文快照` 覆盖关键决策/约束/下一步唯一动作且来源标签齐全；`HAGSWorks/active_context.md` 可续作且 Public APIs 具备 `[SRC:CODE]` 指针
-- [ ] 6.2 Review-结构与质量：边界/依赖方向正确；不新增重复；命名与抽象可读；避免 utils 膨胀；快照“事实区”不得混入推断；active_context 不得出现“无来源事实”
-- [ ] 6.3 记录 Review：在文末 `## Review 记录` 填写（问题≤5条/修复≤5条/复测摘要）
+- [ ] 6.2 Review-结构与质量：边界/依赖方向正确；不新增重复；命名与抽象可读；避免 utils 膨胀；长任务检查是否出现结构侵蚀 / 胶水扩散 / 后置任务打穿前置结果；快照“事实区”不得混入推断；active_context 不得出现“无来源事实”
+- [ ] 6.3 记录 Review：在文末 `## Review 记录` 填写（问题≤5条/修复≤5条/复测摘要），优先记录结构侵蚀 / 累计回归 / 设计债务
 - [ ] 6.4 如 Review 引入修复：重跑受影响门禁（通常为 fmt/lint/typecheck/build/test），最多 3 轮“Review→修复→复测”
 - [ ] 6.5 交付前收尾：按 `references/finish-checklist.md` 自检（证据/快照/active_context/输出格式）
 
@@ -97,6 +97,12 @@
 - [SRC:CODE|USER|TOOL] 决策: …
   - 理由: …
   - 影响: …
+- [SRC:CODE|TOOL] progress_phase: start | mid | late | final
+
+### 结构债务（可选，明确知道是权宜实现时填写）
+- [SRC:CODE|USER|TOOL] design_debt: …
+- [SRC:CODE|USER|TOOL] why_now: …
+- [SRC:CODE|USER|TOOL] revisit_trigger: …
 
 ### 功能删减审批
 <!-- 仅在命中功能删减风险时填写；未命中保持默认占位 -->
@@ -130,4 +136,4 @@
 ---
 
 ## Review 记录
-（仅在完成收尾时填写；优先记录遗漏 / 缩水 / 越界 / 返工 / contract 偏移及其修正。小任务可只写关键问题/修复/复测摘要）
+（仅在完成收尾时填写；优先记录遗漏 / 缩水 / 越界 / 返工 / contract 偏移 / 结构侵蚀 / 累计回归 / 设计债务及其修正。小任务可只写关键问题/修复/复测摘要）
