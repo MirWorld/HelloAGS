@@ -242,6 +242,110 @@ function Get-NextUniqueAction([string]$taskText) {
   return $matches[$matches.Count - 1].Groups["v"].Value.Trim()
 }
 
+function Get-SnapshotBody([string]$taskText) {
+  if ([string]::IsNullOrWhiteSpace($taskText)) {
+    return ""
+  }
+
+  $m = [regex]::Match($taskText, '(?ms)^\s*##\s*上下文快照\s*$\r?\n(?<body>.*?)(?=^\s*##\s+|\z)')
+  if (-not $m.Success) {
+    return ""
+  }
+
+  return $m.Groups["body"].Value
+}
+
+function Get-PendingLines([string]$taskText) {
+  $pendingBody = Extract-SectionBody -text $taskText -headerText "### 待用户输入（Pending）"
+  $pendingLines = @()
+  if ($null -ne $pendingBody) {
+    $pendingLines = @(Get-SignificantLines -text $pendingBody -maxLines 20)
+  }
+
+  $pendingLines = $pendingLines | Where-Object {
+    -not (($_ -match '^\-\s*\[SRC:TODO\]') -and (($_ -match '…') -or ($_ -match '\.\.\.')))
+  }
+  return @($pendingLines)
+}
+
+function Test-PackageCompleted([string]$taskText, [string[]]$pendingLines) {
+  if ([string]::IsNullOrWhiteSpace($taskText)) {
+    return $false
+  }
+
+  $taskMatches = [regex]::Matches($taskText, '(?m)^\s*-\s*\[(?<state>\s|√|X|-|\?)\]\s+')
+  if ($taskMatches.Count -eq 0) {
+    return $false
+  }
+
+  foreach ($m in $taskMatches) {
+    $state = $m.Groups["state"].Value
+    if (($state -ne "√") -and ($state -ne "-")) {
+      return $false
+    }
+  }
+
+  return ($pendingLines.Count -eq 0)
+}
+
+function Test-UnresolvedResponseIncomplete([string]$taskText) {
+  $snapshotBody = Get-SnapshotBody -taskText $taskText
+  if ([string]::IsNullOrWhiteSpace($snapshotBody)) {
+    return $false
+  }
+
+  $eventMatches = [regex]::Matches($snapshotBody, '(?im)^\s*-\s*\[SRC:TOOL\]\s*model_event\s*[:：]\s*(?<kind>\S+)(?:\s+#.*)?\s*$')
+  if ($eventMatches.Count -eq 0) {
+    return $false
+  }
+
+  $lastIncomplete = $null
+  foreach ($m in $eventMatches) {
+    $kind = [regex]::Replace($m.Groups["kind"].Value, '^[`"'',;]+|[`"'',;]+$', '')
+    if ($kind -match '(?i)^response[._]incomplete\b') {
+      $lastIncomplete = $m
+    }
+  }
+
+  if ($null -eq $lastIncomplete) {
+    return $false
+  }
+
+  $after = ""
+  try {
+    $start = [Math]::Min($snapshotBody.Length, $lastIncomplete.Index + $lastIncomplete.Length)
+    $after = $snapshotBody.Substring($start)
+  } catch {
+    $after = ""
+  }
+
+  $hasRepoAfter = ($after -match '(?im)\brepo_state\s*[:：]\s*\S')
+  $hasNextAfter = ($after -match '(?im)下一步唯一动作\s*[:：]\s*\S')
+  return (-not ($hasRepoAfter -and $hasNextAfter))
+}
+
+function Test-ResumeOrExecutePrompt([string]$promptTrimmed) {
+  if ([string]::IsNullOrWhiteSpace($promptTrimmed)) {
+    return $false
+  }
+
+  $patterns = @(
+    '^(?i)~(?:exec|run|execute)\b',
+    '^(?i)~auto\b$',
+    '^(?i)resume\b',
+    '^(?i)continue\b',
+    '^(继续|接着|上次|刚才|继续执行|继续做|接着做)'
+  )
+
+  foreach ($pattern in $patterns) {
+    if ($promptTrimmed -match $pattern) {
+      return $true
+    }
+  }
+
+  return $false
+}
+
 function Get-FeatureRemovalApprovalState([string[]]$texts) {
   $state = "no"
   foreach ($text in $texts) {
@@ -430,12 +534,12 @@ try {
     $howText = Read-Utf8Text -path $howFile
   }
   $pendingBody = Extract-SectionBody -text $taskText -headerText "### 待用户输入（Pending）"
-  $pendingLines = @()
-  if ($null -ne $pendingBody) {
-    $pendingLines = @(Get-SignificantLines -text $pendingBody -maxLines 20)
-  }
+  $pendingLines = @(Get-PendingLines -taskText $taskText)
   $nextUniqueAction = Get-NextUniqueAction -taskText $taskText
   $featureRemovalApproval = Get-FeatureRemovalApprovalState -texts @($taskText, $howText)
+  $packageCompleted = Test-PackageCompleted -taskText $taskText -pendingLines $pendingLines
+  $hasUnresolvedResponseIncomplete = Test-UnresolvedResponseIncomplete -taskText $taskText
+  $isResumeOrExecutePrompt = Test-ResumeOrExecutePrompt -promptTrimmed $promptTrimmed
   $shouldInjectFeatureRemovalGuard = Test-FeatureRemovalGuardShouldInject `
     -approvalState $featureRemovalApproval `
     -taskText $taskText `
@@ -473,7 +577,49 @@ try {
     $additionalContextLines += $featureRemovalGuardLines
   }
 
+  if ($hasUnresolvedResponseIncomplete) {
+    $blockLines = @(
+      "[HelloAGENTS Guard] 当前方案包存在未恢复的 response_incomplete；在补齐恢复检查点前，禁止继续执行。",
+      ("current_package: {0}" -f $packagePointer)
+    )
+    if (-not [string]::IsNullOrWhiteSpace($turnId)) {
+      $blockLines += ("current_turn_id: {0}" -f $turnId)
+    }
+    $blockLines += "signal: response_incomplete"
+    $blockLines += "severity: Red"
+
+    $msg = "当前方案包存在未恢复的 response_incomplete，已阻断以避免在不确定状态下继续执行。"
+    $reason = "请先补一条新的 repo_state + 下一步唯一动作，或先走恢复/重规划，再继续。"
+    Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext ($blockLines -join "`n")
+    exit 0
+  }
+
   if ($pendingLines.Count -eq 0 -and $featureRemovalGuardLines.Count -eq 0) {
+    if ($packageCompleted -and $isResumeOrExecutePrompt) {
+      $completeLines = @(
+        "[HelloAGENTS Guard] 当前方案包已完成且无 Pending；不要继续执行当前包。",
+        ("current_package: {0}" -f $packagePointer),
+        "package_status: completed",
+        "next_unique_action: 等待新需求或新建方案包"
+      )
+      if (-not [string]::IsNullOrWhiteSpace($turnId)) {
+        $completeLines += ("current_turn_id: {0}" -f $turnId)
+      }
+
+      $msg = "当前方案包已完成且无 Pending，已阻断误续作以避免重复修改。"
+      $reason = "请直接提出新需求，或先新建方案包；不要继续执行当前已完成包。"
+      Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext ($completeLines -join "`n")
+      exit 0
+    }
+
+    if (($featureRemovalApproval -ne "yes") -and (Test-FeatureRemovalRiskFromPrompt -prompt $promptTrimmed)) {
+      $additionalContext = ($featureRemovalGuardLines -join "`n")
+      $msg = "检测到当前输入命中功能删减高风险，已阻断并等待明确批准。"
+      $reason = "请明确允许删减的目标、范围与替代行为；若不允许，请改成保留现有功能的实现路径。"
+      Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext $additionalContext
+      exit 0
+    }
+
     Write-HookOutputJson
     exit 0
   }
@@ -493,6 +639,13 @@ try {
   if ($pendingLines.Count -gt 0 -and [string]::IsNullOrWhiteSpace($promptTrimmed)) {
     $msg = "输入为空且当前处于 Pending，已阻断以避免误触发。"
     $reason = "请按回复契约输入有效回复；如需结束等待，回复 `取消`。"
+    Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext $additionalContext
+    exit 0
+  }
+
+  if (($featureRemovalApproval -ne "yes") -and (Test-FeatureRemovalRiskFromPrompt -prompt $promptTrimmed)) {
+    $msg = "检测到当前输入命中功能删减高风险，已阻断并等待明确批准。"
+    $reason = "请明确允许删减的目标、范围与替代行为；若不允许，请改成保留现有功能的实现路径。"
     Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext $additionalContext
     exit 0
   }

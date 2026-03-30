@@ -121,6 +121,8 @@ function New-SmokePackage([string]$projectRoot) {
   $taskText = @"
 # 任务清单: smoke
 
+- [ ] 1.0 验证 hooks 守卫
+
 ## 上下文快照
 
 ### 已确认事实（可验证）
@@ -151,6 +153,11 @@ function New-SmokePackage([string]$projectRoot) {
   Write-Utf8Text -path $pointerPath -text ("# 当前方案包指针`n`ncurrent_package: {0}`n" -f $packageRel.Replace('\', '/'))
 
   return $packageRel.Replace('\', '/')
+}
+
+function Set-SmokeTaskText([string]$projectRoot, [string]$packageRel, [string]$taskText) {
+  $taskPath = Join-Path $projectRoot ($packageRel.Replace('/', '\') + "\task.md")
+  Write-Utf8Text -path $taskPath -text $taskText
 }
 
 $repoRoot = Get-RepoRoot
@@ -197,7 +204,68 @@ try {
   New-SmokePayload -path $payloadFeature -prompt "请删除旧入口并简化实现" -projectRoot $projectRoot -turnId "turn_demo_prompt_003"
   $userFeatureOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadFeature -projectRoot $projectRoot
   $userFeatureContext = $userFeatureOut.hookSpecificOutput.additionalContext
-  Assert-Contains $userFeatureContext "feature_removal_approved: no" "Feature-removal risk prompt should inject guard context."
+  Assert-True ($userFeatureOut.decision -eq "block") "Feature-removal risk prompt should be blocked before execution."
+  Assert-Contains $userFeatureOut.systemMessage "功能删减高风险" "Feature-removal risk block should explain why it was stopped."
+  Assert-Contains $userFeatureContext "feature_removal_approved: no" "Feature-removal risk prompt should carry guard context."
+
+  $responseIncompleteTask = @"
+# 任务清单: smoke
+
+- [ ] 1.0 先恢复再继续
+
+## 上下文快照
+
+### 已确认事实（可验证）
+- [SRC:CODE] smoke package fixture is present
+
+### Repo 状态（复现/防漂移，执行域必填）
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 运行时/模型事件（可选，结构化）
+- [SRC:TOOL] model_event: response_incomplete
+- [SRC:TOOL] turn_id: turn_demo_incomplete_001
+
+### 待用户输入（Pending）
+
+### 下一步唯一动作（可执行）
+- 下一步唯一动作: `等待补恢复检查点` 预期: 先补 repo_state + 下一步唯一动作
+"@
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $responseIncompleteTask
+
+  $payloadIncomplete = Join-Path $scratchRoot "userpromptsubmit-incomplete.json"
+  New-SmokePayload -path $payloadIncomplete -prompt "继续" -projectRoot $projectRoot -turnId "turn_demo_prompt_004"
+  $userIncompleteOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadIncomplete -projectRoot $projectRoot
+  Assert-True ($userIncompleteOut.decision -eq "block") "Unresolved response_incomplete should block execution-like prompts."
+  Assert-Contains $userIncompleteOut.systemMessage "response_incomplete" "UserPromptSubmit should explain unresolved response_incomplete."
+
+  $completedTask = @"
+# 任务清单: smoke
+
+- [√] 1.0 hooks 守卫已验证
+
+## 上下文快照
+
+### 已确认事实（可验证）
+- [SRC:CODE] smoke package fixture is present
+
+### Repo 状态（复现/防漂移，执行域必填）
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 待用户输入（Pending）
+
+### 下一步唯一动作（可执行）
+- 下一步唯一动作: `等待新需求` 预期: 用户提出新任务或新建方案包
+"@
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $completedTask
+
+  $sessionCompletedOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-sessionstart.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/sessionstart-hook-fixture.json") -projectRoot $projectRoot
+  Assert-Contains $sessionCompletedOut.systemMessage "already completed" "SessionStart should warn when current_package is already completed."
+
+  $payloadCompleted = Join-Path $scratchRoot "userpromptsubmit-completed.json"
+  New-SmokePayload -path $payloadCompleted -prompt "~exec" -projectRoot $projectRoot -turnId "turn_demo_prompt_005"
+  $userCompletedOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadCompleted -projectRoot $projectRoot
+  Assert-True ($userCompletedOut.decision -eq "block") "Completed package should block resume/execute-like prompts."
+  Assert-Contains $userCompletedOut.systemMessage "已完成且无 Pending" "Completed-package block should explain why execution was stopped."
 
   $stopFeatureOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-stop.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/stop-hook-feature-removal-fixture.json") -projectRoot $projectRoot -DryRun
   $stopFeatureContext = $stopFeatureOut.hookSpecificOutput.additionalContext

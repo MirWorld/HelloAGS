@@ -176,11 +176,8 @@
      - 在 `task.md##上下文快照` 的“决策”区追加一条：`contract_checkpoint: ok` 或 `contract_checkpoint: needs_realign`
 
 10. **信号等级（轻量参考）**
-   - 为减少重复解释，可按以下轻量等级理解恢复信号：
-     - **Green**：恢复后可继续（contract 明确、无 Pending、无漂移）
-     - **Yellow**：先复核 / 先补快照（例如 `model_rerouted`、轻度 `repo_state` 漂移）
-     - **Red**：禁止继续改代码，必须等待 / 恢复 / 重规划（例如 `response_incomplete`、`contract_checkpoint: needs_realign`、Pending 非空）
-   - 主流程应优先按等级行动，而不是重复展开同一规则说明
+   - 等级定义与稳定映射统一见 `references/signal-severity.md`
+   - 恢复层只消费等级：命中 `Yellow` 先复核 / 补快照；命中 `Red` 则禁止继续改代码，必须等待 / 恢复 / 重规划
 
 ---
 

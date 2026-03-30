@@ -60,6 +60,7 @@
 | 概念 | SSOT（单一来源文件） |
 |---|---|
 | 术语口径 | `references/terminology.md` |
+| 信号等级（Green/Yellow/Red） | `references/signal-severity.md` |
 | 协议公共 API 清单 | `references/contracts.md` |
 | Codex 上游借力清单 | `references/codex-upstream-leverage.md` |
 | 功能删减保护 | `references/feature-removal-guard.md` |

@@ -19,6 +19,7 @@
 | Marker | 位置（SSOT） | 含义 |
 |---|---|---|
 | `<!-- CONTRACT: terminology v1 -->` | `references/terminology.md` | 术语口径与 SSOT Map |
+| `<!-- CONTRACT: signal-severity v1 -->` | `references/signal-severity.md` | 轻量信号分级（Green/Yellow/Red） |
 | `<!-- CONTRACT: plan-lifecycle v1 -->` | `references/plan-lifecycle.md` | 方案包生命周期与 `_current.md` 指针键名 |
 | `<!-- CONTRACT: resume-package-selection v1 -->` | `references/resume-protocol.md` | 断层恢复选包规则（含排序/扫描约束） |
 | `<!-- CONTRACT: resume-current-package-pointer v1 -->` | `references/resume-protocol.md` | `_current.md` 指针合法性约束 |

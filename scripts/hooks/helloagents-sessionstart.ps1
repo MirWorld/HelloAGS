@@ -148,6 +148,105 @@ function Resolve-CurrentPackagePath([string]$projectRoot, [string]$pointerValue)
   return (Join-Path $projectRoot $pointerValue)
 }
 
+function Get-MarkdownSectionBody([string]$text, [string]$headingText) {
+  if ([string]::IsNullOrWhiteSpace($text)) {
+    return ""
+  }
+
+  $headerEsc = [regex]::Escape($headingText)
+  $m = [regex]::Match($text, "(?ms)^\s*${headerEsc}\s*$\s*(?<body>.*?)(?=^\s*###\s+|\z)")
+  if (-not $m.Success) {
+    return ""
+  }
+
+  return $m.Groups["body"].Value
+}
+
+function Get-PendingLines([string]$taskText) {
+  $pendingBody = Get-MarkdownSectionBody -text $taskText -headingText "### 待用户输入（Pending）"
+  if ([string]::IsNullOrWhiteSpace($pendingBody)) {
+    return @()
+  }
+
+  $lines = @()
+  foreach ($line in ($pendingBody -split "`r?`n")) {
+    $t = $line.Trim()
+    if ([string]::IsNullOrWhiteSpace($t)) {
+      continue
+    }
+    if ($t.StartsWith("<!--")) {
+      continue
+    }
+    if (($t -match '^\-\s*\[SRC:TODO\]') -and (($t -match '…') -or ($t -match '\.\.\.'))) {
+      continue
+    }
+    $lines += $t
+  }
+
+  return @($lines)
+}
+
+function Test-PackageCompleted([string]$taskText, [string[]]$pendingLines) {
+  if ([string]::IsNullOrWhiteSpace($taskText)) {
+    return $false
+  }
+
+  $taskMatches = [regex]::Matches($taskText, '(?m)^\s*-\s*\[(?<state>\s|√|X|-|\?)\]\s+')
+  if ($taskMatches.Count -eq 0) {
+    return $false
+  }
+
+  foreach ($m in $taskMatches) {
+    $state = $m.Groups["state"].Value
+    if (($state -ne "√") -and ($state -ne "-")) {
+      return $false
+    }
+  }
+
+  return ($pendingLines.Count -eq 0)
+}
+
+function Test-UnresolvedResponseIncomplete([string]$taskText) {
+  if ([string]::IsNullOrWhiteSpace($taskText)) {
+    return $false
+  }
+
+  $snapshotMatch = [regex]::Match($taskText, '(?ms)^\s*##\s*上下文快照\s*$\r?\n(?<body>.*?)(?=^\s*##\s+|\z)')
+  if (-not $snapshotMatch.Success) {
+    return $false
+  }
+
+  $snapshotBody = $snapshotMatch.Groups["body"].Value
+  $eventMatches = [regex]::Matches($snapshotBody, '(?im)^\s*-\s*\[SRC:TOOL\]\s*model_event\s*[:：]\s*(?<kind>\S+)(?:\s+#.*)?\s*$')
+  if ($eventMatches.Count -eq 0) {
+    return $false
+  }
+
+  $lastIncomplete = $null
+  foreach ($m in $eventMatches) {
+    $kind = [regex]::Replace($m.Groups["kind"].Value, '^[`"'',;]+|[`"'',;]+$', '')
+    if ($kind -match '(?i)^response[._]incomplete\b') {
+      $lastIncomplete = $m
+    }
+  }
+
+  if ($null -eq $lastIncomplete) {
+    return $false
+  }
+
+  $after = ""
+  try {
+    $start = [Math]::Min($snapshotBody.Length, $lastIncomplete.Index + $lastIncomplete.Length)
+    $after = $snapshotBody.Substring($start)
+  } catch {
+    $after = ""
+  }
+
+  $hasRepoAfter = ($after -match '(?im)\brepo_state\s*[:：]\s*\S')
+  $hasNextAfter = ($after -match '(?im)下一步唯一动作\s*[:：]\s*\S')
+  return (-not ($hasRepoAfter -and $hasNextAfter))
+}
+
 $raw = Get-RawInput -inputFile $InputFile
 if ([string]::IsNullOrWhiteSpace($raw)) {
   Write-HookOutputJson
@@ -230,6 +329,19 @@ foreach ($name in $requiredFiles) {
 
 if ($missing.Count -gt 0) {
   Write-HookOutputJson -SystemMessage ("WARN: _current.md points to incomplete package: '{0}' missing={1}. next=修复方案包或重新选包" -f $rawPointer, ($missing -join ","))
+  exit 0
+}
+
+$taskFile = Join-Path $resolvedPackageFull "task.md"
+$taskText = Read-Utf8Text -path $taskFile
+$pendingLines = @(Get-PendingLines -taskText $taskText)
+if (Test-UnresolvedResponseIncomplete -taskText $taskText) {
+  Write-HookOutputJson -SystemMessage ("WARN: current_package contains unresolved response_incomplete: '{0}'. next=先补恢复检查点或先走恢复流程" -f $rawPointer)
+  exit 0
+}
+
+if (Test-PackageCompleted -taskText $taskText -pendingLines $pendingLines) {
+  Write-HookOutputJson -SystemMessage ("WARN: current_package already completed with no Pending: '{0}'. next=等待新需求或新建方案包，不要继续执行当前包" -f $rawPointer)
   exit 0
 }
 

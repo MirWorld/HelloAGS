@@ -135,10 +135,9 @@
 - 若回填脚本能同时获得 `thread_id + turn_id`：优先用两者一起绑定当前事件；若缺 `turn_id` 再回退到 `thread_id + trace_id`
 - 若回填脚本无法获得 `thread_id`，但能稳定获得 `trace_id`，可用其作为日志过滤条件；若两者都缺失，推荐直接 `SKIP`，避免跨 thread 误归因
 
-可选信号等级（轻量，不强制）：
-- **Green**：可继续（例如 `contract_checkpoint: ok` 且无 Pending / 无漂移）
-- **Yellow**：先复核 / 先补快照（例如 `model_rerouted`、轻度 `repo_state` 漂移）
-- **Red**：禁止继续改代码，必须等待 / 恢复 / 重规划（例如 Pending 非空、`response_incomplete`、`contract_checkpoint: needs_realign`）
+轻量信号分级定义见 `references/signal-severity.md`。
+- 快照层优先把信号写成结构字段（如 `model_event`、`contract_checkpoint`、`progress_checkpoint`）
+- 命中 `Yellow` 时，优先补快照 / 做复核；命中 `Red` 时，不得继续改代码
 
 **写作约束：**
 - 每个小节最多 3–5 条；宁可短而精，避免写成冗长复盘

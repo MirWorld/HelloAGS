@@ -261,6 +261,26 @@ function Assert-NoDeprecatedTerms([string]$repoRoot, [string[]]$trackedFiles) {
   }
 }
 
+function Assert-SignalSeveritySSOT([string]$repoRoot, [string[]]$trackedFiles) {
+  $mdFiles = $trackedFiles | Where-Object { $_.ToLowerInvariant().EndsWith(".md") }
+  $signalFile = "references/signal-severity.md"
+  $patternGreen = '(?m)^\s*-\s*\*\*Green\*\*\s*[:：]'
+  $patternYellow = '(?m)^\s*-\s*\*\*Yellow\*\*\s*[:：]'
+  $patternRed = '(?m)^\s*-\s*\*\*Red\*\*\s*[:：]'
+
+  foreach ($md in $mdFiles) {
+    if ($md -eq $signalFile) {
+      continue
+    }
+
+    $fullMd = Join-Path $repoRoot (Normalize-RelativePath $md)
+    $text = Get-Content -LiteralPath $fullMd -Raw
+    if (($text -match $patternGreen) -and ($text -match $patternYellow) -and ($text -match $patternRed)) {
+      Info "WARN: Signal severity definitions should live only in ${signalFile}; found duplicated level definitions in ${md}."
+    }
+  }
+}
+
 function Get-WorkspaceBootstrapManifest([string]$repoRoot) {
   $relativePath = "templates/workspace-bootstrap-manifest.json"
   $full = Join-Path $repoRoot (Normalize-RelativePath $relativePath)
@@ -322,6 +342,7 @@ $required = @(
   "references/command-policy.md",
   "references/active-context.md",
   "references/terminology.md",
+  "references/signal-severity.md",
   "references/feature-removal-guard.md",
   "references/codex-upstream-leverage.md",
   "references/contracts.md",
@@ -353,6 +374,7 @@ foreach ($r in $required) {
 Assert-NoBrokenInternalReferences -repoRoot $repoRoot -trackedFiles $tracked
 Assert-InteractiveWaitContracts -repoRoot $repoRoot -trackedFiles $tracked
 Assert-NoDeprecatedTerms -repoRoot $repoRoot -trackedFiles $tracked
+Assert-SignalSeveritySSOT -repoRoot $repoRoot -trackedFiles $tracked
 
 # Template invariants (structural & contract-only; avoid brittle prose checks)
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @("<output_format>", "<exception_output_format>")
@@ -431,7 +453,17 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -ne
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/terminology.md" -needles @(
   "<!-- CONTRACT: terminology v1 -->",
   "## SSOT Map",
-  "references/feature-removal-guard.md"
+  "references/feature-removal-guard.md",
+  "references/signal-severity.md"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/signal-severity.md" -needles @(
+  "<!-- CONTRACT: signal-severity v1 -->",
+  "## 1) 等级定义",
+  "## 2) 稳定映射",
+  "## 3) 使用方式",
+  '`model_event: response_incomplete`',
+  '`feature_removal_approved: no`'
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/feature-removal-guard.md" -needles @(
@@ -492,7 +524,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -
   "model_event:",
   "turn_id:",
   "awaiting_topic:",
-  "HAGSWorks/plan/_current.md"
+  "HAGSWorks/plan/_current.md",
+  "<!-- CONTRACT: signal-severity v1 -->"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.md" -needles @(
@@ -536,7 +569,16 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapsho
   "### Repo 状态",
   "### 待用户输入（Pending）",
   "### 下一步唯一动作",
-  "下一步唯一动作:"
+  "下一步唯一动作:",
+  "references/signal-severity.md"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -needles @(
+  "references/signal-severity.md"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol.md" -needles @(
+  "references/signal-severity.md"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quickfix-protocol.md" -needles @(

@@ -34,9 +34,8 @@
 7. **疑似功能删减但未获批准** → 必须阻断并进入“功能删减确认”；尤其是会减少用户可见表面、公开契约、默认能力时，不得把“简化实现/最小改动面/更易维护”解释为删功能授权（见 `references/feature-removal-guard.md`）
 
 补充（轻量信号分级）：
-- **Green**：可继续推进
-- **Yellow**：先复核 / 先补快照（例如 `model_rerouted`、轻度漂移）
-- **Red**：禁止继续改代码，必须等待 / 恢复 / 重规划（例如 Pending、`response_incomplete`、功能删减未批准）
+- 等级定义与稳定映射统一见 `references/signal-severity.md`
+- 路由层只消费等级：命中 `Yellow` 时先复核 / 补快照；命中 `Red` 时直接阻断到等待 / 恢复 / 重规划
 
 需要阻断交互时：优先使用 `templates/output-format.md` 的 `❓/⚠️/❌` 交互模板，给 2–3 个可选决策。
 
