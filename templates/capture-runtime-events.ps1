@@ -36,6 +36,27 @@ $LABEL_NEXT_UNIQUE_ACTION = [string]::Concat(
   [char]0x4F5C
 )
 
+$H3_RUNTIME_MODEL_EVENTS = [string]::Concat(
+  [char]0x8FD0,
+  [char]0x884C,
+  [char]0x65F6,
+  [char]0x002F,
+  [char]0x6A21,
+  [char]0x578B,
+  [char]0x4E8B,
+  [char]0x4EF6,
+  [char]0xFF08,
+  [char]0x53EF,
+  [char]0x9009,
+  [char]0xFF0C,
+  [char]0x7ED3,
+  [char]0x6784,
+  [char]0x5316,
+  [char]0xFF09
+)
+
+$H3_RUNTIME_MODEL_EVENTS_LEGACY = "### Runtime/Model Events (optional, structured)"
+
 function Get-GitRoot() {
   try {
     $root = (git rev-parse --show-toplevel 2>$null).Trim()
@@ -577,12 +598,20 @@ function Ensure-TrailingNewline([string]$s) {
 function Append-EventsToSnapshot([string]$snapshotBody, [pscustomobject[]]$eventsToAdd, [string]$repoStateLine) {
   $b = Ensure-TrailingNewline -s $snapshotBody
 
-  $hasHeading = ($b -match '(?m)^\s*###\s*Runtime/Model Events')
+  $hasHeading = (
+    ($b -match '(?m)^\s*###\s*Runtime/Model Events') -or
+    ($b -match ('(?m)^\s*###\s*' + [regex]::Escape($H3_RUNTIME_MODEL_EVENTS) + '\s*$'))
+  )
   if (-not $hasHeading) {
-    $b += "`n### Runtime/Model Events (optional, structured)`n"
+    $b += ("`n### {0}`n" -f $H3_RUNTIME_MODEL_EVENTS)
   } elseif ($b -notmatch "(\r?\n)$") {
     $b += "`n"
   }
+  $b = [regex]::Replace(
+    $b,
+    '(?m)^\s*###\s*Runtime/Model Events \(optional, structured\)\s*$',
+    ("### {0}" -f $H3_RUNTIME_MODEL_EVENTS)
+  )
 
   foreach ($e in $eventsToAdd) {
     $kind = $e.kind
@@ -730,6 +759,9 @@ if ($DryRun) {
       $suffix += " turn_id=" + $_.turn_id
     }
     Write-Output ("- model_event: " + $_.kind + " ts=" + $_.ts + $suffix)
+    Write-Output ("- repo_state: " + $repoState)
+    Write-Output ("- " + $LABEL_NEXT_UNIQUE_ACTION + ": 按 references/resume-protocol.md 执行断层恢复（Reboot Check）")
+    Write-Output "- recovery_checkpoint: repo_state + 下一步唯一动作"
   }
   exit 0
 }

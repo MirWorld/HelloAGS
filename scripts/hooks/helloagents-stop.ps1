@@ -32,9 +32,6 @@ function Write-HookOutputJson {
   }
 
   $hookSpecific = [ordered]@{}
-  if (-not [string]::IsNullOrWhiteSpace($HookEventName)) {
-    $hookSpecific.hookEventName = $HookEventName.Trim()
-  }
   if (-not [string]::IsNullOrWhiteSpace($AdditionalContext)) {
     $hookSpecific.additionalContext = $AdditionalContext
   }
@@ -42,6 +39,11 @@ function Write-HookOutputJson {
     $hookSpecific.hookMessage = $HookMessage
   }
   if ($hookSpecific.Count -gt 0) {
+    if (-not [string]::IsNullOrWhiteSpace($HookEventName)) {
+      $hookSpecific.hookEventName = $HookEventName.Trim()
+    } else {
+      $hookSpecific.hookEventName = "Stop"
+    }
     $out.hookSpecificOutput = $hookSpecific
   }
 

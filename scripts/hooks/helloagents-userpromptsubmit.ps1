@@ -321,7 +321,8 @@ function Test-UnresolvedResponseIncomplete([string]$taskText) {
 
   $hasRepoAfter = ($after -match '(?im)\brepo_state\s*[:：]\s*\S')
   $hasNextAfter = ($after -match '(?im)下一步唯一动作\s*[:：]\s*\S')
-  return (-not ($hasRepoAfter -and $hasNextAfter))
+  $hasContractAfter = ($after -match '(?im)\bcontract_checkpoint\s*[:：]\s*(ok|needs_realign)\b')
+  return (-not ($hasRepoAfter -and $hasNextAfter -and $hasContractAfter))
 }
 
 function Test-ResumeOrExecutePrompt([string]$promptTrimmed) {
@@ -413,6 +414,26 @@ function Get-FeatureRemovalRiskState([string[]]$texts) {
   }
 
   return $state
+}
+
+function Get-EffectiveFeatureRemovalRiskState(
+  [string]$riskState,
+  [string]$approvalState,
+  [string]$promptTrimmed
+) {
+  if (($approvalState -eq "yes") -or ($riskState -eq "approved")) {
+    return "approved"
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace($riskState)) {
+    return $riskState
+  }
+
+  if (Test-FeatureRemovalPromptHighRisk -prompt $promptTrimmed) {
+    return "suspected"
+  }
+
+  return ""
 }
 
 function Test-FeatureRemovalPromptHighRisk([string]$prompt) {
@@ -515,7 +536,13 @@ function Test-FeatureRemovalGuardShouldInject(
   return (Test-FeatureRemovalPromptHighRisk -prompt $promptTrimmed)
 }
 
-function Build-FeatureRemovalGuardLines([string]$riskState, [string]$approvalState, [string]$packagePointer) {
+function Build-FeatureRemovalGuardLines(
+  [string]$riskState,
+  [string]$approvalState,
+  [string]$packagePointer,
+  [string]$turnId,
+  [string]$nextUniqueAction
+) {
   if (($approvalState -eq "yes") -or ($riskState -eq "approved")) {
     return @()
   }
@@ -527,8 +554,19 @@ function Build-FeatureRemovalGuardLines([string]$riskState, [string]$approvalSta
     $lines += ("feature_removal_risk: {0}" -f $riskState)
   }
   $lines += ("feature_removal_approved: {0}" -f $approvalState)
+  $lines += "signal: feature_removal_guard"
+  $lines += "severity: Red"
   if (-not [string]::IsNullOrWhiteSpace($packagePointer)) {
+    $lines += ("current_package: {0}" -f $packagePointer)
     $lines += ("feature_removal_package: {0}" -f $packagePointer)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($turnId)) {
+    $lines += ("current_turn_id: {0}" -f $turnId)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($nextUniqueAction)) {
+    $lines += ("next_unique_action: {0}" -f $nextUniqueAction)
+  } else {
+    $lines += "next_unique_action: 等待用户明确批准或拒绝本次功能删减"
   }
   return $lines
 }
@@ -599,11 +637,15 @@ try {
   $nextUniqueAction = Get-NextUniqueAction -taskText $taskText
   $featureRemovalRiskState = Get-FeatureRemovalRiskState -texts @($taskText, $howText)
   $featureRemovalApproval = Get-FeatureRemovalApprovalState -texts @($taskText, $howText)
+  $effectiveFeatureRemovalRiskState = Get-EffectiveFeatureRemovalRiskState `
+    -riskState $featureRemovalRiskState `
+    -approvalState $featureRemovalApproval `
+    -promptTrimmed $promptTrimmed
   $packageCompleted = Test-PackageCompleted -taskText $taskText -pendingLines $pendingLines
   $hasUnresolvedResponseIncomplete = Test-UnresolvedResponseIncomplete -taskText $taskText
   $isResumeOrExecutePrompt = Test-ResumeOrExecutePrompt -promptTrimmed $promptTrimmed
   $shouldInjectFeatureRemovalGuard = Test-FeatureRemovalGuardShouldInject `
-    -riskState $featureRemovalRiskState `
+    -riskState $effectiveFeatureRemovalRiskState `
     -approvalState $featureRemovalApproval `
     -taskText $taskText `
     -howText $howText `
@@ -612,7 +654,12 @@ try {
     -promptTrimmed $promptTrimmed
   $featureRemovalGuardLines = @()
   if ($shouldInjectFeatureRemovalGuard) {
-    $featureRemovalGuardLines = @(Build-FeatureRemovalGuardLines -riskState $featureRemovalRiskState -approvalState $featureRemovalApproval -packagePointer $packagePointer)
+    $featureRemovalGuardLines = @(Build-FeatureRemovalGuardLines `
+      -riskState $effectiveFeatureRemovalRiskState `
+      -approvalState $featureRemovalApproval `
+      -packagePointer $packagePointer `
+      -turnId $turnId `
+      -nextUniqueAction $nextUniqueAction)
   }
 
   $additionalContextLines = @()
@@ -652,7 +699,7 @@ try {
     $blockLines += "severity: Red"
 
     $msg = "当前方案包存在未恢复的 response_incomplete，已阻断以避免在不确定状态下继续执行。"
-    $reason = "请先补一条新的 repo_state + 下一步唯一动作，或先走恢复/重规划，再继续。"
+    $reason = "请先补一条新的 repo_state + 下一步唯一动作 + contract_checkpoint，或先走恢复/重规划，再继续。"
     Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext ($blockLines -join "`n")
     exit 0
   }
@@ -663,6 +710,8 @@ try {
         "[HelloAGENTS Guard] 当前方案包已完成且无 Pending；不要继续执行当前包。",
         ("current_package: {0}" -f $packagePointer),
         "package_status: completed",
+        "signal: package_completed",
+        "severity: Red",
         "next_unique_action: 等待新需求或新建方案包"
       )
       if (-not [string]::IsNullOrWhiteSpace($turnId)) {
@@ -675,7 +724,7 @@ try {
       exit 0
     }
 
-    if (($featureRemovalApproval -ne "yes") -and (($featureRemovalRiskState -eq "suspected") -or (Test-FeatureRemovalPromptHighRisk -prompt $promptTrimmed))) {
+    if (($featureRemovalApproval -ne "yes") -and (($effectiveFeatureRemovalRiskState -eq "suspected") -or (Test-FeatureRemovalPromptHighRisk -prompt $promptTrimmed))) {
       $additionalContext = ($featureRemovalGuardLines -join "`n")
       $msg = "检测到当前输入命中功能删减高风险，已阻断并等待明确批准。"
       $reason = "请明确允许删减的目标、范围与替代行为；若不允许，请改成保留现有功能的实现路径。"
@@ -706,7 +755,7 @@ try {
     exit 0
   }
 
-  if (($featureRemovalApproval -ne "yes") -and (($featureRemovalRiskState -eq "suspected") -or (Test-FeatureRemovalPromptHighRisk -prompt $promptTrimmed))) {
+  if (($featureRemovalApproval -ne "yes") -and (($effectiveFeatureRemovalRiskState -eq "suspected") -or (Test-FeatureRemovalPromptHighRisk -prompt $promptTrimmed))) {
     $msg = "检测到当前输入命中功能删减高风险，已阻断并等待明确批准。"
     $reason = "请明确允许删减的目标、范围与替代行为；若不允许，请改成保留现有功能的实现路径。"
     Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext $additionalContext

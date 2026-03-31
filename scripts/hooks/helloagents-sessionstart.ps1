@@ -40,10 +40,48 @@ function Write-HookOutputJson {
     $hookSpecific.hookMessage = $HookMessage
   }
   if ($hookSpecific.Count -gt 0) {
+    if ([string]::IsNullOrWhiteSpace($HookEventName)) {
+      $hookSpecific.hookEventName = "SessionStart"
+    }
     $out.hookSpecificOutput = $hookSpecific
   }
 
   ($out | ConvertTo-Json -Depth 64 -Compress) | Write-Output
+}
+
+function Write-SessionWarn {
+  param(
+    [string]$SystemMessage,
+    [string]$Signal,
+    [string]$Severity = "Red",
+    [string]$PackagePointer = "",
+    [string]$NextUniqueAction = "",
+    [string]$PackageStatus = ""
+  )
+
+  $lines = @()
+  if (-not [string]::IsNullOrWhiteSpace($PackagePointer)) {
+    $lines += ("current_package: {0}" -f $PackagePointer)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($Signal)) {
+    $lines += ("signal: {0}" -f $Signal)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($Severity)) {
+    $lines += ("severity: {0}" -f $Severity)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($PackageStatus)) {
+    $lines += ("package_status: {0}" -f $PackageStatus)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($NextUniqueAction)) {
+    $lines += ("next_unique_action: {0}" -f $NextUniqueAction)
+  }
+
+  $additionalContext = ""
+  if ($lines.Count -gt 0) {
+    $additionalContext = ($lines -join "`n")
+  }
+
+  Write-HookOutputJson -SystemMessage $SystemMessage -AdditionalContext $additionalContext
 }
 
 function Get-RawInput([string]$inputFile) {
@@ -244,7 +282,8 @@ function Test-UnresolvedResponseIncomplete([string]$taskText) {
 
   $hasRepoAfter = ($after -match '(?im)\brepo_state\s*[:：]\s*\S')
   $hasNextAfter = ($after -match '(?im)下一步唯一动作\s*[:：]\s*\S')
-  return (-not ($hasRepoAfter -and $hasNextAfter))
+  $hasContractAfter = ($after -match '(?im)\bcontract_checkpoint\s*[:：]\s*(ok|needs_realign)\b')
+  return (-not ($hasRepoAfter -and $hasNextAfter -and $hasContractAfter))
 }
 
 $raw = Get-RawInput -inputFile $InputFile
@@ -274,7 +313,10 @@ if (-not (Test-Path -LiteralPath $pointerFile)) {
 $pointerText = Read-Utf8Text -path $pointerFile
 $match = [regex]::Match($pointerText, '(?m)^\s*current_package\s*:\s*(?<path>.*)\s*$')
 if (-not $match.Success) {
-  Write-HookOutputJson -SystemMessage "WARN: _current.md missing current_package key. next=修复指针格式"
+  Write-SessionWarn `
+    -SystemMessage "WARN: _current.md missing current_package key. next=修复指针格式" `
+    -Signal "current_package_invalid" `
+    -NextUniqueAction "修复 HAGSWorks/plan/_current.md 的 current_package 指针"
   exit 0
 }
 
@@ -293,22 +335,38 @@ try {
   $historyRootFull = [System.IO.Path]::GetFullPath($historyRoot)
   $resolvedPackageFull = [System.IO.Path]::GetFullPath($resolvedPackage)
 } catch {
-  Write-HookOutputJson -SystemMessage "WARN: current_package path cannot be normalized: '$rawPointer'. next=修复指针路径"
+  Write-SessionWarn `
+    -SystemMessage "WARN: current_package path cannot be normalized: '$rawPointer'. next=修复指针路径" `
+    -Signal "current_package_invalid" `
+    -PackagePointer $rawPointer `
+    -NextUniqueAction "修复 current_package 路径，确保它能被标准化"
   exit 0
 }
 
 if ($resolvedPackageFull.StartsWith($historyRootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
-  Write-HookOutputJson -SystemMessage "WARN: _current.md points to history: '$rawPointer'. next=改回 HAGSWorks/plan 下的有效方案包"
+  Write-SessionWarn `
+    -SystemMessage "WARN: _current.md points to history: '$rawPointer'. next=改回 HAGSWorks/plan 下的有效方案包" `
+    -Signal "current_package_invalid" `
+    -PackagePointer $rawPointer `
+    -NextUniqueAction "把 current_package 改回 HAGSWorks/plan 下的有效方案包"
   exit 0
 }
 
 if (-not $resolvedPackageFull.StartsWith($planRootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
-  Write-HookOutputJson -SystemMessage "WARN: _current.md points outside plan root: '$rawPointer'. next=改回 HAGSWorks/plan 下的有效方案包"
+  Write-SessionWarn `
+    -SystemMessage "WARN: _current.md points outside plan root: '$rawPointer'. next=改回 HAGSWorks/plan 下的有效方案包" `
+    -Signal "current_package_invalid" `
+    -PackagePointer $rawPointer `
+    -NextUniqueAction "把 current_package 改回 HAGSWorks/plan 下的有效方案包"
   exit 0
 }
 
 if (-not (Test-Path -LiteralPath $resolvedPackageFull -PathType Container)) {
-  Write-HookOutputJson -SystemMessage "WARN: _current.md current_package directory not found: '$rawPointer'. next=修复指针或重新选包"
+  Write-SessionWarn `
+    -SystemMessage "WARN: _current.md current_package directory not found: '$rawPointer'. next=修复指针或重新选包" `
+    -Signal "current_package_invalid" `
+    -PackagePointer $rawPointer `
+    -NextUniqueAction "修复 current_package 指针或重新选择有效方案包"
   exit 0
 }
 
@@ -328,7 +386,12 @@ foreach ($name in $requiredFiles) {
 }
 
 if ($missing.Count -gt 0) {
-  Write-HookOutputJson -SystemMessage ("WARN: _current.md points to incomplete package: '{0}' missing={1}. next=修复方案包或重新选包" -f $rawPointer, ($missing -join ","))
+  Write-SessionWarn `
+    -SystemMessage ("WARN: _current.md points to incomplete package: '{0}' missing={1}. next=修复方案包或重新选包" -f $rawPointer, ($missing -join ",")) `
+    -Signal "current_package_incomplete" `
+    -PackagePointer $rawPointer `
+    -PackageStatus "incomplete" `
+    -NextUniqueAction "补齐 why.md/how.md/task.md 或重新选择完整方案包"
   exit 0
 }
 
@@ -336,12 +399,21 @@ $taskFile = Join-Path $resolvedPackageFull "task.md"
 $taskText = Read-Utf8Text -path $taskFile
 $pendingLines = @(Get-PendingLines -taskText $taskText)
 if (Test-UnresolvedResponseIncomplete -taskText $taskText) {
-  Write-HookOutputJson -SystemMessage ("WARN: current_package contains unresolved response_incomplete: '{0}'. next=先补恢复检查点或先走恢复流程" -f $rawPointer)
+  Write-SessionWarn `
+    -SystemMessage ("WARN: current_package contains unresolved response_incomplete: '{0}'. next=先补恢复检查点或先走恢复流程" -f $rawPointer) `
+    -Signal "response_incomplete" `
+    -PackagePointer $rawPointer `
+    -NextUniqueAction "先补 repo_state + 下一步唯一动作 + contract_checkpoint，或先走恢复流程"
   exit 0
 }
 
 if (Test-PackageCompleted -taskText $taskText -pendingLines $pendingLines) {
-  Write-HookOutputJson -SystemMessage ("WARN: current_package already completed with no Pending: '{0}'. next=等待新需求或新建方案包，不要继续执行当前包" -f $rawPointer)
+  Write-SessionWarn `
+    -SystemMessage ("WARN: current_package already completed with no Pending: '{0}'. next=等待新需求或新建方案包，不要继续执行当前包" -f $rawPointer) `
+    -Signal "package_completed" `
+    -PackagePointer $rawPointer `
+    -PackageStatus "completed" `
+    -NextUniqueAction "等待新需求或新建方案包，不要继续执行当前包"
   exit 0
 }
 

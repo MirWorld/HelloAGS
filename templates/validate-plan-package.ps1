@@ -375,8 +375,12 @@ foreach ($pkg in $packages) {
 
               $hasRepoAfter = ($after -match '(?im)\brepo_state\s*[:：]\s*\S')
               $hasNextAfter = ($after -match '(?im)下一步唯一动作\s*[:：]\s*\S')
+              $hasContractAfter = ($after -match '(?im)\bcontract_checkpoint\s*[:：]\s*(ok|needs_realign)\b')
               if (-not ($hasRepoAfter -and $hasNextAfter)) {
                 Add-Error "package '${pkgName}' task.md contains model_event: response_incomplete but has no recovery checkpoint after it. Add a new repo_state + next_unique_action AFTER the response_incomplete event before entering exec mode."
+              }
+              if (-not $hasContractAfter) {
+                Add-Error "package '${pkgName}' task.md contains model_event: response_incomplete but has no contract_checkpoint after it. Add contract_checkpoint: ok|needs_realign AFTER the response_incomplete event before entering exec mode."
               }
             }
 
@@ -391,8 +395,12 @@ foreach ($pkg in $packages) {
 
               $hasRepoAfter = ($after -match '(?im)\brepo_state\s*[:：]\s*\S')
               $hasNextAfter = ($after -match '(?im)下一步唯一动作\s*[:：]\s*\S')
+              $hasContractAfter = ($after -match '(?im)\bcontract_checkpoint\s*[:：]\s*(ok|needs_realign)\b')
               if (-not ($hasRepoAfter -and $hasNextAfter)) {
                 Add-Warn "package '${pkgName}' task.md contains model_event: model_rerouted but has no recovery checkpoint after it. Recommended: add a new repo_state + next_unique_action AFTER the model_rerouted event to reduce resume/compaction redo risk."
+              }
+              if (-not $hasContractAfter) {
+                Add-Warn "package '${pkgName}' task.md contains model_event: model_rerouted but has no contract_checkpoint after it. Recommended: add contract_checkpoint: ok|needs_realign AFTER the model_rerouted event before entering exec mode."
               }
             }
           }

@@ -233,7 +233,10 @@ try {
   $userFeatureContext = $userFeatureOut.hookSpecificOutput.additionalContext
   Assert-True ($userFeatureOut.decision -eq "block") "Feature-removal risk prompt should be blocked before execution."
   Assert-Contains $userFeatureOut.systemMessage "功能删减高风险" "Feature-removal risk block should explain why it was stopped."
+  Assert-Contains $userFeatureContext "feature_removal_risk: suspected" "Feature-removal risk prompt should normalize heuristic risk into a structured suspected signal."
   Assert-Contains $userFeatureContext "feature_removal_approved: no" "Feature-removal risk prompt should carry guard context."
+  Assert-Contains $userFeatureContext "signal: feature_removal_guard" "Feature-removal risk prompt should emit a stable guard signal."
+  Assert-Contains $userFeatureContext "severity: Red" "Feature-removal risk prompt should mark the guard as Red."
 
   $payloadCleanup = Join-Path $scratchRoot "userpromptsubmit-internal-cleanup.json"
   New-SmokePayload -path $payloadCleanup -prompt "删除未使用 helper 并整理注释" -projectRoot $projectRoot -turnId "turn_demo_prompt_003b"
@@ -265,18 +268,27 @@ try {
 - [SRC:TOOL] model_event: response_incomplete
 - [SRC:TOOL] turn_id: turn_demo_incomplete_001
 
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] contract_checkpoint: ok
+
 ### 待用户输入（Pending）
 
 ### 下一步唯一动作（可执行）
-- 下一步唯一动作: `等待补恢复检查点` 预期: 先补 repo_state + 下一步唯一动作
+- 下一步唯一动作: `等待补恢复检查点` 预期: 先补 repo_state + 下一步唯一动作 + contract_checkpoint
 "@
   Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $responseIncompleteTask
+
+  $sessionIncompleteOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-sessionstart.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/sessionstart-hook-fixture.json") -projectRoot $projectRoot
+  Assert-Contains $sessionIncompleteOut.systemMessage "response_incomplete" "SessionStart should warn when current_package contains unresolved response_incomplete."
+  Assert-Contains $sessionIncompleteOut.hookSpecificOutput.additionalContext "signal: response_incomplete" "SessionStart response_incomplete warning should expose a stable signal."
+  Assert-Contains $sessionIncompleteOut.hookSpecificOutput.additionalContext "severity: Red" "SessionStart response_incomplete warning should expose Red severity."
 
   $payloadIncomplete = Join-Path $scratchRoot "userpromptsubmit-incomplete.json"
   New-SmokePayload -path $payloadIncomplete -prompt "继续" -projectRoot $projectRoot -turnId "turn_demo_prompt_004"
   $userIncompleteOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadIncomplete -projectRoot $projectRoot
   Assert-True ($userIncompleteOut.decision -eq "block") "Unresolved response_incomplete should block execution-like prompts."
   Assert-Contains $userIncompleteOut.systemMessage "response_incomplete" "UserPromptSubmit should explain unresolved response_incomplete."
+  Assert-Contains $userIncompleteOut.hookSpecificOutput.additionalContext "severity: Red" "response_incomplete block should emit a Red severity signal."
 
   $completedTask = @"
 # 任务清单: smoke
@@ -307,12 +319,17 @@ try {
 
   $sessionCompletedOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-sessionstart.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/sessionstart-hook-fixture.json") -projectRoot $projectRoot
   Assert-Contains $sessionCompletedOut.systemMessage "already completed" "SessionStart should warn when current_package is already completed."
+  Assert-Contains $sessionCompletedOut.hookSpecificOutput.additionalContext "signal: package_completed" "SessionStart completed warning should expose package_completed signal."
+  Assert-Contains $sessionCompletedOut.hookSpecificOutput.additionalContext "package_status: completed" "SessionStart completed warning should expose completed package status."
+  Assert-Contains $sessionCompletedOut.hookSpecificOutput.additionalContext "next_unique_action: 等待新需求或新建方案包，不要继续执行当前包" "SessionStart completed warning should expose next_unique_action."
 
   $payloadCompleted = Join-Path $scratchRoot "userpromptsubmit-completed.json"
   New-SmokePayload -path $payloadCompleted -prompt "~exec" -projectRoot $projectRoot -turnId "turn_demo_prompt_005"
   $userCompletedOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadCompleted -projectRoot $projectRoot
   Assert-True ($userCompletedOut.decision -eq "block") "Completed package should block resume/execute-like prompts."
   Assert-Contains $userCompletedOut.systemMessage "已完成且无 Pending" "Completed-package block should explain why execution was stopped."
+  Assert-Contains $userCompletedOut.hookSpecificOutput.additionalContext "package_status: completed" "Completed-package block should expose package_status for downstream consumption."
+  Assert-Contains $userCompletedOut.hookSpecificOutput.additionalContext "severity: Red" "Completed-package block should emit a Red severity signal."
 
   $missingCarryForwardHow = @"
 # 技术设计: smoke
@@ -366,6 +383,35 @@ carry_forward_verify: 无
   $longTaskWarnText = ($validatorLongTask.warnings -join "`n")
   Assert-Contains $longTaskWarnText "mid/late/final progress_phase" "Plan validator should warn when long tasks never advance progress_phase beyond start."
 
+  $reroutedTask = @"
+# 任务清单: smoke
+
+- [ ] 1.0 继续恢复
+
+## 上下文快照
+
+### 已确认事实（可验证）
+- [SRC:CODE] smoke package fixture is present
+
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: mid
+
+### 运行时/模型事件（可选，结构化）
+- [SRC:TOOL] model_event: model_rerouted
+
+### Repo 状态（复现/防漂移，执行域必填）
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 待用户输入（Pending）
+
+### 下一步唯一动作（可执行）
+- 下一步唯一动作: `继续恢复` 预期: 先做 contract 复核
+"@
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $reroutedTask
+  $validatorRerouted = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "exec" -package $packageRel
+  $reroutedWarnText = ($validatorRerouted.warnings -join "`n")
+  Assert-Contains $reroutedWarnText "contract_checkpoint" "Plan validator should warn when model_rerouted is missing contract_checkpoint."
+
   $designDebtTask = @"
 # 任务清单: smoke
 
@@ -408,6 +454,8 @@ carry_forward_verify: 无
   Assert-Contains $stopEventOut.hookSpecificOutput.hookMessage "model_event: model_rerouted" "Stop hook dry-run should include model_rerouted preview."
   Assert-Contains $stopEventOut.hookSpecificOutput.hookMessage "model_event: response_incomplete" "Stop hook dry-run should include response_incomplete preview."
   Assert-Contains $stopEventOut.hookSpecificOutput.hookMessage "turn_id=turn_demo_stop_001" "Stop hook dry-run should pass turn_id through to capture-runtime-events."
+  Assert-Contains $stopEventOut.hookSpecificOutput.hookMessage "recovery_checkpoint: repo_state + 下一步唯一动作" "Stop hook dry-run should preview the recovery checkpoint contract."
+  Assert-Contains $stopEventOut.hookSpecificOutput.hookMessage "repo_state:" "Stop hook dry-run should preview repo_state recovery evidence."
 
   Write-Output "OK: skill pack smoke validation passed"
 } finally {

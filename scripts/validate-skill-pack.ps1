@@ -466,7 +466,9 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/signal-severity
   "## 2) 稳定映射",
   "## 3) 使用方式",
   '`model_event: response_incomplete`',
-  '`feature_removal_approved: no`'
+  '`feature_removal_approved: no`',
+  '`current_package` 无效 / 不完整 / 指向 history',
+  "SessionStart hooks"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/feature-removal-guard.md" -needles @(
@@ -489,9 +491,12 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/codex-upstream-
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation.md" -needles @(
+  "references/contracts.md",
+  "hook-bridge-protocol v1",
   "scripts/hooks/helloagents-stop.ps1",
   "scripts/hooks/helloagents-sessionstart.ps1",
   "scripts/hooks/helloagents-userpromptsubmit.ps1",
+  "signal / severity / current_package / next_unique_action / package_status",
   "templates/hooks/stop-hook-fixture.json",
   "templates/hooks/stop-hook-feature-removal-fixture.json",
   "templates/hooks/sessionstart-hook-fixture.json",
@@ -503,6 +508,15 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-stop.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Stop hook must treat payload as data only; never execute assistant message content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "SessionStart hook should only validate pointers, not execute payload content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "UserPromptSubmit hook should only guard/augment via JSON output; never execute payload content."
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -needles @(
+  '"SessionStart"',
+  "signal:",
+  "severity:",
+  "package_status:",
+  "current_package_invalid",
+  "response_incomplete",
+  "package_completed"
+)
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/hooks.json" -needles @(
   '"SessionStart"',
@@ -524,11 +538,22 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath ".github/workflows/validate
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -needles @(
   "<!-- CONTRACT: protocol-api v1 -->",
+  "<!-- CONTRACT: hook-bridge-protocol v1 -->",
   "<helloagents_state>",
   "model_event:",
   "turn_id:",
   "awaiting_topic:",
   "feature_removal_risk:",
+  "systemMessage",
+  "decision",
+  "reason",
+  "hookSpecificOutput",
+  "hookEventName",
+  "additionalContext",
+  "hookMessage",
+  "signal: response_incomplete",
+  "signal: feature_removal_guard",
+  "severity: Red",
   "HAGSWorks/plan/_current.md",
   "<!-- CONTRACT: signal-severity v1 -->"
 )
@@ -571,6 +596,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapsho
   "### 错误与尝试",
   "model_event:",
   "turn_id:",
+  "contract_checkpoint:",
   "progress_phase:",
   "### 结构债务（可选，明确知道是权宜实现时填写）",
   "### Repo 状态",
