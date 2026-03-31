@@ -13,16 +13,8 @@ HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 ├── CHANGELOG.md          # 版本历史（Keep a Changelog）
 ├── project.md            # 技术约定 + 项目能力画像 + 协作偏好
 ├── active_context.md     # 派生缓存：可验证接口注册表/系统状态（非 SSOT（真值））
-├── scripts/              # 工具脚本（派生层，可删可重建）
-│   ├── validate-active-context.ps1  # Active Context 校验脚本（loose/strict，可选）
-│   ├── validate-plan-package.ps1    # 方案包完整性校验脚本（可选）
-│   └── capture-runtime-events.ps1   # 运行时/模型事件回填（可选；无感增强）
-├── wiki/                 # 核心文档
-│   ├── overview.md       # 项目概述
-│   ├── arch.md           # 架构设计
-│   ├── api.md            # API 手册
-│   ├── data.md           # 数据模型
-│   └── modules/<module>.md
+├── scripts/              # 工具脚本（具体生成物以 manifest 为准）
+├── wiki/                 # 核心文档（具体生成物以 manifest 为准）
 ├── plan/                 # 变更工作区
 │   └── YYYYMMDDHHMM_<feature>/
 │       ├── why.md        # 变更提案
@@ -32,6 +24,10 @@ HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
     ├── index.md
     └── YYYY-MM/YYYYMMDDHHMM_<feature>/
 ```
+
+说明：
+- 上面的目录树只展示职责与常见落点，不作为逐文件真值清单。
+- `~init` / 隐式初始化实际补齐哪些目录与文件，以 `../templates/workspace-bootstrap-manifest.json` 为唯一来源。
 
 **路径约定:**
 - 本规则集中 `plan/`、`wiki/`、`history/` 均指 `HAGSWorks/` 下的完整路径

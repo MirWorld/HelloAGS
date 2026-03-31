@@ -89,6 +89,8 @@ Codex 偶尔会出现两类高风险信号：
 
 并把长期记忆落盘到 `HAGSWorks/`（建议纳入版本库）：
 
+说明：下面只展示职责与常见落点；`~init` / 隐式初始化实际补齐哪些目录与文件，以 `templates/workspace-bootstrap-manifest.json` 为唯一来源。
+
 ```text
 HAGSWorks/
 ├── active_context.md              # Active Context：可验证接口注册表（≤120行）

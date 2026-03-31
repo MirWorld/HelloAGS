@@ -31,7 +31,7 @@
 | `model_event: response_incomplete` | Red | 先补恢复检查点或走恢复协议；禁止直接继续执行 | `references/context-snapshot.md`、`references/resume-protocol.md` |
 | `contract_checkpoint: needs_realign` | Red | 禁止继续改代码；先重新对齐 | `references/context-snapshot.md`、`references/resume-protocol.md` |
 | `feature_removal_approved: no` 且命中删功能路径 | Red | 等待用户批准，不得继续沿删减路径实施 | `references/feature-removal-guard.md` |
-| `current_package` 无效 / 方案包不完整 | Red | 修复 `_current.md` 指针或重新选包 | `references/resume-protocol.md`、`scripts/hooks/helloagents-sessionstart.ps1` |
+| `current_package` 无效 / 不完整 / 指向 history | Red | 修复 `_current.md` 指针或重新选包 | `references/resume-protocol.md`、`scripts/hooks/helloagents-sessionstart.ps1` |
 
 ---
 
@@ -41,3 +41,4 @@
 - **快照层**：优先把信号写成结构字段（如 `model_event`、`contract_checkpoint`、`progress_checkpoint`），不要写成模糊描述。
 - **恢复层**：先看等级再决定是否可以继续执行，避免把“恢复成功”误当成“可以直接改代码”。
 - **hooks 层**：优先把 `Red` 信号前移到继续执行之前；主流程只消费结果，不重复判断同一件事。
+- **SessionStart hooks**：推荐通过 `hookSpecificOutput.additionalContext` 结构化输出 `signal / severity / current_package / next_unique_action / package_status`。

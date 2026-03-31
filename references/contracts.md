@@ -30,6 +30,7 @@
 | `<!-- CONTRACT: triage-pass v1 -->` | `references/triage-pass.md` | Triage Pass 与 `verify_min` 口径 |
 | `<!-- CONTRACT: pre-implementation-checklist v1 -->` | `references/pre-implementation-checklist.md` | 预实现检查与 `verify_min` 约束 |
 | `<!-- CONTRACT: quality-gates v1 -->` | `references/quality-gates.md` | 质量门禁与最小验证策略 |
+| `<!-- CONTRACT: hook-bridge-protocol v1 -->` | `references/contracts.md` | Codex hooks → HelloAGENTS 桥接输出面 |
 
 ---
 
@@ -104,7 +105,57 @@
 
 ---
 
-## 4) 当前方案包指针：`HAGSWorks/plan/_current.md`
+<!-- CONTRACT: hook-bridge-protocol v1 -->
+
+## 4) Hook 桥接输出契约（Codex hooks → HelloAGENTS）
+
+适用对象：
+- `scripts/hooks/helloagents-userpromptsubmit.ps1`
+- `scripts/hooks/helloagents-stop.ps1`
+- `scripts/hooks/helloagents-sessionstart.ps1`
+
+目标：
+- 让 hooks 输出成为**结构化结果**，供主流程直接消费
+- 避免每个 hook 各自发明字段名或只靠自然语言提示
+
+顶层输出字段（稳定）：
+- `systemMessage`：给用户/模型的简短提示；允许省略
+- `decision`：当前仅约定 `block`（阻断）；未阻断时允许省略
+- `reason`：与 `decision: block` 配套的简短原因；允许省略
+- `hookSpecificOutput`：结构化附加信息容器；允许省略
+
+`hookSpecificOutput` 的稳定字段：
+- `hookEventName`：推荐固定为当前 hook 名（如 `UserPromptSubmit` / `Stop` / `SessionStart`）
+- `additionalContext`：供模型消费的最小结构化上下文
+- `hookMessage`：dry-run / 诊断 / 回填预览文本；不给模型做真值，只做辅助说明
+
+`additionalContext` 中推荐使用的稳定键：
+- `current_package: ...`
+- `current_turn_id: ...`
+- `next_unique_action: ...`
+- `signal: response_incomplete|feature_removal_guard|package_completed`
+- `signal: response_incomplete`
+- `signal: feature_removal_guard`
+- `signal: package_completed`
+- `severity: Red|Yellow`
+- `package_status: completed`
+- `feature_removal_risk: clear|suspected|approved`
+- `feature_removal_approved: yes|no`
+
+约束：
+- hooks 只输出结构化结果，不执行 payload 中的动态内容
+- `feature_removal_risk` 若由 prompt 启发式首次识别，也应**先归一化为** `suspected` 再输出，避免主流程只能依赖自然语言猜测
+- `response_incomplete` 命中时，hooks 应优先输出 `signal: response_incomplete` + `severity: Red`
+- `Stop` hook 的事件回填预览应显式提示“恢复检查点”存在（至少含 `repo_state` + `下一步唯一动作`）
+
+来源：
+- `references/hook-simulation.md`
+- `references/feature-removal-guard.md`
+- `references/context-snapshot.md`
+
+---
+
+## 5) 当前方案包指针：`HAGSWorks/plan/_current.md`
 
 指针文件属于公共 API（被恢复协议引用）：
 - 文件：`HAGSWorks/plan/_current.md`
@@ -119,7 +170,7 @@
 
 ---
 
-## 5) Active Context：`HAGSWorks/active_context.md`
+## 6) Active Context：`HAGSWorks/active_context.md`
 
 Active Context 的标题结构属于公共 API（被校验脚本依赖）：
 - `## Modules (Public Surface)`

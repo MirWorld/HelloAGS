@@ -27,6 +27,7 @@
 2. **约束/验收变化**：用户补充/修改成功标准、非目标、约束、风险容忍度（等价于“需求变更”；包含执行中 Enter/Tab 的中途纠偏/追加约束）
 3. **阻断性失败**：构建/类型检查/核心测试/安全红线/环境阻断失败；或出现“输出不完整/压缩异常”（例如 `response.incomplete`、工具输出被截断）导致无法继续（与 `references/failure-protocol.md` 对齐）
    - 补充：若收到 Codex 的 `model/rerouted` 通知（模型被重定向/以不同模型继续），也应视为高风险信号：优先写一次检查点并按 `references/resume-protocol.md` 做断层恢复（禁止依赖“记忆”继续推进）
+   - 执行域补充：`response.incomplete` 应视为硬门；至少补 `repo_state + 下一步唯一动作 + contract_checkpoint` 后，才允许继续改代码。`model/rerouted` 至少应补前两项，并推荐补 `contract_checkpoint`
 4. **会话抗打断**：预计任务会跨多轮工具调用、跨时段继续、或存在被中断风险（例如：长时间排查、多人协作交接）
 5. **最终输出前**：在 `references/review-protocol.md` 的 Review 前，快照必须是最新的（否则 Review 基于过时信息）
 6. **交互等待**：本轮输出需要用户输入/选择/确认，且下一轮必须只处理用户回复（建议写入 `### 待用户输入（Pending）` + “下一步唯一动作”）
@@ -146,6 +147,7 @@
 轻量信号分级定义见 `references/signal-severity.md`。
 - 快照层优先把信号写成结构字段（如 `model_event`、`contract_checkpoint`、`progress_checkpoint`）
 - 命中 `Yellow` 时，优先补快照 / 做复核；命中 `Red` 时，不得继续改代码
+- 若命中 `response_incomplete`：执行域至少补 `repo_state + 下一步唯一动作 + contract_checkpoint`；缺任一项都不应继续改代码
 
 **写作约束：**
 - 每个小节最多 3–5 条；宁可短而精，避免写成冗长复盘
@@ -161,7 +163,7 @@
 2. **下一步唯一动作**：只允许 1 条（命令/任务号/文件修改）
 3. （推荐）**Repo 状态**：`branch/head/diffstat` 的最小戳（用于识别“包外改动/状态漂移”，避免断层续作误重做）
 4. （可选）**运行时/模型事件**：若出现 `model/rerouted` / `response.incomplete` 等信号，把事件以 `model_event:` 结构化写入（并在高风险事件后追加新的恢复检查点）
-5. （高风险事件后推荐）**Contract Checkpoint**：若出现 `model/rerouted` / `response.incomplete` / 压缩续作，建议在“决策”区补 1 条 `contract_checkpoint: ok | needs_realign`，避免“恢复成功 ≠ contract 仍正确”被忽略
+5. （高风险事件后推荐）**Contract Checkpoint**：若出现 `model/rerouted` / `response.incomplete` / 压缩续作，建议在“决策”区补 1 条 `contract_checkpoint: ok | needs_realign`，避免“恢复成功 ≠ contract 仍正确”被忽略；其中 `response.incomplete` 在执行域应视为必填
 6. （空转时推荐）**Progress Checkpoint**：若连续两轮快照的 Workset 基本相同、且没有新增证据 / verify 结果，建议在“决策”区补 1 条 `progress_checkpoint: stalled`，并把“下一步唯一动作”改为高信息增益动作，而不是重复旧动作
 7. （长任务推荐）**Progress Phase**：若当前包已进入中程/后程，建议把 `progress_phase` 更新为 `mid / late / final`，不要长期停留在 `start`
 8. （权宜路径推荐）**Design Debt**：若当前实现明确是临时收口，建议同步记录 `design_debt / why_now / revisit_trigger`
