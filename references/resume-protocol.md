@@ -158,6 +158,7 @@
        - `repo_state: branch=... head=... dirty=... diffstat=...`
        - `下一步唯一动作: ...`
    - 说明：`response_incomplete` 属于执行域高风险信号；若没有补齐“事件后的恢复检查点”，进入 `~exec` 会被方案包校验阻止（避免断层误重做）。
+   - 若快照中存在 `threshold_event: near_autocompact`：优先把它视为“压缩前最后检查点”，并优先采用其后的 `repo_state + 下一步唯一动作` 恢复，而不是依赖聊天记忆判断进度。
 
 9. **恢复后 contract 复核（高风险事件后必做）**
    - 当本次恢复触发原因包含以下任一信号时，必须做一次极小 contract 复核：

@@ -318,6 +318,7 @@ $required = @(
   "develop/SKILL.md",
   "kb/SKILL.md",
   "scripts/validate-skill-pack-smoke.ps1",
+  "scripts/hooks/helloagents-context-threshold.ps1",
   "scripts/hooks/helloagents-stop.ps1",
   "scripts/hooks/helloagents-sessionstart.ps1",
   "scripts/hooks/helloagents-userpromptsubmit.ps1",
@@ -493,6 +494,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/codex-upstream-
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation.md" -needles @(
   "references/contracts.md",
   "hook-bridge-protocol v1",
+  "scripts/hooks/helloagents-context-threshold.ps1",
   "scripts/hooks/helloagents-stop.ps1",
   "scripts/hooks/helloagents-sessionstart.ps1",
   "scripts/hooks/helloagents-userpromptsubmit.ps1",
@@ -506,6 +508,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation
 )
 
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-stop.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Stop hook must treat payload as data only; never execute assistant message content."
+Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-context-threshold.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Context-threshold hook should treat payload as data only; never execute dynamic content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "SessionStart hook should only validate pointers, not execute payload content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "UserPromptSubmit hook should only guard/augment via JSON output; never execute payload content."
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -needles @(
@@ -541,6 +544,9 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -
   "<!-- CONTRACT: hook-bridge-protocol v1 -->",
   "<helloagents_state>",
   "model_event:",
+  "threshold_event:",
+  "threshold_source:",
+  "remaining_to_compact:",
   "turn_id:",
   "awaiting_topic:",
   "feature_removal_risk:",
@@ -590,11 +596,15 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol
   "list_tiebreaker: dirname_desc"
   "</resume_package_selection_contract>"
   "<!-- CONTRACT: resume-current-package-pointer v1 -->"
+  "threshold_event: near_autocompact"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapshot.md" -needles @(
   "### 错误与尝试",
   "model_event:",
+  "threshold_event:",
+  "threshold_source:",
+  "remaining_to_compact:",
   "turn_id:",
   "contract_checkpoint:",
   "progress_phase:",

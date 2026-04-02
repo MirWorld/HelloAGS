@@ -187,6 +187,33 @@ function Set-SmokeTaskText([string]$projectRoot, [string]$packageRel, [string]$t
   Write-Utf8Text -path $taskPath -text $taskText
 }
 
+function New-ThresholdPayload(
+  [string]$path,
+  [string]$projectRoot,
+  [string]$source,
+  [int]$usedTokens,
+  [int]$threshold,
+  [int]$remainingToCompact,
+  [string]$severity = "soft",
+  [int]$compactPreTokens = 0
+) {
+  $payload = [ordered]@{
+    source = $source
+    project_root = $projectRoot
+    used_tokens = $usedTokens
+    auto_compact_threshold = $threshold
+    remaining_to_compact = $remainingToCompact
+    threshold_severity = $severity
+    model = "gpt-5.2"
+    percentage = "96"
+    timestamp = "2026-04-02T12:00:00Z"
+  }
+  if ($compactPreTokens -gt 0) {
+    $payload.compact_pre_tokens = $compactPreTokens
+  }
+  Write-Utf8Text -path $path -text (($payload | ConvertTo-Json -Depth 16) + "`n")
+}
+
 $repoRoot = Get-RepoRoot
 $scratchRoot = Join-Path $repoRoot "_codex_temp/scratch/validate-skill-pack-smoke"
 $projectRoot = Join-Path $scratchRoot "project"
@@ -243,6 +270,21 @@ try {
   $userCleanupOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadCleanup -projectRoot $projectRoot
   try { $cleanupDecision = $userCleanupOut.decision } catch { $cleanupDecision = $null }
   Assert-True ([string]::IsNullOrWhiteSpace($cleanupDecision)) "Internal cleanup prompt should not be blocked by feature-removal guard fallback."
+
+  $thresholdPayload = Join-Path $scratchRoot "context-threshold.json"
+  New-ThresholdPayload -path $thresholdPayload -projectRoot $projectRoot -source "pre_submit" -usedTokens 188000 -threshold 200000 -remainingToCompact 12000
+  & pwsh -NoProfile -File (Join-Path $repoRoot "scripts/hooks/helloagents-context-threshold.ps1") -InputFile $thresholdPayload -ProjectRoot $projectRoot | Out-Null
+  $thresholdTask = Read-Utf8Text -path (Join-Path $projectRoot ($packageRel.Replace('/', '\') + "\task.md"))
+  Assert-Contains $thresholdTask "threshold_event: near_autocompact" "Context-threshold hook should append threshold_event checkpoint."
+  Assert-Contains $thresholdTask "threshold_source: pre_submit" "Context-threshold hook should record threshold source."
+  Assert-Contains $thresholdTask "remaining_to_compact: 12000" "Context-threshold hook should record remaining_to_compact."
+
+  $thresholdPayloadDup = Join-Path $scratchRoot "context-threshold-dup.json"
+  New-ThresholdPayload -path $thresholdPayloadDup -projectRoot $projectRoot -source "pre_submit" -usedTokens 189000 -threshold 200000 -remainingToCompact 11000
+  & pwsh -NoProfile -File (Join-Path $repoRoot "scripts/hooks/helloagents-context-threshold.ps1") -InputFile $thresholdPayloadDup -ProjectRoot $projectRoot | Out-Null
+  $thresholdTaskDup = Read-Utf8Text -path (Join-Path $projectRoot ($packageRel.Replace('/', '\') + "\task.md"))
+  $thresholdCount = ([regex]::Matches($thresholdTaskDup, 'threshold_event: near_autocompact')).Count
+  Assert-True ($thresholdCount -eq 1) "Context-threshold hook should skip near-duplicate checkpoints within the same source band."
 
   $responseIncompleteTask = @"
 # 任务清单: smoke

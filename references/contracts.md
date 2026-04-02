@@ -93,7 +93,31 @@
 执行域门禁（`-Mode exec`）的高风险约束：
 - 若快照中出现 `model_event: response_incomplete`，则必须在其**之后**追加一条“恢复检查点”（至少包含 `repo_state:` 与 `下一步唯一动作:`）；否则不得继续执行（防止在不确定状态下重做/二次修改）。
 
-### 3.2 功能删减风控键（结构化，可选）
+### 3.2 上下文快照的压缩阈值检查点（结构化，可选）
+
+当外部消费者能在接近自动压缩阈值前读取到上下文占用时，允许在 `task.md##上下文快照` 中记录：
+
+- `threshold_event: near_autocompact`
+- `threshold_source: pre_submit|post_turn|compact_boundary`
+- `used_tokens: <int>`
+- `auto_compact_threshold: <int>`
+- `remaining_to_compact: <int>`
+- `compact_pre_tokens: <int>`（可选；仅当事件来自 `compact_boundary` 且可拿到压缩前 token 值时）
+
+用途：
+- 把“压缩前最后一个稳定检查点”落回方案包
+- 让恢复协议优先消费磁盘中的 `repo_state + 下一步唯一动作`，而不是依赖聊天上下文
+
+约束：
+- 该检查点不替代 `model_event`
+- 该检查点必须与紧随其后的 `repo_state`、`下一步唯一动作` 一起写入，才有恢复价值
+
+来源：
+- `references/context-snapshot.md`
+- `references/resume-protocol.md`
+- `scripts/hooks/helloagents-context-threshold.ps1`
+
+### 3.3 功能删减风控键（结构化，可选）
 
 当方案包需要表达“当前是否命中删功能风险”时，可使用稳定键：
 - `feature_removal_risk: clear|suspected|approved`

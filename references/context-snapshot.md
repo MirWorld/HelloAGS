@@ -32,6 +32,7 @@
 5. **最终输出前**：在 `references/review-protocol.md` 的 Review 前，快照必须是最新的（否则 Review 基于过时信息）
 6. **交互等待**：本轮输出需要用户输入/选择/确认，且下一轮必须只处理用户回复（建议写入 `### 待用户输入（Pending）` + “下一步唯一动作”）
 7. **长任务阶段推进**：同一方案包已进入中程/后程（多任务 / 多轮 / 重复触碰同一 Workset）时，建议追加 `progress_phase:`，不要只在最终输出前才补一次总快照
+8. **压缩阈值逼近**：若外部消费者（例如 CodexMonitor / sidecar）能在接近自动压缩阈值前稳定读取上下文占用，建议自动 append 一条“压缩阈值检查点”，把 `repo_state + 下一步唯一动作` 固化到当前 `task.md`
 
 补充：当新增约束/非目标会影响“允许改哪里/是否允许新增文件/是否允许顺手重构”时，必须同步更新执行域声明（Allow/Deny/NewFiles/Refactor），并把新结论写入快照的“决策”区（细则见 `references/execution-guard.md`）。
 
@@ -85,6 +86,14 @@
 - [SRC:TOOL] model_event: response_incomplete
 - [SRC:TOOL] turn_id: ...
 - [SRC:TOOL] trace_id: ...
+
+### 压缩阈值检查点（可选，结构化）
+- [SRC:TOOL] threshold_event: near_autocompact # ts=...
+- [SRC:TOOL] threshold_source: pre_submit | post_turn | compact_boundary
+- [SRC:TOOL] used_tokens: ...
+- [SRC:TOOL] auto_compact_threshold: ...
+- [SRC:TOOL] remaining_to_compact: ...
+- [SRC:TOOL] compact_pre_tokens: ...
 
 ### Repo 状态（复现/防漂移，推荐）
 - [SRC:TOOL] repo_state: branch=... head=... dirty=... diffstat=...
@@ -143,6 +152,7 @@
 - `trace_id:` 只在可从 Codex 运行时/日志中稳定取得时记录；用途是**同一 turn/同一输出的去重与防串线**，不作为 SSOT（真值）字段，也不替代 `repo_state`
 - 若回填脚本能同时获得 `thread_id + turn_id`：优先用两者一起绑定当前事件；若缺 `turn_id` 再回退到 `thread_id + trace_id`
 - 若回填脚本无法获得 `thread_id`，但能稳定获得 `trace_id`，可用其作为日志过滤条件；若两者都缺失，推荐直接 `SKIP`，避免跨 thread 误归因
+- 若外部消费者能在接近自动压缩阈值前读取到 `used_tokens / auto_compact_threshold / remaining_to_compact`，可把它们以 `threshold_event: near_autocompact` 结构化写入；该条目不替代 `model_event`，但可作为“压缩前最后检查点”
 
 轻量信号分级定义见 `references/signal-severity.md`。
 - 快照层优先把信号写成结构字段（如 `model_event`、`contract_checkpoint`、`progress_checkpoint`）
@@ -167,6 +177,7 @@
 6. （空转时推荐）**Progress Checkpoint**：若连续两轮快照的 Workset 基本相同、且没有新增证据 / verify 结果，建议在“决策”区补 1 条 `progress_checkpoint: stalled`，并把“下一步唯一动作”改为高信息增益动作，而不是重复旧动作
 7. （长任务推荐）**Progress Phase**：若当前包已进入中程/后程，建议把 `progress_phase` 更新为 `mid / late / final`，不要长期停留在 `start`
 8. （权宜路径推荐）**Design Debt**：若当前实现明确是临时收口，建议同步记录 `design_debt / why_now / revisit_trigger`
+9. （压缩前推荐）**Threshold Checkpoint**：若外部消费者检测到 `near_autocompact`，建议自动追加 `threshold_source / used_tokens / remaining_to_compact`，并把最新 `repo_state + 下一步唯一动作` 紧随其后，作为压缩前检查点
 
 推荐放置位置：
 - Workset：写在“已确认事实/决策”或单独追加 1 条清单
