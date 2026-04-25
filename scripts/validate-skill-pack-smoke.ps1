@@ -274,6 +274,7 @@ try {
   $thresholdPayload = Join-Path $scratchRoot "context-threshold.json"
   New-ThresholdPayload -path $thresholdPayload -projectRoot $projectRoot -source "pre_submit" -usedTokens 188000 -threshold 200000 -remainingToCompact 12000
   & pwsh -NoProfile -File (Join-Path $repoRoot "scripts/hooks/helloagents-context-threshold.ps1") -InputFile $thresholdPayload -ProjectRoot $projectRoot | Out-Null
+  Assert-True (Test-Path -LiteralPath (Join-Path $projectRoot "_codex_temp/locks") -PathType Container) "Context-threshold hook should create/use the task.md lock directory."
   $thresholdTask = Read-Utf8Text -path (Join-Path $projectRoot ($packageRel.Replace('/', '\') + "\task.md"))
   Assert-Contains $thresholdTask "threshold_event: near_autocompact" "Context-threshold hook should append threshold_event checkpoint."
   Assert-Contains $thresholdTask "threshold_source: pre_submit" "Context-threshold hook should record threshold source."

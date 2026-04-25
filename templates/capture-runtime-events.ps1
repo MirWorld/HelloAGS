@@ -103,6 +103,53 @@ function Write-Utf8Text([string]$path, [string]$text) {
   [System.IO.File]::WriteAllText($path, $text, $utf8NoBom)
 }
 
+function Get-TaskLockPath([string]$projectRoot, [string]$taskPath) {
+  $lockRoot = Join-Path $projectRoot "_codex_temp/locks"
+  if (-not (Test-Path -LiteralPath $lockRoot -PathType Container)) {
+    New-Item -ItemType Directory -Path $lockRoot -Force | Out-Null
+  }
+
+  $normalized = $taskPath.ToLowerInvariant()
+  $sha = [System.Security.Cryptography.SHA256]::Create()
+  try {
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($normalized)
+    $hash = [System.BitConverter]::ToString($sha.ComputeHash($bytes)).Replace("-", "").Substring(0, 16)
+    return (Join-Path $lockRoot "helloagents-task-$hash.lock")
+  } finally {
+    $sha.Dispose()
+  }
+}
+
+function Invoke-WithTaskFileLock([string]$lockPath, [scriptblock]$body, [int]$timeoutMs = 5000) {
+  $deadline = [datetime]::UtcNow.AddMilliseconds($timeoutMs)
+  $stream = $null
+
+  while ([datetime]::UtcNow -lt $deadline) {
+    try {
+      $stream = [System.IO.File]::Open($lockPath, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+      break
+    } catch {
+      Start-Sleep -Milliseconds 100
+    }
+  }
+
+  if ($null -eq $stream) {
+    return [pscustomobject]@{
+      acquired = $false
+      value = $null
+    }
+  }
+
+  try {
+    return [pscustomobject]@{
+      acquired = $true
+      value = (& $body)
+    }
+  } finally {
+    $stream.Dispose()
+  }
+}
+
 function Resolve-CurrentPackage([string]$projectRoot, [string]$planRoot, [string]$packageArg) {
   if (-not [string]::IsNullOrWhiteSpace($packageArg)) {
     $p = $packageArg.Trim()
@@ -647,13 +694,6 @@ if ([string]::IsNullOrWhiteSpace($taskPath) -or -not (Test-Path -LiteralPath $ta
   exit 0
 }
 
-$taskText = Read-Utf8Text -path $taskPath
-$snapshot = Get-H2Section -text $taskText -h2Title $H2_CONTEXT_SNAPSHOT
-if ($null -eq $snapshot) {
-  Write-Output "SKIP: task.md has no '## 上下文快照' section."
-  exit 0
-}
-
 $events = @()
 if ($Mode -eq "append") {
   if ([string]::IsNullOrWhiteSpace($Kind)) {
@@ -704,67 +744,82 @@ if ($events.Count -eq 0) {
   exit 0
 }
 
-$recorded = Get-RecordedEventKeys -snapshotBody $snapshot.body
-$toAdd = @()
-foreach ($e in $events) {
-  $k = $e.kind
-  $ts = $e.ts
-  $eventTraceId = $e.trace_id
-  $eventTurnId = $e.turn_id
-  $isDuplicate = $false
-  if (-not [string]::IsNullOrWhiteSpace($eventTurnId)) {
-    if (-not [string]::IsNullOrWhiteSpace($eventTraceId) -and $recorded.kindTsTraceTurn.Contains("$k@@$ts@@$eventTraceId@@$eventTurnId")) {
-      $isDuplicate = $true
-    } elseif ($recorded.kindTsTurn.Contains("$k@@$ts@@$eventTurnId")) {
-      $isDuplicate = $true
-    } elseif ($recorded.kindTurn.Contains("$k@@$eventTurnId")) {
-      $isDuplicate = $true
-    } elseif ($recorded.kindTs.Contains("$k@@$ts")) {
-      $isDuplicate = $true
-    }
-  } elseif (-not [string]::IsNullOrWhiteSpace($eventTraceId)) {
-    if ($recorded.kindTsTrace.Contains("$k@@$ts@@$eventTraceId") -or $recorded.kindTs.Contains("$k@@$ts")) {
-      $isDuplicate = $true
-    }
-  } elseif (-not [string]::IsNullOrWhiteSpace($ts)) {
-    if ($recorded.kindTs.Contains("$k@@$ts")) {
-      $isDuplicate = $true
-    }
-  } elseif ($recorded.kindOnly.Contains($k)) {
-    $isDuplicate = $true
+$lockPath = Get-TaskLockPath -projectRoot $projectRoot -taskPath $taskPath
+$lockResult = Invoke-WithTaskFileLock -lockPath $lockPath -body {
+  $taskText = Read-Utf8Text -path $taskPath
+  $snapshot = Get-H2Section -text $taskText -h2Title $H2_CONTEXT_SNAPSHOT
+  if ($null -eq $snapshot) {
+    return "SKIP: task.md has no '## 上下文快照' section."
   }
-  if ($isDuplicate) {
-    continue
+
+  $recorded = Get-RecordedEventKeys -snapshotBody $snapshot.body
+  $toAdd = @()
+  foreach ($e in $events) {
+    $k = $e.kind
+    $ts = $e.ts
+    $eventTraceId = $e.trace_id
+    $eventTurnId = $e.turn_id
+    $isDuplicate = $false
+    if (-not [string]::IsNullOrWhiteSpace($eventTurnId)) {
+      if (-not [string]::IsNullOrWhiteSpace($eventTraceId) -and $recorded.kindTsTraceTurn.Contains("$k@@$ts@@$eventTraceId@@$eventTurnId")) {
+        $isDuplicate = $true
+      } elseif ($recorded.kindTsTurn.Contains("$k@@$ts@@$eventTurnId")) {
+        $isDuplicate = $true
+      } elseif ($recorded.kindTurn.Contains("$k@@$eventTurnId")) {
+        $isDuplicate = $true
+      } elseif ($recorded.kindTs.Contains("$k@@$ts")) {
+        $isDuplicate = $true
+      }
+    } elseif (-not [string]::IsNullOrWhiteSpace($eventTraceId)) {
+      if ($recorded.kindTsTrace.Contains("$k@@$ts@@$eventTraceId") -or $recorded.kindTs.Contains("$k@@$ts")) {
+        $isDuplicate = $true
+      }
+    } elseif (-not [string]::IsNullOrWhiteSpace($ts)) {
+      if ($recorded.kindTs.Contains("$k@@$ts")) {
+        $isDuplicate = $true
+      }
+    } elseif ($recorded.kindOnly.Contains($k)) {
+      $isDuplicate = $true
+    }
+    if ($isDuplicate) {
+      continue
+    }
+    $toAdd += $e
   }
-  $toAdd += $e
+
+  if ($toAdd.Count -eq 0) {
+    return "OK: no new events to append."
+  }
+
+  $repoState = Get-RepoState -projectRoot $projectRoot
+  $newBody = Append-EventsToSnapshot -snapshotBody $snapshot.body -eventsToAdd $toAdd -repoStateLine $repoState
+  $newText = $snapshot.before + $newBody + $snapshot.after
+
+  if ($DryRun) {
+    $lines = @("DRYRUN: would append $($toAdd.Count) event(s) to '$taskPath'.")
+    $toAdd | ForEach-Object {
+      $suffix = ""
+      if (-not [string]::IsNullOrWhiteSpace($_.trace_id)) {
+        $suffix = " trace_id=" + $_.trace_id
+      }
+      if (-not [string]::IsNullOrWhiteSpace($_.turn_id)) {
+        $suffix += " turn_id=" + $_.turn_id
+      }
+      $lines += ("- model_event: " + $_.kind + " ts=" + $_.ts + $suffix)
+      $lines += ("- repo_state: " + $repoState)
+      $lines += ("- " + $LABEL_NEXT_UNIQUE_ACTION + ": 按 references/resume-protocol.md 执行断层恢复（Reboot Check）")
+      $lines += "- recovery_checkpoint: repo_state + 下一步唯一动作"
+    }
+    return ($lines -join "`n")
+  }
+
+  Write-Utf8Text -path $taskPath -text $newText
+  return "OK: appended $($toAdd.Count) event(s) to '$taskPath'."
 }
 
-if ($toAdd.Count -eq 0) {
-  Write-Output "OK: no new events to append."
+if (-not $lockResult.acquired) {
+  Write-Output "SKIP: task.md lock busy; runtime/model events not appended."
   exit 0
 }
 
-$repoState = Get-RepoState -projectRoot $projectRoot
-$newBody = Append-EventsToSnapshot -snapshotBody $snapshot.body -eventsToAdd $toAdd -repoStateLine $repoState
-$newText = $snapshot.before + $newBody + $snapshot.after
-
-if ($DryRun) {
-  Write-Output "DRYRUN: would append $($toAdd.Count) event(s) to '$taskPath'."
-  $toAdd | ForEach-Object {
-    $suffix = ""
-    if (-not [string]::IsNullOrWhiteSpace($_.trace_id)) {
-      $suffix = " trace_id=" + $_.trace_id
-    }
-    if (-not [string]::IsNullOrWhiteSpace($_.turn_id)) {
-      $suffix += " turn_id=" + $_.turn_id
-    }
-    Write-Output ("- model_event: " + $_.kind + " ts=" + $_.ts + $suffix)
-    Write-Output ("- repo_state: " + $repoState)
-    Write-Output ("- " + $LABEL_NEXT_UNIQUE_ACTION + ": 按 references/resume-protocol.md 执行断层恢复（Reboot Check）")
-    Write-Output "- recovery_checkpoint: repo_state + 下一步唯一动作"
-  }
-  exit 0
-}
-
-Write-Utf8Text -path $taskPath -text $newText
-Write-Output "OK: appended $($toAdd.Count) event(s) to '$taskPath'."
+Write-Output $lockResult.value

@@ -30,6 +30,7 @@
 | `<!-- CONTRACT: triage-pass v1 -->` | `references/triage-pass.md` | Triage Pass 与 `verify_min` 口径 |
 | `<!-- CONTRACT: pre-implementation-checklist v1 -->` | `references/pre-implementation-checklist.md` | 预实现检查与 `verify_min` 约束 |
 | `<!-- CONTRACT: quality-gates v1 -->` | `references/quality-gates.md` | 质量门禁与最小验证策略 |
+| `<!-- CONTRACT: lightweight-memory v1 -->` | `references/lightweight-memory.md` | 轻量记忆摄取、hook 写入与历史索引边界 |
 | `<!-- CONTRACT: hook-bridge-protocol v1 -->` | `references/contracts.md` | Codex hooks → HelloAGENTS 桥接输出面 |
 
 ---
@@ -168,6 +169,8 @@
 
 约束：
 - hooks 只输出结构化结果，不执行 payload 中的动态内容
+- hook stdout 必须保持纯结构化结果或 `OK/SKIP/WARN` 状态；诊断日志不得污染 stdout
+- 自动回填 `task.md` 前必须在锁内重新读取、去重、再写入，避免并发 hook 覆盖
 - `feature_removal_risk` 若由 prompt 启发式首次识别，也应**先归一化为** `suspected` 再输出，避免主流程只能依赖自然语言猜测
 - `response_incomplete` 命中时，hooks 应优先输出 `signal: response_incomplete` + `severity: Red`
 - `Stop` hook 的事件回填预览应显式提示“恢复检查点”存在（至少含 `repo_state` + `下一步唯一动作`）

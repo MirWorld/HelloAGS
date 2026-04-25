@@ -160,6 +160,53 @@ function Write-Utf8Text([string]$path, [string]$text) {
   [System.IO.File]::WriteAllText($path, $text, $utf8NoBom)
 }
 
+function Get-TaskLockPath([string]$projectRoot, [string]$taskPath) {
+  $lockRoot = Join-Path $projectRoot "_codex_temp/locks"
+  if (-not (Test-Path -LiteralPath $lockRoot -PathType Container)) {
+    New-Item -ItemType Directory -Path $lockRoot -Force | Out-Null
+  }
+
+  $normalized = $taskPath.ToLowerInvariant()
+  $sha = [System.Security.Cryptography.SHA256]::Create()
+  try {
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($normalized)
+    $hash = [System.BitConverter]::ToString($sha.ComputeHash($bytes)).Replace("-", "").Substring(0, 16)
+    return (Join-Path $lockRoot "helloagents-task-$hash.lock")
+  } finally {
+    $sha.Dispose()
+  }
+}
+
+function Invoke-WithTaskFileLock([string]$lockPath, [scriptblock]$body, [int]$timeoutMs = 5000) {
+  $deadline = [datetime]::UtcNow.AddMilliseconds($timeoutMs)
+  $stream = $null
+
+  while ([datetime]::UtcNow -lt $deadline) {
+    try {
+      $stream = [System.IO.File]::Open($lockPath, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
+      break
+    } catch {
+      Start-Sleep -Milliseconds 100
+    }
+  }
+
+  if ($null -eq $stream) {
+    return [pscustomobject]@{
+      acquired = $false
+      value = $null
+    }
+  }
+
+  try {
+    return [pscustomobject]@{
+      acquired = $true
+      value = (& $body)
+    }
+  } finally {
+    $stream.Dispose()
+  }
+}
+
 function Resolve-CurrentPackage([string]$projectRoot, [string]$packageArg) {
   if (-not [string]::IsNullOrWhiteSpace($packageArg)) {
     if ([System.IO.Path]::IsPathRooted($packageArg)) {
@@ -464,50 +511,59 @@ $model = Get-JsonStringValue $payload @("model")
 $percentage = Get-JsonStringValue $payload @("percentage")
 $compactPreTokens = Get-JsonIntValue $payload @("compact_pre_tokens")
 
-$taskText = Read-Utf8Text -path $taskPath
-$snapshot = Get-H2Section -text $taskText -title $H2_CONTEXT_SNAPSHOT
-if ($null -eq $snapshot) {
-  Write-Output "SKIP: task.md has no '## 上下文快照' section."
+$lockPath = Get-TaskLockPath -projectRoot $projectRootResolved -taskPath $taskPath
+$lockResult = Invoke-WithTaskFileLock -lockPath $lockPath -body {
+  $taskText = Read-Utf8Text -path $taskPath
+  $snapshot = Get-H2Section -text $taskText -title $H2_CONTEXT_SNAPSHOT
+  if ($null -eq $snapshot) {
+    return "SKIP: task.md has no '## 上下文快照' section."
+  }
+
+  $lastCheckpoint = Get-LastThresholdCheckpoint -snapshotBody $snapshot.body
+  if (Test-ThresholdDuplicate -lastCheckpoint $lastCheckpoint -source $source -remainingToCompact $remainingToCompact -timestamp $timestamp) {
+    return "OK: duplicate near-autocompact checkpoint skipped."
+  }
+
+  $repoState = Get-RepoState -projectRoot $projectRootResolved
+  $nextUniqueActionTail = Get-LastNextUniqueActionTail -taskText $taskText
+  if ([string]::IsNullOrWhiteSpace($nextUniqueActionTail)) {
+    $nextUniqueActionTail = '`按 references/resume-protocol.md 恢复当前方案包，再继续当前未完成任务` 预期: 压缩后仍按磁盘检查点续作，不重开已完成任务'
+  }
+
+  $newBody = Append-ThresholdCheckpoint `
+    -snapshotBody $snapshot.body `
+    -timestamp $timestamp `
+    -source $source `
+    -usedTokens $usedTokens `
+    -autoCompactThreshold $autoCompactThreshold `
+    -remainingToCompact $remainingToCompact `
+    -severity $severity `
+    -model $model `
+    -percentage $percentage `
+    -compactPreTokens $compactPreTokens `
+    -repoState $repoState `
+    -nextUniqueActionTail $nextUniqueActionTail
+
+  if ($DryRun) {
+    return @(
+      "DRYRUN: would append near-autocompact checkpoint to '$taskPath'.",
+      "- threshold_source: $source",
+      "- used_tokens: $usedTokens",
+      "- auto_compact_threshold: $autoCompactThreshold",
+      "- remaining_to_compact: $remainingToCompact",
+      "- repo_state: $repoState",
+      "- ${LABEL_NEXT_UNIQUE_ACTION}: $nextUniqueActionTail"
+    ) -join "`n"
+  }
+
+  $newText = $snapshot.before + $newBody + $snapshot.after
+  Write-Utf8Text -path $taskPath -text $newText
+  return "OK: appended near-autocompact checkpoint to '$taskPath'."
+}
+
+if (-not $lockResult.acquired) {
+  Write-Output "SKIP: task.md lock busy; threshold checkpoint not appended."
   exit 0
 }
 
-$lastCheckpoint = Get-LastThresholdCheckpoint -snapshotBody $snapshot.body
-if (Test-ThresholdDuplicate -lastCheckpoint $lastCheckpoint -source $source -remainingToCompact $remainingToCompact -timestamp $timestamp) {
-  Write-Output "OK: duplicate near-autocompact checkpoint skipped."
-  exit 0
-}
-
-$repoState = Get-RepoState -projectRoot $projectRootResolved
-$nextUniqueActionTail = Get-LastNextUniqueActionTail -taskText $taskText
-if ([string]::IsNullOrWhiteSpace($nextUniqueActionTail)) {
-  $nextUniqueActionTail = '`按 references/resume-protocol.md 恢复当前方案包，再继续当前未完成任务` 预期: 压缩后仍按磁盘检查点续作，不重开已完成任务'
-}
-
-$newBody = Append-ThresholdCheckpoint `
-  -snapshotBody $snapshot.body `
-  -timestamp $timestamp `
-  -source $source `
-  -usedTokens $usedTokens `
-  -autoCompactThreshold $autoCompactThreshold `
-  -remainingToCompact $remainingToCompact `
-  -severity $severity `
-  -model $model `
-  -percentage $percentage `
-  -compactPreTokens $compactPreTokens `
-  -repoState $repoState `
-  -nextUniqueActionTail $nextUniqueActionTail
-
-if ($DryRun) {
-  Write-Output "DRYRUN: would append near-autocompact checkpoint to '$taskPath'."
-  Write-Output "- threshold_source: $source"
-  Write-Output "- used_tokens: $usedTokens"
-  Write-Output "- auto_compact_threshold: $autoCompactThreshold"
-  Write-Output "- remaining_to_compact: $remainingToCompact"
-  Write-Output "- repo_state: $repoState"
-  Write-Output "- ${LABEL_NEXT_UNIQUE_ACTION}: $nextUniqueActionTail"
-  exit 0
-}
-
-$newText = $snapshot.before + $newBody + $snapshot.after
-Write-Utf8Text -path $taskPath -text $newText
-Write-Output "OK: appended near-autocompact checkpoint to '$taskPath'."
+Write-Output $lockResult.value

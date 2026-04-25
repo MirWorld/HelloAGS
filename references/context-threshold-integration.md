@@ -131,6 +131,7 @@ helloagents 侧：
 - `references/contracts.md`
 - `references/resume-protocol.md`
 - `references/hook-simulation.md`
+- `references/lightweight-memory.md`
 - `scripts/validate-skill-pack.ps1`
 - `scripts/validate-skill-pack-smoke.ps1`
 
@@ -155,6 +156,8 @@ helloagents 侧：
 - 同一 `threshold_source`
 - `remaining_to_compact` 差值小于阈值
 - 时间戳接近
+- 写入前对同一个 `task.md` 获取 `_codex_temp/locks/helloagents-task-*.lock`
+- 锁内重新读取最新 `task.md`，再判重并 append，避免并发 hook/sidecar 覆盖
 
 原则：
 

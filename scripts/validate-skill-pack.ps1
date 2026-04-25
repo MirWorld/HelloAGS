@@ -346,6 +346,7 @@ $required = @(
   "references/signal-severity.md",
   "references/feature-removal-guard.md",
   "references/codex-upstream-leverage.md",
+  "references/lightweight-memory.md",
   "references/contracts.md",
   "references/context-snapshot.md",
   "references/quickfix-protocol.md",
@@ -403,6 +404,15 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/active-context-t
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/current-plan-pointer-template.md" -needles @(
   "current_package:"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/history-index-template.md" -needles @(
+  "## 轻量检索元数据（按需）",
+  '`tags`',
+  '`touched_files`',
+  '`decisions`',
+  '`verify`',
+  '`signals`'
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/workspace-bootstrap-manifest.json" -needles @(
@@ -493,6 +503,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/codex-upstream-
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation.md" -needles @(
   "references/contracts.md",
+  "references/lightweight-memory.md",
   "hook-bridge-protocol v1",
   "scripts/hooks/helloagents-context-threshold.ps1",
   "scripts/hooks/helloagents-stop.ps1",
@@ -521,6 +532,18 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-
   "package_completed"
 )
 
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-context-threshold.ps1" -needles @(
+  "Invoke-WithTaskFileLock",
+  "_codex_temp/locks",
+  "task.md lock busy"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/capture-runtime-events.ps1" -needles @(
+  "Invoke-WithTaskFileLock",
+  "_codex_temp/locks",
+  "task.md lock busy"
+)
+
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/hooks.json" -needles @(
   '"SessionStart"',
   '"UserPromptSubmit"',
@@ -541,6 +564,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath ".github/workflows/validate
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -needles @(
   "<!-- CONTRACT: protocol-api v1 -->",
+  "<!-- CONTRACT: lightweight-memory v1 -->",
   "<!-- CONTRACT: hook-bridge-protocol v1 -->",
   "<helloagents_state>",
   "model_event:",
@@ -557,11 +581,26 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -
   "hookEventName",
   "additionalContext",
   "hookMessage",
+  "stdout",
+  "锁内重新读取",
   "signal: response_incomplete",
   "signal: feature_removal_guard",
   "severity: Red",
   "HAGSWorks/plan/_current.md",
   "<!-- CONTRACT: signal-severity v1 -->"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/lightweight-memory.md" -needles @(
+  "<!-- CONTRACT: lightweight-memory v1 -->",
+  "## 2) Codex transcript 采集边界",
+  "response_item",
+  "user_message",
+  "agent_message",
+  "## 3) Hook / sidecar 写入纪律",
+  "先锁后写",
+  "stdout 纯结果",
+  "## 4) 轻量历史索引字段",
+  "PreCompact"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.md" -needles @(

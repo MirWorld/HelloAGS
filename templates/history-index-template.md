@@ -18,3 +18,16 @@
 
 - [YYYYMMDDHHMM_feature](YYYY-MM/YYYYMMDDHHMM_feature/) - [一句话功能描述]
 
+---
+
+## 轻量检索元数据（按需）
+
+> 目标：不用向量库也能快速回忆历史任务。只写高价值事实；没有就留空，不要复制方案包正文。
+
+### YYYYMMDDHHMM_feature
+
+- `tags`: [hooks, resume, validation]
+- `touched_files`: [`path/to/reference.md`, `path/to/script.ps1`]
+- `decisions`: [关键决策 1；关键决策 2]
+- `verify`: `[命令]` → [结果]
+- `signals`: [near_autocompact, response_incomplete]
