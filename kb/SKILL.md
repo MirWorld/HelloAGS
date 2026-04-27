@@ -258,7 +258,7 @@ for each 选定的方案包:
      - 同名冲突: 禁止覆盖；如目标已存在则追加 `_v2/_v3/...`（以 `references/plan-lifecycle.md` 为准）
      - 若 `HAGSWorks/plan/_current.md` 指向了该方案包：迁移后将 `current_package` 置空（避免断层恢复误选）
 
-  3. 更新历史记录索引: history/index.md（标注"未执行"）
+  3. 更新历史记录索引: history/index.md（标注"未执行"；若信息可得，补 `tags/touched_files/decisions/verify/signals` 轻量元数据，不复制方案包正文）
 ```
 
 **步骤3 - 输出迁移摘要:**

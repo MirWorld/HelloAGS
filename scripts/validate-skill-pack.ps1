@@ -439,10 +439,12 @@ Assert-NotMatches -repoRoot $repoRoot -relativePath "templates/active-context-te
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-template.md" -needles @(
   "## 上下文快照",
   "## Review 记录",
-  "## Active Context 更新记录"
+  "## Active Context 更新记录",
+  "默认任务数建议"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-how-template.md" -needles @(
+  "默认填写预算",
   "## 执行域声明（Allow/Deny）",
   "## 中期落盘（上下文快照）",
   "## 功能删减审批（如触发）",
@@ -460,7 +462,9 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -ne
   "no_write",
   "helloagents_only",
   "code_write",
-  "## 6) Feedback-Delta（需求变更）"
+  "## 6) Feedback-Delta（需求变更）",
+  "不确定先短取证",
+  "小任务不展开标准模板"
 )
 
 # Core invariants (keep small but strict; prevents semantic drift)
@@ -515,7 +519,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation
   "templates/hooks/sessionstart-hook-fixture.json",
   "templates/hooks/userpromptsubmit-hook-fixture.json",
   "templates/hooks/hooks.json",
-  "templates/hooks/config.toml.snippet"
+  "templates/hooks/config.toml.snippet",
+  "不重复解释预算"
 )
 
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-stop.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Stop hook must treat payload as data only; never execute assistant message content."
@@ -610,7 +615,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.
   "history_conflict_suffix: _v2",
   "current_pointer_file: HAGSWorks/plan/_current.md",
   "current_pointer_key: current_package",
-  "</plan_lifecycle_contract>"
+  "</plan_lifecycle_contract>",
+  "轻量检索元数据"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
@@ -635,7 +641,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol
   "list_tiebreaker: dirname_desc"
   "</resume_package_selection_contract>"
   "<!-- CONTRACT: resume-current-package-pointer v1 -->"
-  "threshold_event: near_autocompact"
+  "threshold_event: near_autocompact",
+  "signal / severity / current_package / next_unique_action"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapshot.md" -needles @(
@@ -665,8 +672,15 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quickfix-protocol.md" -needles @(
   "<!-- CONTRACT: quickfix-protocol v1 -->",
+  "auto-first 判定",
+  "不确定时先短取证",
+  "填写预算",
   "verify_min",
   "carry_forward_verify"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "kb/SKILL.md" -needles @(
+  "tags/touched_files/decisions/verify/signals"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/break-loop-checklist.md" -needles @(

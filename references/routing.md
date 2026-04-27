@@ -196,6 +196,8 @@ next_unique_action: "等待用户输入序号 1-3"
 - **先判 Quick Fix**：只要任务看起来可能满足小改动条件，就先尝试 Quick Fix；不要先读标准开发/完整研发整套材料。
 - **命中即优先**：满足 Quick Fix 条件时，默认直接走快路径；不要因“先完整一点更稳/以后可能扩展/顺手一起做”自动升级。
 - **只在命中升级信号时升级**：预计 `>2 文件`、`>30 行`、`verify_min` 不明确、真值源/单位/消费者无法快速收敛、涉及契约/DB/鉴权/依赖/架构/EHRB、改动范围不确定。
+- **不确定先短取证**：若只是范围未完全确认，先用 Quick Fix 的 30–90 秒只读取证判定；取证前不要默认升级到标准开发。
+- **小任务不展开标准模板**：Quick Fix 命中时使用 quickfix 模板；标准模板只在 Quick Fix 不成立或已命中升级信号后读取。
 
 ### 4.1 微调（Quick Fix）
 条件（全部满足）：
@@ -207,6 +209,7 @@ next_unique_action: "等待用户输入序号 1-3"
 - 按 `references/quickfix-protocol.md` 执行 Quick Fix 快路径（优先使用 quickfix 模板创建最小完整方案包）
 - 在 `task.md##上下文快照` 写一次检查点（Workset + 下一步唯一动作）后再开始改动
 - 按任务执行改动、验证、迁移到 history（执行细则：`develop/SKILL.md`）
+- 默认只写最小方案包：目标/边界/`verify_min`/执行任务/Review，不展开跨层、Active Context、子代理等触发式章节
 - 知识库缺失处理：
   - 若 `write_scope != no_write` 且需要落盘（写 `HAGSWorks/`）：先**隐式执行一次 `~init`**（幂等补齐）再继续
   - 若 `write_scope = no_write`：只提示 `~init` 会做什么（不创建）

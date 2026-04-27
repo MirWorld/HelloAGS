@@ -39,6 +39,8 @@ current_pointer_key: current_package
 2. 迁移目录：`HAGSWorks/history/YYYY-MM/YYYYMMDDHHMM_<feature>/`
    - 冲突：**禁止覆盖**既有 history 目录；如目标目录已存在，则追加 `_v2/_v3/...`
 3. 更新索引：追加到 `HAGSWorks/history/index.md`（包含时间戳、功能标识、类型、状态、链接）
+   - 推荐同时补“轻量检索元数据”（见 `templates/history-index-template.md` / `references/lightweight-memory.md`）：`tags`、`touched_files`、`decisions`、`verify`、`signals`
+   - 元数据只写高价值事实；没有命中可跳过，不要复制方案包正文
 4. （推荐默认）清空当前方案包指针：将 `HAGSWorks/plan/_current.md` 的 `current_package` 置空（避免断层恢复误选已归档包）
 
 ---
@@ -52,4 +54,3 @@ current_pointer_key: current_package
 规则：
 - 扫描 `HAGSWorks/plan/` 下的方案包目录（忽略 `_current.md` 等文件），排除本次 `CURRENT_PACKAGE`
 - 如存在遗留包：在完成输出末尾提示，并提供迁移选择流程（见 `kb/SKILL.md` 的遗留方案迁移规则）
-

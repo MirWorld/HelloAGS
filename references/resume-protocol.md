@@ -179,6 +179,7 @@
 10. **信号等级（轻量参考）**
    - 等级定义与稳定映射统一见 `references/signal-severity.md`
    - 恢复层只消费等级：命中 `Yellow` 先复核 / 补快照；命中 `Red` 则禁止继续改代码，必须等待 / 恢复 / 重规划
+   - 若 `SessionStart` / `UserPromptSubmit` hooks 已经提供 `signal / severity / current_package / next_unique_action`，恢复流程直接消费这些结构事实；不要重复用自然语言重新推断同一信号
 
 ---
 
