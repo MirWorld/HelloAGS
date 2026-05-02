@@ -789,4 +789,45 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md
   "等待用户确认是否允许本次功能删减"
 )
 
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quality-gates.md" -needles @(
+  "规格定义",
+  "验证维护",
+  "carry_forward_verify"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/command-policy.md" -needles @(
+  "CLI 优先",
+  "幻觉包名"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/safety.md" -needles @(
+  "AI 工具链供应链",
+  "OAuth/token",
+  "动态内容"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/checklist-triggers.md" -needles @(
+  "AI 工具链供应链检查"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/review-protocol.md" -needles @(
+  "原型墙风险",
+  "AI 工具链供应链"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/execution-guard.md" -needles @(
+  "关键节点微计划",
+  "下一步唯一动作"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "develop/SKILL.md" -needles @(
+  "关键节点微计划",
+  "Quick Fix 只维护 1–3 条任务"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/finish-checklist.md" -needles @(
+  "结果目标已覆盖",
+  "最终验收清单"
+)
+
 Info "OK: skill pack validation passed"
