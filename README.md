@@ -31,6 +31,8 @@
 
 - hooks 是 **Codex CLI 的可选能力**，不是本 skill 自带的独立运行时
 - 本仓库只提供 hooks 的**接线脚本与模板**，用于在支持 hooks 的 Codex 环境中做辅助增强
+- 在支持 `PreCompact/PostCompact` 的 Codex 版本中，可通过 `scripts/hooks/helloagents-compact.ps1` 在压缩边界前后自动写入恢复快照
+- hooks 模板默认从 `HELLOAGENTS_SKILL_ROOT` 或 `$CODEX_HOME/skills/helloagents` 定位脚本；自定义安装路径时先设置 `HELLOAGENTS_SKILL_ROOT`
 - 即使完全不配置 hooks，helloagents 的核心流程（路由、方案包、验证、Review、resume）仍然可用
 - 仅把 skill 仓库复制到 skills 路径，**不会自动安装/启用 hooks**
 - 若要启用 hooks，再按 `references/hook-simulation.md` 把 `templates/hooks/hooks.json` 与 `templates/hooks/config.toml.snippet` 接到你的 `.codex` 配置中

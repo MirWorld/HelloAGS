@@ -95,6 +95,15 @@
 - [SRC:TOOL] remaining_to_compact: ...
 - [SRC:TOOL] compact_pre_tokens: ...
 
+### 压缩生命周期检查点（可选，结构化）
+- [SRC:TOOL] compact_event: pre_compact # ts=...
+- [SRC:TOOL] compact_trigger: auto | manual
+- [SRC:TOOL] session_id: ...
+- [SRC:TOOL] turn_id: ...
+- [SRC:TOOL] model: ...
+- [SRC:TOOL] repo_state: branch=... head=... dirty=... diffstat=...
+- 下一步唯一动作: `...` 预期: 压缩后按该动作续作，不重开已完成任务
+
 ### Repo 状态（复现/防漂移，推荐）
 - [SRC:TOOL] repo_state: branch=... head=... dirty=... diffstat=...
 
@@ -154,6 +163,7 @@
 - 若回填脚本无法获得 `thread_id`，但能稳定获得 `trace_id`，可用其作为日志过滤条件；若两者都缺失，推荐直接 `SKIP`，避免跨 thread 误归因
 - 若从 Codex session JSONL / transcript 自动回填，先按 `references/lightweight-memory.md` 做 normalize：只采稳定 `event_msg`，跳过 `response_item` 与 tool 中间态
 - 若外部消费者能在接近自动压缩阈值前读取到 `used_tokens / auto_compact_threshold / remaining_to_compact`，可把它们以 `threshold_event: near_autocompact` 结构化写入；该条目不替代 `model_event`，但可作为“压缩前最后检查点”
+- 若 Codex hooks 提供 `PreCompact` / `PostCompact`：用 `compact_event: pre_compact|post_compact` 记录压缩生命周期；其中 `pre_compact` 是压缩真正执行前的恢复检查点，必须紧跟 `repo_state + 下一步唯一动作`
 
 轻量信号分级定义见 `references/signal-severity.md`。
 - 快照层优先把信号写成结构字段（如 `model_event`、`contract_checkpoint`、`progress_checkpoint`）
@@ -179,6 +189,7 @@
 7. （长任务推荐）**Progress Phase**：若当前包已进入中程/后程，建议把 `progress_phase` 更新为 `mid / late / final`，不要长期停留在 `start`
 8. （权宜路径推荐）**Design Debt**：若当前实现明确是临时收口，建议同步记录 `design_debt / why_now / revisit_trigger`
 9. （压缩前推荐）**Threshold Checkpoint**：若外部消费者检测到 `near_autocompact`，建议自动追加 `threshold_source / used_tokens / remaining_to_compact`，并把最新 `repo_state + 下一步唯一动作` 紧随其后，作为压缩前检查点
+10. （压缩生命周期推荐）**Compact Checkpoint**：若收到官方 `PreCompact`，立即追加 `compact_event: pre_compact`，并把最新 `repo_state + 下一步唯一动作` 写在同一检查点；若收到 `PostCompact`，追加 `compact_event: post_compact` 作为审计与 Reboot Check 触发信号
 
 推荐放置位置：
 - Workset：写在“已确认事实/决策”或单独追加 1 条清单

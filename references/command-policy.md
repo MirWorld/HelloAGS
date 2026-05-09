@@ -43,6 +43,7 @@
 - **规划域（~plan / 方案设计阶段）**：只允许只读命令；禁止有副作用命令（需要验证则写入 `task.md##上下文快照` 的“下一步唯一动作”，等切到执行域再跑）
 - **执行域（~exec / 开发实施阶段）**：允许执行门禁/验证/构建/测试，但必须遵循 `references/quality-gates.md` 与失败协议
 - **CLI 优先（本地内循环）**：当仓库已有等价 CLI/脚本/CI/README 命令时，优先使用该本地入口；只有本地没有入口、需要企业外部系统数据、或需要集中认证/审计时，才使用 MCP/外部集成，并按 `references/external-knowledge.md` 记录来源与验证方式
+- **permission profiles（Codex 0.130.0+）**：优先用显式 permission profiles 表达 sandbox / cwd / trust flow；`request_permissions` 继续作为运行时最小额外权限申请手段，但不要把 `--full-auto` 当成默认协议口径
 - **版本控制写操作（Git）**：无论是否在执行域，除非用户明确要求，否则不执行 `git add/commit/push/merge/rebase/reset/tag`；若用户要求，先确认目标分支/远端/提交信息规范，并检查是否包含敏感信息
 - **本地智能体状态重置（Codex）**：如需执行 `codex debug clear-memories`，必须先获得用户明确确认（可作为“漂移/重复重做”的兜底止血动作），禁止自动执行
 - **权限请求（Codex）**：若当前工具链支持 `request_permissions`，优先用它申请当前任务所需的最小权限；若工具链不支持或请求失败，再退回现有的“用户确认 → 继续/停止”流程

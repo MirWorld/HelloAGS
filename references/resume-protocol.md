@@ -25,6 +25,8 @@
 
 补充（上游行为假设，v0.117.0+）：`thread/resume` 会优先复用线程已持久化的 `model` 与 `reasoning effort`，再回退到当前配置。恢复时应把这一行为视为上游默认能力：**不要把 resume 后的模型/推理力度临时漂移当作可依赖信号，仍以磁盘事实与方案包状态为准。**
 
+补充（上游行为假设，v0.130.0+）：`/goal` 持久化工作流、external agent session import、以及更明确的 resume / interruption 修复，都会让恢复入口更顺，但它们仍然只是辅助层；**不要把 goal state / imported session 当作 SSOT（真值）**，恢复仍以 `why/how/task`、`repo_state` 与 `下一步唯一动作` 为准。
+
 ---
 
 ## 2) 固定恢复顺序（只读优先）
@@ -159,6 +161,8 @@
        - `下一步唯一动作: ...`
    - 说明：`response_incomplete` 属于执行域高风险信号；若没有补齐“事件后的恢复检查点”，进入 `~exec` 会被方案包校验阻止（避免断层误重做）。
    - 若快照中存在 `threshold_event: near_autocompact`：优先把它视为“压缩前最后检查点”，并优先采用其后的 `repo_state + 下一步唯一动作` 恢复，而不是依赖聊天记忆判断进度。
+   - 若快照中存在 `compact_event: pre_compact`：优先把它视为“官方压缩前最后检查点”，并采用同一检查点中的 `repo_state + 下一步唯一动作` 恢复；这是压缩发生前保存任务进度的首选证据。
+   - 若快照中存在 `compact_event: post_compact`：视为已跨过压缩边界；必须完成本协议的 5 问 Reboot Check 后再继续，禁止凭压缩后的聊天摘要直接重开任务。
 
 9. **恢复后 contract 复核（高风险事件后必做）**
    - 当本次恢复触发原因包含以下任一信号时，必须做一次极小 contract 复核：

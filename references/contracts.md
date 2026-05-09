@@ -118,7 +118,32 @@
 - `references/resume-protocol.md`
 - `scripts/hooks/helloagents-context-threshold.ps1`
 
-### 3.3 功能删减风控键（结构化，可选）
+### 3.3 上下文快照的压缩生命周期检查点（结构化，可选）
+
+当 Codex hooks 提供 `PreCompact` / `PostCompact` 时，允许在 `task.md##上下文快照` 中记录：
+
+- `compact_event: pre_compact|post_compact`
+- `compact_trigger: auto|manual`
+- `session_id: <id>`
+- `turn_id: <id>`
+- `model: <model>`
+- `repo_state: branch=... head=... dirty=... diffstat=...`
+- `下一步唯一动作: ...`
+
+用途：
+- `pre_compact`：压缩真正执行前的任务进度恢复检查点
+- `post_compact`：压缩后的审计信号与 Reboot Check 触发信号
+
+约束：
+- `pre_compact` 必须与同一检查点中的 `repo_state`、`下一步唯一动作` 一起写入，才有恢复价值
+- 该检查点不替代阈值提前预警；需要提前到“接近阈值”时仍使用 `threshold_event: near_autocompact`
+
+来源：
+- `references/context-snapshot.md`
+- `references/resume-protocol.md`
+- `scripts/hooks/helloagents-compact.ps1`
+
+### 3.4 功能删减风控键（结构化，可选）
 
 当方案包需要表达“当前是否命中删功能风险”时，可使用稳定键：
 - `feature_removal_risk: clear|suspected|approved`
@@ -138,10 +163,12 @@
 - `scripts/hooks/helloagents-userpromptsubmit.ps1`
 - `scripts/hooks/helloagents-stop.ps1`
 - `scripts/hooks/helloagents-sessionstart.ps1`
+- `scripts/hooks/helloagents-compact.ps1`
 
 目标：
 - 让 hooks 输出成为**结构化结果**，供主流程直接消费
 - 避免每个 hook 各自发明字段名或只靠自然语言提示
+- 例外：`PreCompact/PostCompact` 官方输出 schema 只允许 `continue / stopReason / suppressOutput / systemMessage`；`helloagents-compact.ps1` 不输出 `hookSpecificOutput`
 
 顶层输出字段（稳定）：
 - `systemMessage`：给用户/模型的简短提示；允许省略
@@ -166,6 +193,8 @@
 - `package_status: completed`
 - `feature_removal_risk: clear|suspected|approved`
 - `feature_removal_approved: yes|no`
+- `compact_event: pre_compact|post_compact`
+- `compact_trigger: auto|manual`
 
 约束：
 - hooks 只输出结构化结果，不执行 payload 中的动态内容

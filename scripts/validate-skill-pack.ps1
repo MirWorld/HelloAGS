@@ -319,6 +319,7 @@ $required = @(
   "kb/SKILL.md",
   "scripts/validate-skill-pack-smoke.ps1",
   "scripts/hooks/helloagents-context-threshold.ps1",
+  "scripts/hooks/helloagents-compact.ps1",
   "scripts/hooks/helloagents-stop.ps1",
   "scripts/hooks/helloagents-sessionstart.ps1",
   "scripts/hooks/helloagents-userpromptsubmit.ps1",
@@ -334,6 +335,8 @@ $required = @(
   "templates/hooks/stop-hook-feature-removal-fixture.json",
   "templates/hooks/sessionstart-hook-fixture.json",
   "templates/hooks/userpromptsubmit-hook-fixture.json",
+  "templates/hooks/precompact-hook-fixture.json",
+  "templates/hooks/postcompact-hook-fixture.json",
   "templates/hooks/hooks.json",
   "templates/hooks/config.toml.snippet",
   "templates/validate-active-context.ps1",
@@ -510,6 +513,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation
   "references/lightweight-memory.md",
   "hook-bridge-protocol v1",
   "scripts/hooks/helloagents-context-threshold.ps1",
+  "scripts/hooks/helloagents-compact.ps1",
   "scripts/hooks/helloagents-stop.ps1",
   "scripts/hooks/helloagents-sessionstart.ps1",
   "scripts/hooks/helloagents-userpromptsubmit.ps1",
@@ -518,6 +522,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation
   "templates/hooks/stop-hook-feature-removal-fixture.json",
   "templates/hooks/sessionstart-hook-fixture.json",
   "templates/hooks/userpromptsubmit-hook-fixture.json",
+  "templates/hooks/precompact-hook-fixture.json",
+  "templates/hooks/postcompact-hook-fixture.json",
   "templates/hooks/hooks.json",
   "templates/hooks/config.toml.snippet",
   "不重复解释预算"
@@ -525,6 +531,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation
 
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-stop.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Stop hook must treat payload as data only; never execute assistant message content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-context-threshold.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Context-threshold hook should treat payload as data only; never execute dynamic content."
+Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-compact.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Compact hook should treat payload as data only; never execute dynamic content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "SessionStart hook should only validate pointers, not execute payload content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "UserPromptSubmit hook should only guard/augment via JSON output; never execute payload content."
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -needles @(
@@ -543,6 +550,18 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-
   "task.md lock busy"
 )
 
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-compact.ps1" -needles @(
+  "PreCompact",
+  "PostCompact",
+  '"continue"',
+  '"suppressOutput"',
+  "compact_event",
+  "compact_trigger",
+  "Invoke-WithTaskFileLock",
+  "_codex_temp/locks",
+  "task.md lock busy"
+)
+
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/capture-runtime-events.ps1" -needles @(
   "Invoke-WithTaskFileLock",
   "_codex_temp/locks",
@@ -553,9 +572,15 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/hooks.json
   '"SessionStart"',
   '"UserPromptSubmit"',
   '"Stop"',
+  '"PreCompact"',
+  '"PostCompact"',
+  "HELLOAGENTS_SKILL_ROOT",
+  "CODEX_HOME",
+  "skills/helloagents",
   "helloagents-sessionstart.ps1",
   "helloagents-userpromptsubmit.ps1",
-  "helloagents-stop.ps1"
+  "helloagents-stop.ps1",
+  "helloagents-compact.ps1"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/config.toml.snippet" -needles @(
@@ -576,6 +601,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -
   "threshold_event:",
   "threshold_source:",
   "remaining_to_compact:",
+  "compact_event:",
+  "compact_trigger:",
   "turn_id:",
   "awaiting_topic:",
   "feature_removal_risk:",
@@ -588,6 +615,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -
   "hookMessage",
   "stdout",
   "锁内重新读取",
+  "helloagents-compact.ps1",
   "signal: response_incomplete",
   "signal: feature_removal_guard",
   "severity: Red",
@@ -605,7 +633,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/lightweight-mem
   "先锁后写",
   "stdout 纯结果",
   "## 4) 轻量历史索引字段",
-  "PreCompact"
+  "PreCompact",
+  "post_compact"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.md" -needles @(
@@ -642,6 +671,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol
   "</resume_package_selection_contract>"
   "<!-- CONTRACT: resume-current-package-pointer v1 -->"
   "threshold_event: near_autocompact",
+  "compact_event: pre_compact",
+  "compact_event: post_compact",
   "signal / severity / current_package / next_unique_action"
 )
 
@@ -651,6 +682,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapsho
   "threshold_event:",
   "threshold_source:",
   "remaining_to_compact:",
+  "compact_event:",
+  "compact_trigger:",
   "turn_id:",
   "contract_checkpoint:",
   "progress_phase:",
@@ -797,6 +830,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quality-gates.m
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/command-policy.md" -needles @(
   "CLI 优先",
+  "permission profiles",
   "幻觉包名"
 )
 
@@ -813,6 +847,35 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/checklist-trigg
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/review-protocol.md" -needles @(
   "原型墙风险",
   "AI 工具链供应链"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/codex-upstream-leverage.md" -needles @(
+  "0.130.0 稳定版可直接借力的能力",
+  "PreCompact",
+  "PostCompact",
+  "automations",
+  "memory preview",
+  "background computer use",
+  "codex features list",
+  "remote_compaction_v2",
+  "helloagents-context-threshold.ps1"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation.md" -needles @(
+  "plugin-bundled hooks",
+  "PreCompact",
+  "PostCompact",
+  "helloagents-compact.ps1"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol.md" -needles @(
+  "/goal",
+  "external agent session import"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/subagent-orchestration.md" -needles @(
+  "MultiAgentV2",
+  "thread caps"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/execution-guard.md" -needles @(

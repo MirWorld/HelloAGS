@@ -287,6 +287,26 @@ try {
   $thresholdCount = ([regex]::Matches($thresholdTaskDup, 'threshold_event: near_autocompact')).Count
   Assert-True ($thresholdCount -eq 1) "Context-threshold hook should skip near-duplicate checkpoints within the same source band."
 
+  $preCompactOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-compact.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/precompact-hook-fixture.json") -projectRoot $projectRoot -DryRun
+  Assert-True ($preCompactOut.continue -eq $true) "PreCompact dry-run should return a valid compact hook continue response."
+  Assert-Contains $preCompactOut.systemMessage "hook_event_name: PreCompact" "PreCompact dry-run should preserve hook event name."
+  Assert-Contains $preCompactOut.systemMessage "compact_event: pre_compact" "PreCompact dry-run should preview compact_event checkpoint."
+  Assert-Contains $preCompactOut.systemMessage "turn_demo_precompact_001" "PreCompact dry-run should preview turn_id."
+  Assert-Contains $preCompactOut.systemMessage "repo_state" "PreCompact dry-run should preview repo_state evidence."
+
+  $preCompactWriteOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-compact.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/precompact-hook-fixture.json") -projectRoot $projectRoot
+  Assert-True ($preCompactWriteOut.continue -eq $true) "PreCompact hook should not stop compaction in write mode."
+  $compactTask = Read-Utf8Text -path (Join-Path $projectRoot ($packageRel.Replace('/', '\') + "\task.md"))
+  Assert-Contains $compactTask "compact_event: pre_compact" "PreCompact hook should append compact_event pre_compact."
+  Assert-Contains $compactTask "compact_trigger: auto" "PreCompact hook should record compact trigger."
+  Assert-Contains $compactTask "turn_id: turn_demo_precompact_001" "PreCompact hook should record turn_id."
+  Assert-Contains $compactTask "repo_state:" "PreCompact hook should record repo_state recovery evidence."
+
+  $postCompactWriteOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-compact.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/postcompact-hook-fixture.json") -projectRoot $projectRoot
+  Assert-True ($postCompactWriteOut.continue -eq $true) "PostCompact hook should return a valid compact hook continue response."
+  $compactTaskAfterPost = Read-Utf8Text -path (Join-Path $projectRoot ($packageRel.Replace('/', '\') + "\task.md"))
+  Assert-Contains $compactTaskAfterPost "compact_event: post_compact" "PostCompact hook should append compact_event post_compact."
+
   $responseIncompleteTask = @"
 # 任务清单: smoke
 

@@ -11,7 +11,8 @@
 - **默认不引入数据库**：不把 ChromaDB、向量库、MCP 记忆服务作为 skill 本体依赖。
 - **默认不做全局记忆**：只沉淀当前项目可追溯事实，避免旧项目/旧会话污染新任务。
 - **默认不自动采信聊天记忆**：可回填的内容必须能落到文件证据、工具事件、用户原话或明确推断区。
-- **默认不承诺 `PreCompact`**：官方 Codex hooks 若未提供压缩前 hook，就不能把第三方项目里的 `PreCompact` 文档当作可用能力。
+- **`PreCompact` 只在官方支持的 Codex 版本中启用**：Codex 0.130.0+ 可把 `PreCompact/PostCompact` 接到 `helloagents-compact.ps1`；不支持 hooks 的环境仍降级为协议层快照与外部阈值守卫。
+- **memory preview 不是 SSOT**：若 Codex 记住了偏好，可作为提示；项目事实、任务进度与验收仍以方案包、代码事实和验证证据为准。
 
 ---
 
@@ -24,7 +25,7 @@
 - `type == "event_msg"`
 - `payload.type == "user_message"`
 - `payload.type == "agent_message"`
-- 明确的运行时信号：`model_rerouted` / `response_incomplete` / `near_autocompact`
+- 明确的运行时信号：`model_rerouted` / `response_incomplete` / `near_autocompact` / `pre_compact` / `post_compact`
 
 必须跳过：
 
@@ -64,7 +65,7 @@
 - `touched_files`: 关键文件路径，优先列 3–8 个
 - `decisions`: 关键决策，优先列 1–3 条
 - `verify`: 最小验证命令与结果
-- `signals`: 命中的结构信号，例如 `response_incomplete`、`near_autocompact`
+- `signals`: 命中的结构信号，例如 `response_incomplete`、`near_autocompact`、`pre_compact`
 
 约束：
 
@@ -80,4 +81,4 @@
 - 不默认把所有聊天内容入库。
 - 不默认跨项目共享记忆。
 - 不默认用自然语言相似度决定任务恢复入口。
-- 不把第三方项目的 hook 名称当作 Codex 官方契约。
+- 不把第三方项目的 hook 名称当作 Codex 官方契约；只有官方 Codex hooks 已提供的 `PreCompact/PostCompact` 才进入接线模板。

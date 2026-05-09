@@ -20,6 +20,8 @@
 3. **Multiple Independent Passes（无多代理时，兜底）**
    - 见第 7 节：用 2–3 次独立 Pass 模拟并行。
 
+补充（Codex 0.130.0+）：上游已把 MultiAgentV2 的 thread caps、wait-time controls、root/subagent hints 显式化；这些维度可以作为调参参考，但**不会改变**本协议里“主控唯一写入、子代理只读、不扩大范围”的边界。
+
 ---
 
 ## 1) 何时启用（触发器）

@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File scripts/hooks/helloagents-sessionstart.ps1",
+            "command": "pwsh -NoProfile -Command \"& { $root=$env:HELLOAGENTS_SKILL_ROOT; if ([string]::IsNullOrWhiteSpace($root)) { $codexHome=$env:CODEX_HOME; if ([string]::IsNullOrWhiteSpace($codexHome)) { $codexHome=Join-Path $HOME '.codex' }; $root=Join-Path $codexHome 'skills/helloagents' }; & (Join-Path $root 'scripts/hooks/helloagents-sessionstart.ps1') }\"",
             "timeoutSec": 10,
             "statusMessage": "helloagents: session start"
           }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File scripts/hooks/helloagents-userpromptsubmit.ps1",
+            "command": "pwsh -NoProfile -Command \"& { $root=$env:HELLOAGENTS_SKILL_ROOT; if ([string]::IsNullOrWhiteSpace($root)) { $codexHome=$env:CODEX_HOME; if ([string]::IsNullOrWhiteSpace($codexHome)) { $codexHome=Join-Path $HOME '.codex' }; $root=Join-Path $codexHome 'skills/helloagents' }; & (Join-Path $root 'scripts/hooks/helloagents-userpromptsubmit.ps1') }\"",
             "timeoutSec": 10,
             "statusMessage": "helloagents: prompt guard"
           }
@@ -29,9 +29,57 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File scripts/hooks/helloagents-stop.ps1",
+            "command": "pwsh -NoProfile -Command \"& { $root=$env:HELLOAGENTS_SKILL_ROOT; if ([string]::IsNullOrWhiteSpace($root)) { $codexHome=$env:CODEX_HOME; if ([string]::IsNullOrWhiteSpace($codexHome)) { $codexHome=Join-Path $HOME '.codex' }; $root=Join-Path $codexHome 'skills/helloagents' }; & (Join-Path $root 'scripts/hooks/helloagents-stop.ps1') }\"",
             "timeoutSec": 10,
             "statusMessage": "helloagents: stop"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -Command \"& { $root=$env:HELLOAGENTS_SKILL_ROOT; if ([string]::IsNullOrWhiteSpace($root)) { $codexHome=$env:CODEX_HOME; if ([string]::IsNullOrWhiteSpace($codexHome)) { $codexHome=Join-Path $HOME '.codex' }; $root=Join-Path $codexHome 'skills/helloagents' }; & (Join-Path $root 'scripts/hooks/helloagents-compact.ps1') }\"",
+            "timeoutSec": 10,
+            "statusMessage": "helloagents: pre compact checkpoint"
+          }
+        ]
+      },
+      {
+        "matcher": "manual",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -Command \"& { $root=$env:HELLOAGENTS_SKILL_ROOT; if ([string]::IsNullOrWhiteSpace($root)) { $codexHome=$env:CODEX_HOME; if ([string]::IsNullOrWhiteSpace($codexHome)) { $codexHome=Join-Path $HOME '.codex' }; $root=Join-Path $codexHome 'skills/helloagents' }; & (Join-Path $root 'scripts/hooks/helloagents-compact.ps1') }\"",
+            "timeoutSec": 10,
+            "statusMessage": "helloagents: pre compact checkpoint"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -Command \"& { $root=$env:HELLOAGENTS_SKILL_ROOT; if ([string]::IsNullOrWhiteSpace($root)) { $codexHome=$env:CODEX_HOME; if ([string]::IsNullOrWhiteSpace($codexHome)) { $codexHome=Join-Path $HOME '.codex' }; $root=Join-Path $codexHome 'skills/helloagents' }; & (Join-Path $root 'scripts/hooks/helloagents-compact.ps1') }\"",
+            "timeoutSec": 10,
+            "statusMessage": "helloagents: post compact checkpoint"
+          }
+        ]
+      },
+      {
+        "matcher": "manual",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -Command \"& { $root=$env:HELLOAGENTS_SKILL_ROOT; if ([string]::IsNullOrWhiteSpace($root)) { $codexHome=$env:CODEX_HOME; if ([string]::IsNullOrWhiteSpace($codexHome)) { $codexHome=Join-Path $HOME '.codex' }; $root=Join-Path $codexHome 'skills/helloagents' }; & (Join-Path $root 'scripts/hooks/helloagents-compact.ps1') }\"",
+            "timeoutSec": 10,
+            "statusMessage": "helloagents: post compact checkpoint"
           }
         ]
       }
