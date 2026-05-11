@@ -719,7 +719,14 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "kb/SKILL.md" -needles @(
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/break-loop-checklist.md" -needles @(
   "结构侵蚀",
   "热点文件",
-  "临时胶水"
+  "临时胶水",
+  "调试反馈循环",
+  "Observe",
+  "Hypothesis",
+  "Change",
+  "Verify",
+  "Decision",
+  "没有新证据就连续修改同一文件"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/project-profile.md" -needles @(
@@ -758,7 +765,14 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quality-gates.m
   "<!-- CONTRACT: quality-gates v1 -->",
   "verify_min",
   "typecheck → build → test",
-  "编译/构建失败"
+  "编译/构建失败",
+  "验证铁律",
+  "四级验证深度",
+  "L1 存在验证",
+  "L2 真实验证",
+  "L3 连接验证",
+  "L4 数据流验证",
+  "不得声称"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-template.md" -needles @(
@@ -826,6 +840,15 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quality-gates.m
   "规格定义",
   "验证维护",
   "carry_forward_verify"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/failure-protocol.md" -needles @(
+  "调试底线",
+  "最小复现方式",
+  "可观察反馈信号",
+  "禁止继续盲改",
+  "调试反馈循环记录格式",
+  "feedback_command"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/command-policy.md" -needles @(
