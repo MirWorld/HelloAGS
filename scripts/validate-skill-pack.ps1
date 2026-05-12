@@ -340,6 +340,7 @@ $required = @(
   "templates/hooks/hooks.json",
   "templates/hooks/config.toml.snippet",
   "templates/validate-active-context.ps1",
+  "templates/archive-plan-package.ps1",
   "templates/validate-plan-package.ps1",
   "references/routing.md",
   "references/plan-lifecycle.md",
@@ -422,7 +423,9 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/workspace-bootst
   '"contract": "workspace-bootstrap-manifest v1"',
   '"workspace_root": "HAGSWorks"',
   '"directories"',
-  '"files"'
+  '"files"',
+  '"HAGSWorks/scripts/archive-plan-package.ps1"',
+  '"templates/archive-plan-package.ps1"'
 )
 Assert-ContainsAll -repoRoot $repoRoot -relativePath ".gitignore" -needles @(
   "/HAGSWorks/",
@@ -677,7 +680,9 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.
   "current_pointer_file: HAGSWorks/plan/_current.md",
   "current_pointer_key: current_package",
   "archive_readiness_gate: required",
+  "archive_script: HAGSWorks/scripts/archive-plan-package.ps1",
   "Archive Readiness Gate",
+  "archive-plan-package.ps1",
   "-Mode archive",
   "本轮执行结束 ≠ 方案包完成",
   "验证/复测证据",
@@ -693,6 +698,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "develop/SKILL.md" -needles @(
   "<!-- CONTRACT: develop-no-redo v1 -->",
   "Archive Readiness Gate",
+  "archive-plan-package.ps1",
   "-Mode archive",
   "本轮执行结束不等于方案完成",
   "禁止迁移、禁止清空"
@@ -932,6 +938,20 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/validate-plan-pa
   "skipped task without",
   "design_debt",
   "revisit_trigger"
+)
+
+Assert-NotMatches -repoRoot $repoRoot -relativePath "templates/archive-plan-package.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Archive script should only validate and move local plan-package files; never execute dynamic content."
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/archive-plan-package.ps1" -needles @(
+  "Test-IsPathUnderDirectory",
+  "validate-plan-package.ps1",
+  "-Mode",
+  "archive",
+  "Move-Item",
+  "history_conflict",
+  "current_pointer_cleared",
+  "HAGSWorks/history",
+  "HAGSWorks/plan",
+  "package is outside plan root"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @(

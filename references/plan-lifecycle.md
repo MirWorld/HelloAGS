@@ -11,6 +11,7 @@ history_conflict_suffix: _v2
 current_pointer_file: HAGSWorks/plan/_current.md
 current_pointer_key: current_package
 archive_readiness_gate: required
+archive_script: HAGSWorks/scripts/archive-plan-package.ps1
 </plan_lifecycle_contract>
 
 ---
@@ -44,7 +45,9 @@ archive_readiness_gate: required
 3. `progress_phase: final` 已作为结构字段写入 `task.md##上下文快照`；任务说明、模板文字、Review 文案里的同名文本不算数。
 4. `verify_min` 是具体可执行命令/脚本/可复现手动步骤，且与已触发门禁已有可追溯结果；`unknown` / `无` / 模板占位不允许进入归档。
 5. `## Review 记录` 已填写本轮 Review / 修复 / 复测摘要，并能追溯到验证/复测证据；不能只保留模板占位。
-6. 若存在 `HAGSWorks/scripts/validate-plan-package.ps1`，迁移前必须运行：
+6. 若存在 `HAGSWorks/scripts/archive-plan-package.ps1`，归档迁移必须交给该脚本执行；脚本会先运行 Archive Readiness Gate，再迁移目录、更新索引、按需清空 `_current.md`：
+   - `pwsh -NoProfile -File HAGSWorks/scripts/archive-plan-package.ps1 -Package <CURRENT_PACKAGE>`
+7. 若归档脚本不存在但存在 `HAGSWorks/scripts/validate-plan-package.ps1`，迁移前必须运行：
    - `pwsh -NoProfile -File HAGSWorks/scripts/validate-plan-package.ps1 -Mode archive -Package <CURRENT_PACKAGE>`
 
 门禁未通过时：
@@ -56,6 +59,10 @@ archive_readiness_gate: required
 ---
 
 ## 4) 完成态迁移（仅 Archive Readiness Gate 通过后）
+
+默认执行方式：
+- 优先使用 `HAGSWorks/scripts/archive-plan-package.ps1` 完成迁移；不要手动拼 `Move-Item`、手动更新 `history/index.md`、手动清空 `_current.md`。
+- 脚本返回失败时，视为 Archive Readiness Gate 未通过；必须保留方案包 active，并按第 3 节补快照与下一步唯一动作。
 
 1. 回写 `task.md`：所有任务标注真实状态；非 `[√]` 的任务必须写 `> 备注: ...`
 2. 迁移目录：`HAGSWorks/history/YYYY-MM/YYYYMMDDHHMM_<feature>/`

@@ -80,6 +80,25 @@ function Invoke-PlanValidatorJson([string]$projectRoot, [string]$mode = "plan", 
   return (($raw -join "`n") | ConvertFrom-Json -Depth 64)
 }
 
+function Invoke-ArchivePlanPackageJson([string]$projectRoot, [string]$package) {
+  $scriptPath = Join-Path $projectRoot "HAGSWorks/scripts/archive-plan-package.ps1"
+  $args = @(
+    "-NoProfile",
+    "-File", $scriptPath,
+    "-ProjectRoot", $projectRoot,
+    "-Package", $package,
+    "-Json"
+  )
+  $raw = & pwsh @args
+  $exitCode = $LASTEXITCODE
+  if ([string]::IsNullOrWhiteSpace(($raw -join ""))) {
+    throw "Archive script returned empty output."
+  }
+  $result = (($raw -join "`n") | ConvertFrom-Json -Depth 64)
+  $result | Add-Member -NotePropertyName exit_code -NotePropertyValue $exitCode -Force
+  return $result
+}
+
 function New-SmokePayload([string]$path, [string]$prompt, [string]$projectRoot, [string]$turnId = "") {
   $payload = [ordered]@{
     prompt = $prompt
@@ -180,6 +199,67 @@ function New-SmokePackage([string]$projectRoot) {
   Write-Utf8Text -path $pointerPath -text ("# 当前方案包指针`n`ncurrent_package: {0}`n" -f $packageRel.Replace('\', '/'))
 
   return $packageRel.Replace('\', '/')
+}
+
+function New-ArchiveReadyPackage([string]$projectRoot, [string]$packageName) {
+  $packageRel = "HAGSWorks/plan/$packageName"
+  $packageDir = Join-Path $projectRoot $packageRel
+  New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
+
+  $whyText = @"
+# 对齐摘要: archive smoke
+
+## 对齐摘要
+- 目标：验证归档脚本的 validate → move → index → clear-current 闭环
+"@
+
+  $howText = @"
+# 技术设计: archive smoke
+
+## 技术方案
+- **verify_min:** `pwsh -NoProfile -Command "Write-Output archive-smoke"`
+- **carry_forward_verify:** `无`
+
+## 执行域声明（Allow/Deny）
+- Allow: [`HAGSWorks/plan/$packageName`]
+"@
+
+  $taskText = @"
+# 任务清单: archive smoke
+
+- [√] 1.0 验证归档脚本闭环
+
+## 上下文快照
+
+### 已确认事实（可验证）
+- [SRC:CODE] archive smoke package fixture is present
+
+### Repo 状态（复现/防漂移，执行域必填）
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: final
+
+### 待用户输入（Pending）
+
+### 下一步唯一动作（可执行）
+- 下一步唯一动作: `执行 archive-plan-package.ps1` 预期: 迁移到 history 并清空 current pointer
+
+## Review 记录
+- Review: 归档脚本 smoke 方案包已满足终态任务、空 Pending、final progress 与 Review 证据
+- 复测: `pwsh -NoProfile -Command "Write-Output archive-smoke"` 结果: 通过
+"@
+
+  Write-Utf8Text -path (Join-Path $packageDir "why.md") -text $whyText
+  Write-Utf8Text -path (Join-Path $packageDir "how.md") -text $howText
+  Write-Utf8Text -path (Join-Path $packageDir "task.md") -text $taskText
+
+  return $packageRel.Replace('\', '/')
+}
+
+function Set-CurrentPackage([string]$projectRoot, [string]$packageRel) {
+  $pointerPath = Join-Path $projectRoot "HAGSWorks/plan/_current.md"
+  Write-Utf8Text -path $pointerPath -text ("# 当前方案包指针`n`ncurrent_package: {0}`n" -f $packageRel.Replace('\', '/'))
 }
 
 function Set-SmokeTaskText([string]$projectRoot, [string]$packageRel, [string]$taskText) {
@@ -691,6 +771,57 @@ carry_forward_verify: 无
   Assert-Contains $stopEventOut.hookSpecificOutput.hookMessage "turn_id=turn_demo_stop_001" "Stop hook dry-run should pass turn_id through to capture-runtime-events."
   Assert-Contains $stopEventOut.hookSpecificOutput.hookMessage "recovery_checkpoint: repo_state + 下一步唯一动作" "Stop hook dry-run should preview the recovery checkpoint contract."
   Assert-Contains $stopEventOut.hookSpecificOutput.hookMessage "repo_state:" "Stop hook dry-run should preview repo_state recovery evidence."
+
+  $archivePackageRel = New-ArchiveReadyPackage -projectRoot $projectRoot -packageName "202604011200_archive_ready"
+  Set-CurrentPackage -projectRoot $projectRoot -packageRel $archivePackageRel
+  $archiveOut = Invoke-ArchivePlanPackageJson -projectRoot $projectRoot -package $archivePackageRel
+  Assert-True ($archiveOut.ok -eq $true) "Archive script should archive a ready package."
+  Assert-True ($archiveOut.exit_code -eq 0) "Archive script should exit 0 for a ready package."
+  Assert-Contains $archiveOut.history_package "HAGSWorks/history/2026-04/202604011200_archive_ready/" "Archive script should place packages under history/YYYY-MM."
+  Assert-True (-not (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/plan/202604011200_archive_ready") -PathType Container)) "Archive script should remove the source package from HAGSWorks/plan."
+  Assert-True (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/history/2026-04/202604011200_archive_ready") -PathType Container) "Archive script should create the history package directory."
+  $pointerAfterArchive = Read-Utf8Text -path (Join-Path $projectRoot "HAGSWorks/plan/_current.md")
+  Assert-Contains $pointerAfterArchive "current_package:" "Archive script should preserve the current_package key."
+  Assert-NotContains $pointerAfterArchive "202604011200_archive_ready" "Archive script should clear _current.md when it pointed to the archived package."
+  $historyIndexAfterArchive = Read-Utf8Text -path (Join-Path $projectRoot "HAGSWorks/history/index.md")
+  Assert-Contains $historyIndexAfterArchive "202604011200_archive_ready" "Archive script should append history/index.md."
+  Assert-Contains $historyIndexAfterArchive "validate-plan-package.ps1 -Mode archive" "Archive index entry should include validation evidence."
+
+  $archiveConflictRel = New-ArchiveReadyPackage -projectRoot $projectRoot -packageName "202604011200_archive_ready"
+  Set-CurrentPackage -projectRoot $projectRoot -packageRel $archiveConflictRel
+  $archiveConflictOut = Invoke-ArchivePlanPackageJson -projectRoot $projectRoot -package $archiveConflictRel
+  Assert-True ($archiveConflictOut.ok -eq $true) "Archive script should archive conflict packages by suffixing instead of overwriting."
+  Assert-True ($archiveConflictOut.history_conflict -eq $true) "Archive script should report a history conflict when suffixing."
+  Assert-Contains $archiveConflictOut.history_package "202604011200_archive_ready_v2/" "Archive script should append _v2 on first history conflict."
+  Assert-True (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/history/2026-04/202604011200_archive_ready") -PathType Container) "Archive script should keep the original history package."
+  Assert-True (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/history/2026-04/202604011200_archive_ready_v2") -PathType Container) "Archive script should create the suffixed history package."
+
+  $archiveBlockedRel = New-ArchiveReadyPackage -projectRoot $projectRoot -packageName "202604011201_archive_blocked"
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $archiveBlockedRel -taskText @"
+# 任务清单: archive blocked smoke
+
+- [ ] 1.0 仍未完成的任务
+
+## 上下文快照
+
+### Repo 状态（复现/防漂移，执行域必填）
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: mid
+
+### 待用户输入（Pending）
+
+### 下一步唯一动作（可执行）
+- 下一步唯一动作: `继续完成任务` 预期: 未完成任务不能归档
+"@
+  Set-CurrentPackage -projectRoot $projectRoot -packageRel $archiveBlockedRel
+  $archiveBlockedOut = Invoke-ArchivePlanPackageJson -projectRoot $projectRoot -package $archiveBlockedRel
+  Assert-True ($archiveBlockedOut.ok -eq $false) "Archive script should reject packages that fail Archive Readiness Gate."
+  Assert-True ($archiveBlockedOut.exit_code -ne 0) "Archive script should exit non-zero when Archive Readiness Gate fails."
+  Assert-Contains (($archiveBlockedOut.errors -join "`n")) "pending tasks" "Archive script should surface validator errors for not-ready packages."
+  Assert-True (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/plan/202604011201_archive_blocked") -PathType Container) "Archive script should keep blocked packages active under HAGSWorks/plan."
+  Assert-True (-not (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/history/2026-04/202604011201_archive_blocked") -PathType Container)) "Archive script should not create history entries for blocked packages."
 
   Write-Output "OK: skill pack smoke validation passed"
 } finally {

@@ -139,7 +139,7 @@ IF 不满足任何条件:
 
 在任何“改代码/跑门禁/执行 verify_min”之前，先基于 `task.md` 做一次完成态判定：
 - 若 `task.md` 中所有任务均为 `[√]` 或 `[-]`，且 `### 待用户输入（Pending）` 为空：判定“执行任务可能已完成”；**禁止继续改代码**，但不得直接迁移。
-- 下一步：先按 `references/plan-lifecycle.md` 的 Archive Readiness Gate 检查归档就绪；门禁通过才迁移到 history/ 并清空 `HAGSWorks/plan/_current.md`；门禁未通过则保持当前包 active，只补 Review / verify / 快照收尾。
+- 下一步：先按 `references/plan-lifecycle.md` 的 Archive Readiness Gate 检查归档就绪；若存在 `HAGSWorks/scripts/archive-plan-package.ps1`，必须用该脚本完成迁移、索引更新与 `_current.md` 清空；门禁未通过则保持当前包 active，只补 Review / verify / 快照收尾。
 - 若 Pending 已由 `UserPromptSubmit` hook 提前阻断：本流程只消费 `task.md` 中的 Pending 与“下一步唯一动作”，不再重复展开等待原因。
 - 若 `Stop` hook / `capture-runtime-events.ps1` 已写出 `model_event` + `repo_state` + `下一步唯一动作`：直接把它当作恢复检查点消费，不重复解释事件来源。
 - 若命中 `model_rerouted` / `response_incomplete`：在执行任何改代码动作前，先按 `references/resume-protocol.md` 做一次 contract 复核；恢复成功不等于可以跳过对齐检查。
@@ -471,12 +471,16 @@ next_unique_action: "等待用户输入序号 1-2"
    - 如有多个失败/跳过任务，可在末尾添加执行总结章节
 
   1.1 归档就绪检查（必须）:
-    - 若存在 `HAGSWorks/scripts/validate-plan-package.ps1`，迁移前运行：
+    - 若存在 `HAGSWorks/scripts/archive-plan-package.ps1`，优先运行：
+      - `pwsh -NoProfile -File HAGSWorks/scripts/archive-plan-package.ps1 -Package <CURRENT_PACKAGE>`
+      - 该脚本会先调用 `validate-plan-package.ps1 -Mode archive`，通过后再迁移目录、更新 `history/index.md`、按需清空 `_current.md`
+    - 若归档脚本不存在但存在 `HAGSWorks/scripts/validate-plan-package.ps1`，迁移前运行：
       - `pwsh -NoProfile -File HAGSWorks/scripts/validate-plan-package.ps1 -Mode archive -Package <CURRENT_PACKAGE>`
-    - 若脚本不存在，则按 `references/plan-lifecycle.md` 的 Archive Readiness Gate 手动检查
+    - 若两个脚本都不存在，则按 `references/plan-lifecycle.md` 的 Archive Readiness Gate 手动检查
     - 未通过时：**禁止迁移、禁止清空 `_current.md`**；更新 `task.md##上下文快照` 的 progress / repo_state / 下一步唯一动作，并输出“本轮部分完成，方案包保持 active”
 
   2. 迁移至历史记录目录（仅归档就绪检查通过后）:
+    - 有归档脚本时禁止手动迁移；以脚本输出的 `history_package` 为准
     - 将方案包目录从 plan/ 移动到 history/YYYY-MM/ 下
     - YYYY-MM 从方案包目录名提取（如 202511201200_xxx → 2025-11）
     - 迁移后完整路径: history/YYYY-MM/YYYYMMDDHHMM_<feature>/
