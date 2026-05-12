@@ -555,6 +555,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-
   "Test-IsPathUnderDirectory",
   "package_completed",
   "completed_looking",
+  "new_requirement_policy",
   "任务状态符号",
   "Archive Readiness Gate"
 )
@@ -595,7 +596,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/capture-runtime-
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/validate-skill-pack-smoke.ps1" -needles @(
   "plan_evil",
   "outside HAGSWorks/plan",
-  "outside plan root"
+  "outside plan root",
+  "new_requirement_policy"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/hooks.json" -needles @(
@@ -919,7 +921,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/validate-plan-pa
   "progress_phase: final",
   "inside '## 上下文快照'",
   "Review 记录",
-  "verification or retest evidence",
+  "positive verification or retest evidence",
+  "未执行验证",
   "summary/decision line",
   "verify_min is not concrete",
   "archive_gate_missing_evidence",

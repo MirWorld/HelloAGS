@@ -253,7 +253,11 @@ if (Test-Path -LiteralPath $currentPointer) {
 
 $packages = @()
 if (-not [string]::IsNullOrWhiteSpace($Package)) {
-  $packageFull = Join-Path $projectRoot $Package
+  if ([System.IO.Path]::IsPathRooted($Package)) {
+    $packageFull = $Package
+  } else {
+    $packageFull = Join-Path $projectRoot $Package
+  }
   if (-not (Test-Path -LiteralPath $packageFull)) {
     Add-Error "package not found: $Package (resolved: $packageFull)"
     if ($Json) { Emit-Json }
@@ -504,7 +508,10 @@ foreach ($pkg in $packages) {
               if ($line -match '(?i)\breview\b|结论|摘要|问题|修复') {
                 $hasReviewSummary = $true
               }
-              if ($line -match '(?i)复测|验证|build|test|lint|fmt|security|check') {
+              $looksLikeEvidence = ($line -match '(?i)复测|验证|build|test|lint|fmt|security|check|运行|命令')
+              $hasPositiveResult = ($line -match '(?i)通过|成功|pass(?:ed)?|ok\b|exit\s*0|结果\s*[:：]\s*0\b|未触发|不适用')
+              $isNegativeEvidence = ($line -match '(?i)未执行|未运行|未验证|未复测|not\s+run|skipp?ed')
+              if ($looksLikeEvidence -and $hasPositiveResult -and -not $isNegativeEvidence) {
                 $hasReviewEvidence = $true
               }
             }
@@ -512,7 +519,7 @@ foreach ($pkg in $packages) {
               Add-Error "package '${pkgName}' task.md archive mode requires Review 记录 to include a summary/decision line (e.g. Review/结论/摘要/问题/修复). signal: archive_gate_missing_evidence"
             }
             if (-not $hasReviewEvidence) {
-              Add-Error "package '${pkgName}' task.md archive mode requires Review 记录 to include verification or retest evidence (e.g. 复测/验证/build/test/lint/fmt/security/check). signal: archive_gate_missing_evidence"
+              Add-Error "package '${pkgName}' task.md archive mode requires Review 记录 to include positive verification or retest evidence (e.g. 复测/验证/build/test/lint/fmt/security/check with 通过/pass/ok/exit 0). '未执行验证' is not evidence. signal: archive_gate_missing_evidence"
             }
           }
         }

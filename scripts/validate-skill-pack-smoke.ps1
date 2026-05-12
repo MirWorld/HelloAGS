@@ -438,6 +438,14 @@ try {
   Assert-Contains $userCompletedOut.hookSpecificOutput.additionalContext "severity: Red" "Completed-package warning should emit a Red severity signal."
   Assert-Contains $userCompletedOut.hookSpecificOutput.additionalContext "Archive Readiness Gate" "Completed-package warning should route to Archive Readiness Gate before archive."
 
+  $payloadCompletedNewTask = Join-Path $scratchRoot "userpromptsubmit-completed-new-task.json"
+  New-SmokePayload -path $payloadCompletedNewTask -prompt "新增一个新功能" -projectRoot $projectRoot -turnId "turn_demo_prompt_005b"
+  $userCompletedNewTaskOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadCompletedNewTask -projectRoot $projectRoot
+  try { $completedNewTaskDecision = $userCompletedNewTaskOut.decision } catch { $completedNewTaskDecision = $null }
+  Assert-True ([string]::IsNullOrWhiteSpace($completedNewTaskDecision)) "Completed-looking package should not block a new requirement prompt."
+  Assert-Contains $userCompletedNewTaskOut.hookSpecificOutput.additionalContext "package_status: completed_looking" "Completed-looking package should still inject context for new requirement prompts."
+  Assert-Contains $userCompletedNewTaskOut.hookSpecificOutput.additionalContext "new_requirement_policy" "Completed-looking context should tell the model not to reuse the old package for new work."
+
   $validatorArchiveMissingReview = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "archive" -package $packageRel
   Assert-True (-not $validatorArchiveMissingReview.ok) "Archive mode should fail completed-looking packages that still lack closeout Review evidence."
   $archiveMissingReviewText = ($validatorArchiveMissingReview.errors -join "`n")
@@ -452,6 +460,17 @@ try {
   $validatorArchiveReviewSummaryOnly = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "archive" -package $packageRel
   Assert-True (-not $validatorArchiveReviewSummaryOnly.ok) "Archive mode should fail Review records that lack verification or retest evidence."
   Assert-Contains (($validatorArchiveReviewSummaryOnly.errors -join "`n")) "verification or retest evidence" "Archive mode should explain missing evidence."
+
+  $archiveReviewNotRunTask = $completedTask + @"
+
+## Review 记录
+- Review: 规格一致性与结构质量已检查
+- 验证: 未执行，原因: 忘记补证据
+"@
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $archiveReviewNotRunTask
+  $validatorArchiveReviewNotRun = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "archive" -package $packageRel
+  Assert-True (-not $validatorArchiveReviewNotRun.ok) "Archive mode should fail Review records that say validation was not run."
+  Assert-Contains (($validatorArchiveReviewNotRun.errors -join "`n")) "未执行验证" "Archive mode should explain that not-run validation is not evidence."
 
   $archiveProgressOnlyInInstructionTask = @"
 # 任务清单: smoke

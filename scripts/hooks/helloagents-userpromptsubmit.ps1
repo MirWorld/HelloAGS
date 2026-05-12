@@ -734,21 +734,26 @@ try {
   }
 
   if ($pendingLines.Count -eq 0 -and $featureRemovalGuardLines.Count -eq 0) {
-    if ($packageCompleted -and $isResumeOrExecutePrompt) {
+    if ($packageCompleted) {
       $completeLines = @(
         "[HelloAGENTS Guard] 当前方案包任务已全终态且无 Pending；不要重复执行当前任务，需先做 Archive Readiness Gate。",
         ("current_package: {0}" -f $packagePointer),
         "package_status: completed_looking",
         "signal: package_completed",
         "severity: Red",
-        "next_unique_action: 先执行 Archive Readiness Gate；门禁通过才归档，否则保持 active 并补 Review / verify / progress"
+        "next_unique_action: 先执行 Archive Readiness Gate；门禁通过才归档，否则保持 active 并补 Review / verify / progress",
+        "new_requirement_policy: 如用户提出新需求，不要复用 completed_looking 包；先完成 closeout，或将用户输入作为明确 Delta 新建/承接方案包"
       )
       if (-not [string]::IsNullOrWhiteSpace($turnId)) {
         $completeLines += ("current_turn_id: {0}" -f $turnId)
       }
 
       $msg = "当前方案包任务已全终态且无 Pending；本轮不得继续改代码，只允许执行 Archive Readiness Gate。"
-      Write-HookOutputJson -SystemMessage $msg -AdditionalContext ($completeLines -join "`n")
+      if ($isResumeOrExecutePrompt) {
+        Write-HookOutputJson -SystemMessage $msg -AdditionalContext ($completeLines -join "`n")
+      } else {
+        Write-HookOutputJson -AdditionalContext ($completeLines -join "`n")
+      }
       exit 0
     }
 
