@@ -185,6 +185,55 @@ function Add-HistoryIndexEntry(
   Add-Content -LiteralPath $indexPath -Value $entry -Encoding utf8
 }
 
+function Restore-TextFile([string]$path, [string]$originalText, [bool]$originalExists) {
+  if ($originalExists) {
+    if (Test-Path -LiteralPath $path) {
+      try {
+        $attributes = [System.IO.File]::GetAttributes($path)
+        if (($attributes -band [System.IO.FileAttributes]::ReadOnly) -ne 0) {
+          [System.IO.File]::SetAttributes($path, ($attributes -band (-bnot [System.IO.FileAttributes]::ReadOnly)))
+        }
+      } catch {
+        # ignore and let write surface a concrete error if needed
+      }
+    }
+    Write-Utf8Text -path $path -text $originalText
+  } elseif (Test-Path -LiteralPath $path) {
+    Remove-Item -LiteralPath $path -Force
+  }
+}
+
+function Invoke-ArchiveRollback(
+  [string]$sourcePath,
+  [string]$destinationPath,
+  [string]$indexPath,
+  [string]$pointerPath,
+  [bool]$indexExistedBefore,
+  [string]$indexTextBefore,
+  [bool]$pointerExistedBefore,
+  [string]$pointerTextBefore
+) {
+  $rollbackReport = [ordered]@{
+    rollback_attempted = $false
+    rollback_succeeded = $false
+    rollback_errors = @()
+  }
+
+  $rollbackReport.rollback_attempted = $true
+  try {
+    if ((Test-Path -LiteralPath $destinationPath -PathType Container) -and (-not (Test-Path -LiteralPath $sourcePath -PathType Container))) {
+      Move-Item -LiteralPath $destinationPath -Destination $sourcePath -Force
+    }
+    Restore-TextFile -path $indexPath -originalText $indexTextBefore -originalExists $indexExistedBefore
+    Restore-TextFile -path $pointerPath -originalText $pointerTextBefore -originalExists $pointerExistedBefore
+    $rollbackReport.rollback_succeeded = $true
+  } catch {
+    $rollbackReport.rollback_errors += $_.Exception.Message
+  }
+
+  return $rollbackReport
+}
+
 function Emit-Report([hashtable]$report, [int]$exitCode) {
   if ($Json) {
     $report | ConvertTo-Json -Depth 12
@@ -208,6 +257,8 @@ $report = [ordered]@{
   history_conflict_suffix = ""
   current_pointer_cleared = $false
   index_updated = $false
+  rollback_attempted = $false
+  rollback_succeeded = $false
   validation = $null
   errors = @()
   warnings = @()
@@ -217,6 +268,8 @@ try {
   $projectRootFull = Get-ProjectRoot
   $planRootFull = [System.IO.Path]::GetFullPath((Join-Path $projectRootFull $PlanRoot))
   $historyRootFull = [System.IO.Path]::GetFullPath((Join-Path $projectRootFull $HistoryRoot))
+  $expectedPlanRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRootFull "HAGSWorks/plan"))
+  $expectedHistoryRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRootFull "HAGSWorks/history"))
   $pointerPath = Join-Path $planRootFull "_current.md"
   $validatorPath = Join-Path $projectRootFull "HAGSWorks/scripts/validate-plan-package.ps1"
   $indexPath = Join-Path $historyRootFull "index.md"
@@ -232,6 +285,16 @@ try {
 
   if (-not (Test-Path -LiteralPath $planRootFull -PathType Container)) {
     $report.errors += "plan root not found: $PlanRoot (resolved: $planRootFull)"
+    Emit-Report -report $report -exitCode 1
+  }
+
+  if (-not (Test-SamePath -left $planRootFull -right $expectedPlanRoot)) {
+    $report.errors += "plan root must resolve to HAGSWorks/plan: $planRootFull"
+    Emit-Report -report $report -exitCode 1
+  }
+
+  if (-not (Test-SamePath -left $historyRootFull -right $expectedHistoryRoot)) {
+    $report.errors += "history root must resolve to HAGSWorks/history: $historyRootFull"
     Emit-Report -report $report -exitCode 1
   }
 
@@ -290,28 +353,56 @@ try {
     Emit-Report -report $report -exitCode 1
   }
 
-  Move-Item -LiteralPath $packageFull -Destination $destinationFull
-
   $destinationName = Split-Path -Leaf $destinationFull
   $historyRelative = ("HAGSWorks/history/{0}/{1}/" -f $historyMonth, $destinationName)
   $sourceRelative = ("HAGSWorks/plan/{0}/" -f $packageName)
   $report.source_package = $sourceRelative
   $report.history_package = $historyRelative
 
-  if (-not (Test-Path -LiteralPath $indexPath -PathType Leaf)) {
+  $indexExistedBefore = Test-Path -LiteralPath $indexPath -PathType Leaf
+  $indexTextBefore = $null
+  if ($indexExistedBefore) {
+    $indexTextBefore = Read-Text $indexPath
+  } else {
     Write-Utf8Text -path $indexPath -text "# 历史方案索引`n"
   }
-  Add-HistoryIndexEntry -indexPath $indexPath -packageName $destinationName -historyRelative $historyRelative -sourceRelative $sourceRelative
-  $report.index_updated = $true
 
-  $currentPackageFull = Get-CurrentPackagePath -projectRoot $projectRootFull -pointerPath $pointerPath
-  if (Test-SamePath -left $currentPackageFull -right $packageFull) {
-    Clear-CurrentPointer -pointerPath $pointerPath
-    $report.current_pointer_cleared = $true
+  $pointerExistedBefore = Test-Path -LiteralPath $pointerPath -PathType Leaf
+  $pointerTextBefore = $null
+  if ($pointerExistedBefore) {
+    $pointerTextBefore = Read-Text $pointerPath
   }
 
-  $report.ok = $true
-  Emit-Report -report $report -exitCode 0
+  $moveCompleted = $false
+  try {
+    Move-Item -LiteralPath $packageFull -Destination $destinationFull
+    $moveCompleted = $true
+
+    Add-HistoryIndexEntry -indexPath $indexPath -packageName $destinationName -historyRelative $historyRelative -sourceRelative $sourceRelative
+    $report.index_updated = $true
+
+    $currentPackageFull = Get-CurrentPackagePath -projectRoot $projectRootFull -pointerPath $pointerPath
+    if (Test-SamePath -left $currentPackageFull -right $packageFull) {
+      Clear-CurrentPointer -pointerPath $pointerPath
+      $report.current_pointer_cleared = $true
+    }
+
+    $report.ok = $true
+    Emit-Report -report $report -exitCode 0
+  } catch {
+    if ($moveCompleted) {
+      $report.rollback_attempted = $true
+      $rollback = Invoke-ArchiveRollback -sourcePath $packageFull -destinationPath $destinationFull -indexPath $indexPath -pointerPath $pointerPath -indexExistedBefore $indexExistedBefore -indexTextBefore $indexTextBefore -pointerExistedBefore $pointerExistedBefore -pointerTextBefore $pointerTextBefore
+      $report.rollback_succeeded = $rollback.rollback_succeeded
+      $report.errors += @($rollback.rollback_errors)
+      if (-not $rollback.rollback_succeeded) {
+        $report.errors += "archive failed after move and rollback was incomplete; half-migration state may remain."
+      }
+    }
+
+    $report.errors += $_.Exception.Message
+    Emit-Report -report $report -exitCode 1
+  }
 } catch {
   $report.errors += $_.Exception.Message
   Emit-Report -report $report -exitCode 1

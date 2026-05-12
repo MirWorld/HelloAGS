@@ -949,9 +949,16 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/archive-plan-pac
   "Move-Item",
   "history_conflict",
   "current_pointer_cleared",
+  "rollback_attempted",
+  "rollback_succeeded",
   "HAGSWorks/history",
   "HAGSWorks/plan",
-  "package is outside plan root"
+  "package is outside plan root",
+  "plan root must resolve to HAGSWorks/plan",
+  "history root must resolve to HAGSWorks/history",
+  "archive failed after move and rollback was incomplete",
+  "Restore-TextFile",
+  "Invoke-ArchiveRollback"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @(

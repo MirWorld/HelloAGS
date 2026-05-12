@@ -62,7 +62,7 @@ archive_script: HAGSWorks/scripts/archive-plan-package.ps1
 
 默认执行方式：
 - 优先使用 `HAGSWorks/scripts/archive-plan-package.ps1` 完成迁移；不要手动拼 `Move-Item`、手动更新 `history/index.md`、手动清空 `_current.md`。
-- 脚本返回失败时，视为 Archive Readiness Gate 未通过；必须保留方案包 active，并按第 3 节补快照与下一步唯一动作。
+- 脚本返回失败时，视为 Archive Readiness Gate 未通过；脚本应自动回滚到 `HAGSWorks/plan/`，并保留方案包 active；若回滚失败，必须把“半迁移风险”显式写入检查点，再按第 3 节补快照与下一步唯一动作。
 
 1. 回写 `task.md`：所有任务标注真实状态；非 `[√]` 的任务必须写 `> 备注: ...`
 2. 迁移目录：`HAGSWorks/history/YYYY-MM/YYYYMMDDHHMM_<feature>/`

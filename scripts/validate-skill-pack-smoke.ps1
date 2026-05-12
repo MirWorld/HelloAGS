@@ -262,6 +262,20 @@ function Set-CurrentPackage([string]$projectRoot, [string]$packageRel) {
   Write-Utf8Text -path $pointerPath -text ("# 当前方案包指针`n`ncurrent_package: {0}`n" -f $packageRel.Replace('\', '/'))
 }
 
+function Set-FileReadOnly([string]$path, [bool]$readOnly) {
+  if (-not (Test-Path -LiteralPath $path)) {
+    return
+  }
+
+  $attributes = [System.IO.File]::GetAttributes($path)
+  if ($readOnly) {
+    $attributes = $attributes -bor [System.IO.FileAttributes]::ReadOnly
+  } else {
+    $attributes = $attributes -band (-bnot [System.IO.FileAttributes]::ReadOnly)
+  }
+  [System.IO.File]::SetAttributes($path, $attributes)
+}
+
 function Set-SmokeTaskText([string]$projectRoot, [string]$packageRel, [string]$taskText) {
   $taskPath = Join-Path $projectRoot ($packageRel.Replace('/', '\') + "\task.md")
   Write-Utf8Text -path $taskPath -text $taskText
@@ -795,6 +809,35 @@ carry_forward_verify: 无
   Assert-Contains $archiveConflictOut.history_package "202604011200_archive_ready_v2/" "Archive script should append _v2 on first history conflict."
   Assert-True (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/history/2026-04/202604011200_archive_ready") -PathType Container) "Archive script should keep the original history package."
   Assert-True (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/history/2026-04/202604011200_archive_ready_v2") -PathType Container) "Archive script should create the suffixed history package."
+
+  $archiveIndexBlockedRel = New-ArchiveReadyPackage -projectRoot $projectRoot -packageName "202604011201_archive_index_blocked"
+  Set-CurrentPackage -projectRoot $projectRoot -packageRel $archiveIndexBlockedRel
+  if (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/history/index.md")) {
+    Remove-Item -LiteralPath (Join-Path $projectRoot "HAGSWorks/history/index.md") -Force
+  }
+  New-Item -ItemType Directory -Path (Join-Path $projectRoot "HAGSWorks/history/index.md") -Force | Out-Null
+  $archiveIndexBlockedOut = Invoke-ArchivePlanPackageJson -projectRoot $projectRoot -package $archiveIndexBlockedRel
+  Assert-True ($archiveIndexBlockedOut.ok -eq $false) "Archive script should reject a non-writable history index target before moving."
+  Assert-True (($archiveIndexBlockedOut.rollback_attempted -eq $false) -or ($archiveIndexBlockedOut.rollback_succeeded -eq $true)) "Pre-move index failures should not leave a half-migrated package."
+  Assert-True (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/plan/202604011201_archive_index_blocked") -PathType Container) "Archive script should keep blocked packages active under HAGSWorks/plan when index target is invalid."
+  Assert-True (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/history/index.md") -PathType Container) "Smoke setup should keep the index path as a directory for this check."
+  Remove-Item -LiteralPath (Join-Path $projectRoot "HAGSWorks/history/index.md") -Force
+  Write-Utf8Text -path (Join-Path $projectRoot "HAGSWorks/history/index.md") -text "# 历史方案索引`n"
+
+  $archiveRollbackRel = New-ArchiveReadyPackage -projectRoot $projectRoot -packageName "202604011202_archive_rollback"
+  Set-CurrentPackage -projectRoot $projectRoot -packageRel $archiveRollbackRel
+  Set-FileReadOnly -path (Join-Path $projectRoot "HAGSWorks/history/index.md") -readOnly $true
+  try {
+    $archiveRollbackOut = Invoke-ArchivePlanPackageJson -projectRoot $projectRoot -package $archiveRollbackRel
+    Assert-True ($archiveRollbackOut.ok -eq $false) "Archive script should fail when index append is blocked."
+    Assert-True ($archiveRollbackOut.rollback_attempted -eq $true) "Archive script should attempt rollback after post-move failure."
+    Assert-True ($archiveRollbackOut.rollback_succeeded -eq $true) "Archive script should roll back a post-move failure."
+    Assert-True (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/plan/202604011202_archive_rollback") -PathType Container) "Rollback should restore the package to plan."
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/history/2026-04/202604011202_archive_rollback") -PathType Container)) "Rollback should remove the half-migrated history package."
+  } finally {
+    Set-FileReadOnly -path (Join-Path $projectRoot "HAGSWorks/history/index.md") -readOnly $false
+    Write-Utf8Text -path (Join-Path $projectRoot "HAGSWorks/history/index.md") -text "# 历史方案索引`n"
+  }
 
   $archiveBlockedRel = New-ArchiveReadyPackage -projectRoot $projectRoot -packageName "202604011201_archive_blocked"
   Set-SmokeTaskText -projectRoot $projectRoot -packageRel $archiveBlockedRel -taskText @"

@@ -473,7 +473,7 @@ next_unique_action: "等待用户输入序号 1-2"
   1.1 归档就绪检查（必须）:
     - 若存在 `HAGSWorks/scripts/archive-plan-package.ps1`，优先运行：
       - `pwsh -NoProfile -File HAGSWorks/scripts/archive-plan-package.ps1 -Package <CURRENT_PACKAGE>`
-      - 该脚本会先调用 `validate-plan-package.ps1 -Mode archive`，通过后再迁移目录、更新 `history/index.md`、按需清空 `_current.md`
+      - 该脚本会先调用 `validate-plan-package.ps1 -Mode archive`，通过后再迁移目录、更新 `history/index.md`、按需清空 `_current.md`；失败时应自动回滚，避免半迁移
     - 若归档脚本不存在但存在 `HAGSWorks/scripts/validate-plan-package.ps1`，迁移前运行：
       - `pwsh -NoProfile -File HAGSWorks/scripts/validate-plan-package.ps1 -Mode archive -Package <CURRENT_PACKAGE>`
     - 若两个脚本都不存在，则按 `references/plan-lifecycle.md` 的 Archive Readiness Gate 手动检查
