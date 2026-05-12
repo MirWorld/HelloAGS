@@ -54,7 +54,7 @@
 ## 6. Review（必做）
 - [ ] 6.1 Review-规格一致性：对齐摘要（目标/成功标准/非目标/约束）与实现/任务/验证保持一致；`## 上下文快照` 覆盖关键决策/约束/下一步唯一动作且来源标签齐全；`HAGSWorks/active_context.md` 可续作且 Public APIs 具备 `[SRC:CODE]` 指针
 - [ ] 6.2 Review-结构与质量：边界/依赖方向正确；不新增重复；命名与抽象可读；避免 utils 膨胀；长任务检查是否出现结构侵蚀 / 胶水扩散 / 后置任务打穿前置结果；快照“事实区”不得混入推断；active_context 不得出现“无来源事实”
-- [ ] 6.3 记录 Review：在文末 `## Review 记录` 填写（问题≤5条/修复≤5条/复测摘要），优先记录结构侵蚀 / 累计回归 / 设计债务
+- [ ] 6.3 记录 Review：在文末 `## Review 记录` 填写（问题≤5条/修复≤5条/复测摘要，并附验证/复测证据），优先记录结构侵蚀 / 累计回归 / 设计债务
 - [ ] 6.4 如 Review 引入修复：重跑受影响门禁（通常为 fmt/lint/typecheck/build/test），最多 3 轮“Review→修复→复测”
 - [ ] 6.5 交付前收尾：按 `references/finish-checklist.md` 自检（证据/快照/active_context/输出格式）
 - [ ] 6.6 归档就绪检查：仅当所有任务已终态、Pending 为空、`progress_phase: final`、Review 记录已填写且验证证据可追溯时，才允许按 `references/plan-lifecycle.md` 迁移到 history；否则保持当前方案包 active 并写清下一步唯一动作

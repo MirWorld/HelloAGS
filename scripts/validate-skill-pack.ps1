@@ -666,6 +666,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.
   "Archive Readiness Gate",
   "-Mode archive",
   "本轮执行结束 ≠ 方案包完成",
+  "验证/复测证据",
   "</plan_lifecycle_contract>",
   "轻量检索元数据"
 )
@@ -818,6 +819,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-templa
   "### 功能删减审批",
   "feature_removal_risk:",
   "feature_removal_approved:",
+  "验证/复测证据",
   "### 待用户输入（Pending）",
   "### 下一步唯一动作",
   "下一步唯一动作:",
@@ -903,6 +905,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/validate-plan-pa
   "archive",
   "progress_phase: final",
   "Review 记录",
+  "verification or retest evidence",
+  "summary/decision line",
   "Keep the package active",
   "任务状态符号",
   "skipped task without",

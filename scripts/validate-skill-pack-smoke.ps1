@@ -407,6 +407,16 @@ try {
   $archiveMissingReviewText = ($validatorArchiveMissingReview.errors -join "`n")
   Assert-Contains $archiveMissingReviewText "Review 记录" "Archive mode should require a non-empty Review record before history migration."
 
+  $archiveReviewSummaryOnlyTask = $completedTask + @"
+
+## Review 记录
+- Review: 只有结论没有证据
+"@
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $archiveReviewSummaryOnlyTask
+  $validatorArchiveReviewSummaryOnly = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "archive" -package $packageRel
+  Assert-True (-not $validatorArchiveReviewSummaryOnly.ok) "Archive mode should fail Review records that lack verification or retest evidence."
+  Assert-Contains (($validatorArchiveReviewSummaryOnly.errors -join "`n")) "verification or retest evidence" "Archive mode should explain missing evidence."
+
   $archiveReadyTask = $completedTask + @"
 
 ## Review 记录
@@ -443,7 +453,29 @@ try {
   Assert-True (-not $validatorArchiveSkippedNoReason.ok) "Archive mode should fail skipped tasks without explicit reasons."
   Assert-Contains (($validatorArchiveSkippedNoReason.errors -join "`n")) "skipped task without" "Archive mode should explain missing skip reason."
 
-  $archiveSkippedWithReasonTask = $archiveSkippedNoReasonTask.Replace("- [-] 1.0 明确跳过的任务", "- [-] 1.0 明确跳过的任务`r`n> 备注: 用户明确确认本项不执行")
+  $archiveSkippedWithReasonTask = @"
+# 任务清单: smoke
+
+- [-] 1.0 明确跳过的任务
+> 备注: 用户明确确认本项不执行
+
+## 上下文快照
+
+### Repo 状态（复现/防漂移，执行域必填）
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: final
+
+### 待用户输入（Pending）
+
+### 下一步唯一动作（可执行）
+- 下一步唯一动作: `执行 Archive Readiness Gate` 预期: 检查跳过原因
+
+## Review 记录
+- Review: 规格一致性与跳过原因已记录
+- 复测: `pwsh -NoProfile -Command "Write-Output smoke"` 结果: 通过
+"@
   Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $archiveSkippedWithReasonTask
   $validatorArchiveSkippedWithReason = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "archive" -package $packageRel
   Assert-True ($validatorArchiveSkippedWithReason.ok) "Archive mode should allow skipped tasks only when a reason is recorded."

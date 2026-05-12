@@ -43,7 +43,7 @@ archive_readiness_gate: required
 2. `### 待用户输入（Pending）` 为空。
 3. `progress_phase: final` 已写入 `task.md##上下文快照`。
 4. `verify_min` 与已触发门禁已有可追溯结果；未执行项必须写明原因与下一步。
-5. `## Review 记录` 已填写本轮 Review / 修复 / 复测摘要；不能只保留模板占位。
+5. `## Review 记录` 已填写本轮 Review / 修复 / 复测摘要，并能追溯到验证/复测证据；不能只保留模板占位。
 6. 若存在 `HAGSWorks/scripts/validate-plan-package.ps1`，迁移前必须运行：
    - `pwsh -NoProfile -File HAGSWorks/scripts/validate-plan-package.ps1 -Mode archive -Package <CURRENT_PACKAGE>`
 

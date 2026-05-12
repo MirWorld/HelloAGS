@@ -388,6 +388,23 @@ foreach ($pkg in $packages) {
           }
           if ($reviewLines.Count -eq 0) {
             Add-Error "package '${pkgName}' task.md archive mode requires a non-empty '## Review 记录'. Keep the package active until Review evidence and retest summary are recorded."
+          } else {
+            $hasReviewSummary = $false
+            $hasReviewEvidence = $false
+            foreach ($line in $reviewLines) {
+              if ($line -match '(?i)\breview\b|结论|摘要|问题|修复') {
+                $hasReviewSummary = $true
+              }
+              if ($line -match '(?i)复测|验证|build|test|lint|fmt|security|check') {
+                $hasReviewEvidence = $true
+              }
+            }
+            if (-not $hasReviewSummary) {
+              Add-Error "package '${pkgName}' task.md archive mode requires Review 记录 to include a summary/decision line (e.g. Review/结论/摘要/问题/修复)."
+            }
+            if (-not $hasReviewEvidence) {
+              Add-Error "package '${pkgName}' task.md archive mode requires Review 记录 to include verification or retest evidence (e.g. 复测/验证/build/test/lint/fmt/security/check)."
+            }
           }
         }
 
