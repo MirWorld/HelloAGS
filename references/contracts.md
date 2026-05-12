@@ -190,7 +190,7 @@
 - `signal: feature_removal_guard`
 - `signal: package_completed`
 - `severity: Red|Yellow`
-- `package_status: completed`
+- `package_status: completed_looking`（任务全终态且无 Pending；仍需 Archive Readiness Gate 才能归档）
 - `feature_removal_risk: clear|suspected|approved`
 - `feature_removal_approved: yes|no`
 - `compact_event: pre_compact|post_compact`
@@ -202,6 +202,7 @@
 - 自动回填 `task.md` 前必须在锁内重新读取、去重、再写入，避免并发 hook 覆盖
 - `feature_removal_risk` 若由 prompt 启发式首次识别，也应**先归一化为** `suspected` 再输出，避免主流程只能依赖自然语言猜测
 - `response_incomplete` 命中时，hooks 应优先输出 `signal: response_incomplete` + `severity: Red`
+- `package_status: completed_looking` 命中时，hooks 应输出 `signal: package_completed` + `severity: Red`，但不要用 `decision: block` 阻断整轮；主流程需要继续执行 Archive Readiness Gate，且只能做 closeout / archive 判断，禁止继续改代码
 - `Stop` hook 的事件回填预览应显式提示“恢复检查点”存在（至少含 `repo_state` + `下一步唯一动作`）
 
 来源：

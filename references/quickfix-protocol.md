@@ -93,6 +93,6 @@
 4. **最小改动**：只做必要修改；默认不新增文件、不顺手重构
 5. **最小验证**：按 `references/quality-gates.md` 选择最小门禁/验证（失败则按 `references/failure-protocol.md` 收敛升级）
    - 若本包内再次触碰同一 Workset：除当前 `verify_min` 外，顺带重跑 `carry_forward_verify` 中列出的既有验证（或明确写“不受影响”）
-6. **收尾与归档**：按 `references/plan-lifecycle.md` 把方案包迁移到 `HAGSWorks/history/YYYY-MM/`，避免 `plan/` 堆积
+6. **收尾与归档门禁**：按 `references/plan-lifecycle.md` 执行 Archive Readiness Gate；只有任务全终态、Pending 为空、`progress_phase: final`、验证证据与 Review 记录齐全时，才把方案包迁移到 `HAGSWorks/history/YYYY-MM/`；未通过时保持方案包 active 并写明下一步唯一动作
 
 若任务影响 Public API/契约/数据流：必须更新 `HAGSWorks/active_context.md`（见 `references/active-context.md`）。

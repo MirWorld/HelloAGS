@@ -16,7 +16,7 @@
 
 常见校验脚本：
 - `scripts/validate-skill-pack.ps1`：本 Skill 包自检（结构/引用/契约块）
-- `HAGSWorks/scripts/validate-plan-package.ps1`：方案包完整性校验（why/how/task + 关键章节；支持 `-Mode plan|exec`）
+- `HAGSWorks/scripts/validate-plan-package.ps1`：方案包完整性校验（why/how/task + 关键章节；支持 `-Mode plan|exec|archive`）
 - `HAGSWorks/scripts/validate-active-context.ps1`：Active Context 校验（Public API 指针可续作）
 
 ---

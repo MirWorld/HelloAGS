@@ -229,7 +229,13 @@ function Test-PackageCompleted([string]$taskText, [string[]]$pendingLines) {
     return $false
   }
 
-  $taskMatches = [regex]::Matches($taskText, '(?m)^\s*-\s*\[(?<state>\s|√|X|-|\?)\]\s+')
+  $taskListText = $taskText
+  $taskLegendMatch = [regex]::Match($taskListText, '(?ms)^\s*##\s*任务状态符号\s*$')
+  if ($taskLegendMatch.Success) {
+    $taskListText = $taskListText.Substring(0, $taskLegendMatch.Index)
+  }
+
+  $taskMatches = [regex]::Matches($taskListText, '(?m)^\s*-\s*\[(?<state>\s|√|X|-|\?)\]\s+')
   if ($taskMatches.Count -eq 0) {
     return $false
   }
@@ -409,11 +415,11 @@ if (Test-UnresolvedResponseIncomplete -taskText $taskText) {
 
 if (Test-PackageCompleted -taskText $taskText -pendingLines $pendingLines) {
   Write-SessionWarn `
-    -SystemMessage ("WARN: current_package already completed with no Pending: '{0}'. next=等待新需求或新建方案包，不要继续执行当前包" -f $rawPointer) `
+    -SystemMessage ("WARN: current_package tasks are terminal with no Pending: '{0}'. next=先执行 Archive Readiness Gate；门禁通过才归档，否则保持 active 并补收尾证据" -f $rawPointer) `
     -Signal "package_completed" `
     -PackagePointer $rawPointer `
-    -PackageStatus "completed" `
-    -NextUniqueAction "等待新需求或新建方案包，不要继续执行当前包"
+    -PackageStatus "completed_looking" `
+    -NextUniqueAction "先执行 Archive Readiness Gate；门禁通过才归档，否则保持 active 并补 Review / verify / progress"
   exit 0
 }
 

@@ -23,7 +23,7 @@ codex --version
 ```
 
 ### 0.2 HelloAGENTS 当前策略（与本清单相关的部分）
-- **No-Redo SSOT**：以 `task.md` 状态为准；任务全完成且无 Pending 时，续作默认“已完成→等待新需求”
+- **No-Redo SSOT**：以 `task.md` 状态为准；任务全终态且无 Pending 时只判定“执行任务可能完成”，先走 Archive Readiness Gate，门禁通过才归档/等待新需求
 - **结构化事件**：把 `model_event: model_rerouted|response_incomplete` 等写入 `task.md##上下文快照`
 - **高风险硬门禁**：出现 `response_incomplete` 但缺少事件后的恢复检查点（`repo_state` + `下一步唯一动作`）时，禁止进入执行域
 

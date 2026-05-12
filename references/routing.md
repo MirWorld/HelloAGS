@@ -208,7 +208,7 @@ next_unique_action: "等待用户输入序号 1-3"
 动作：
 - 按 `references/quickfix-protocol.md` 执行 Quick Fix 快路径（优先使用 quickfix 模板创建最小完整方案包）
 - 在 `task.md##上下文快照` 写一次检查点（Workset + 下一步唯一动作）后再开始改动
-- 按任务执行改动、验证、迁移到 history（执行细则：`develop/SKILL.md`）
+- 按任务执行改动与验证；完成后按 Archive Readiness Gate 判断是否迁移到 history，未通过则保持方案包 active（执行细则：`develop/SKILL.md`、`references/plan-lifecycle.md`）
 - 默认只写最小方案包：目标/边界/`verify_min`/执行任务/Review，不展开跨层、Active Context、子代理等触发式章节
 - 知识库缺失处理：
   - 若 `write_scope != no_write` 且需要落盘（写 `HAGSWorks/`）：先**隐式执行一次 `~init`**（幂等补齐）再继续
@@ -224,7 +224,7 @@ next_unique_action: "等待用户输入序号 1-3"
 动作：
 - 仅在 Quick Fix 不成立或已命中升级信号时进入本路径
 - 创建**最小完整方案包**（`why.md` + `how.md` + `task.md`，内容允许极简；若本质是“改参数/改配置值”，可参考 `references/quickfix-protocol.md` 的微清单）
-- 执行改动、更新知识库、迁移到 history、扫描遗留方案（执行细则：`develop/SKILL.md`）
+- 执行改动、更新知识库；完成后按 Archive Readiness Gate 判断是否迁移到 history，未通过则保持方案包 active；仅归档后扫描遗留方案（执行细则：`develop/SKILL.md`、`references/plan-lifecycle.md`）
 
 ### 4.3 标准开发
 适用：

@@ -486,6 +486,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/signal-severity
   '`model_event: response_incomplete`',
   '`feature_removal_approved: no`',
   '`current_package` 无效 / 不完整 / 指向 history',
+  '`package_status: completed_looking`',
+  "只允许执行 Archive Readiness Gate",
   "SessionStart hooks"
 )
 
@@ -541,8 +543,24 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-
   "package_status:",
   "current_package_invalid",
   "response_incomplete",
-  "package_completed"
+  "package_completed",
+  "completed_looking",
+  "任务状态符号",
+  "Archive Readiness Gate"
 )
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -needles @(
+  "package_completed",
+  "completed_looking",
+  "任务状态符号",
+  "Archive Readiness Gate"
+)
+
+Assert-NotMatches `
+  -repoRoot $repoRoot `
+  -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" `
+  -pattern 'if\s*\(\$packageCompleted[\s\S]{0,650}-Decision\s+"block"' `
+  -hint "completed_looking should allow the prompt to continue into Archive Readiness Gate; it must not block the whole turn."
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-context-threshold.ps1" -needles @(
   "Invoke-WithTaskFileLock",
@@ -644,6 +662,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.
   "history_conflict_suffix: _v2",
   "current_pointer_file: HAGSWorks/plan/_current.md",
   "current_pointer_key: current_package",
+  "archive_readiness_gate: required",
+  "Archive Readiness Gate",
+  "-Mode archive",
+  "本轮执行结束 ≠ 方案包完成",
   "</plan_lifecycle_contract>",
   "轻量检索元数据"
 )
@@ -654,25 +676,30 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "develop/SKILL.md" -needles @(
-  "<!-- CONTRACT: develop-no-redo v1 -->"
+  "<!-- CONTRACT: develop-no-redo v1 -->",
+  "Archive Readiness Gate",
+  "-Mode archive",
+  "本轮执行结束不等于方案完成",
+  "禁止迁移、禁止清空"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol.md" -needles @(
-  "<!-- CONTRACT: resume-no-redo v1 -->"
-  "<!-- CONTRACT: resume-package-selection v1 -->"
-  "<resume_package_selection_contract>"
-  "current_pointer_file: HAGSWorks/plan/_current.md"
-  "current_pointer_key: current_package"
-  "current_marker: （current）"
-  "list_current_first: true"
-  "list_sort: timestamp_desc"
-  "list_timestamp_source: dirname_prefix_YYYYMMDDHHMM"
-  "list_tiebreaker: dirname_desc"
-  "</resume_package_selection_contract>"
-  "<!-- CONTRACT: resume-current-package-pointer v1 -->"
+  "<!-- CONTRACT: resume-no-redo v1 -->",
+  "<!-- CONTRACT: resume-package-selection v1 -->",
+  "<resume_package_selection_contract>",
+  "current_pointer_file: HAGSWorks/plan/_current.md",
+  "current_pointer_key: current_package",
+  "current_marker: （current）",
+  "list_current_first: true",
+  "list_sort: timestamp_desc",
+  "list_timestamp_source: dirname_prefix_YYYYMMDDHHMM",
+  "list_tiebreaker: dirname_desc",
+  "</resume_package_selection_contract>",
+  "<!-- CONTRACT: resume-current-package-pointer v1 -->",
   "threshold_event: near_autocompact",
   "compact_event: pre_compact",
   "compact_event: post_compact",
+  "Archive Readiness Gate",
   "signal / severity / current_package / next_unique_action"
 )
 
@@ -747,7 +774,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-quickf
   "### 待用户输入（Pending）",
   "### 错误与尝试",
   "### 下一步唯一动作",
-  "下一步唯一动作:"
+  "下一步唯一动作:",
+  "收尾必填项",
+  "2.4 归档就绪检查",
+  "progress_phase: final"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/triage-pass.md" -needles @(
@@ -790,7 +820,43 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-templa
   "feature_removal_approved:",
   "### 待用户输入（Pending）",
   "### 下一步唯一动作",
-  "下一步唯一动作:"
+  "下一步唯一动作:",
+  "归档就绪检查"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
+  "Archive Readiness Gate",
+  "执行任务可能完成",
+  "不得直接归档",
+  "仅门禁通过才迁移方案包"
+)
+
+$legacyArchiveNeedles = @(
+  ("判定已完成并" + "归档/等待新需求"),
+  ("结束时**必须**" + "迁移方案包")
+)
+Assert-NotContainsAny -repoRoot $repoRoot -relativePath "SKILL.md" -needles $legacyArchiveNeedles
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "develop/SKILL.md" -needles @(
+  "防早归档规则",
+  "本轮执行结束不等于方案完成",
+  "Archive Readiness Gate",
+  '禁止迁移、禁止清空 `_current.md`',
+  '保持 `HAGSWorks/plan/<package>/` active'
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.md" -needles @(
+  "archive_readiness_gate: required",
+  "本轮执行结束 ≠ 方案包完成",
+  '禁止迁移到 `history/`',
+  "-Mode archive"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol.md" -needles @(
+  "执行任务可能完成",
+  "不得仅凭该条件归档",
+  "Archive Readiness Gate",
+  "未通过的包仍保留为 closeout 候选"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/finish-checklist.md" -needles @(
@@ -801,7 +867,14 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -ne
   "## 0) 阻断式路由（Hard Stop）",
   "疑似功能删减但未获批准",
   "### 6.2 功能删减确认（Feature Removal Confirmation）",
-  "feature_removal_approved: yes"
+  "feature_removal_approved: yes",
+  "Archive Readiness Gate 判断是否迁移到 history"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quickfix-protocol.md" -needles @(
+  "收尾与归档门禁",
+  "Archive Readiness Gate",
+  "未通过时保持方案包 active"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/execution-guard.md" -needles @(
@@ -827,13 +900,43 @@ Assert-NotContainsAny -repoRoot $repoRoot -relativePath "references/review-proto
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/validate-plan-package.ps1" -needles @(
   "carry_forward_verify",
   "progress_phase",
+  "archive",
+  "progress_phase: final",
+  "Review 记录",
+  "Keep the package active",
+  "任务状态符号",
+  "skipped task without",
   "design_debt",
   "revisit_trigger"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @(
   "功能删减确认",
-  "等待用户确认是否允许本次功能删减"
+  "等待用户确认是否允许本次功能删减",
+  "已执行方案必须先通过 Archive Readiness Gate"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "kb/SKILL.md" -needles @(
+  "迁移前门禁（防误归档）",
+  "默认视为仍需续作",
+  "放弃续作/未执行归档",
+  "已执行方案需先过 Archive Readiness Gate"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation.md" -needles @(
+  "Stop 只做收尾与提示",
+  "Archive Readiness Gate",
+  "不直接迁移 history"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/terminology.md" -needles @(
+  "-Mode plan|exec|archive"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -needles @(
+  "package_status: completed_looking",
+  "仍需 Archive Readiness Gate 才能归档",
+  "阻断整轮"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quality-gates.md" -needles @(

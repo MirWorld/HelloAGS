@@ -1,7 +1,7 @@
 param(
   [string]$PlanRoot = "HAGSWorks/plan",
   [string]$Package = "",
-  [ValidateSet("plan", "exec")]
+  [ValidateSet("plan", "exec", "archive")]
   [string]$Mode = "plan",
   [switch]$Json
 )
@@ -229,8 +229,8 @@ foreach ($pkg in $packages) {
         Add-Error "package '${pkgName}' how.md missing verify_min (expected a line like: verify_min: <command/steps>)"
       } else {
         $textNoCode = Strip-FencedCodeBlocks $text
-        if ($Mode -eq "exec" -and $textNoCode -match '(?mi)verify_min\s*[:：]\s*unknown\b') {
-          Add-Error "package '${pkgName}' how.md verify_min is unknown (exec mode requires a runnable verify_min)"
+        if (($Mode -in @("exec", "archive")) -and $textNoCode -match '(?mi)verify_min\s*[:：]\s*unknown\b') {
+          Add-Error "package '${pkgName}' how.md verify_min is unknown (${Mode} mode requires a runnable verify_min)"
         }
       }
 
@@ -244,24 +244,70 @@ foreach ($pkg in $packages) {
 
     if ($fileName -eq "task.md") {
       $textNoCode = Strip-FencedCodeBlocks $text
+      $taskListText = $textNoCode
+      $taskLegendMatch = [regex]::Match($taskListText, '(?ms)^\s*##\s*任务状态符号\s*$')
+      if ($taskLegendMatch.Success) {
+        $taskListText = $taskListText.Substring(0, $taskLegendMatch.Index)
+      }
       $taskItemAnyPattern = '(?m)^\s*-\s*\[(?:\s|√|X|-|\?)\]\s+'
       $taskItemOpenPattern = '(?m)^\s*-\s*\[\s\]\s+'
+      $taskItemFailedPattern = '(?m)^\s*-\s*\[X\]\s+'
+      $taskItemConfirmPattern = '(?m)^\s*-\s*\[\?\]\s+'
+      $taskItemSkippedPattern = '(?m)^\s*-\s*\[-\]\s+'
 
-      if ($textNoCode -notmatch $taskItemAnyPattern) {
+      if ($taskListText -notmatch $taskItemAnyPattern) {
         Add-Error "package '${pkgName}' task.md has no task items (- [ ]/[√]/[X]/[-]/[?])"
       }
 
       if ($Mode -eq "exec") {
-        if ($textNoCode -notmatch $taskItemOpenPattern) {
+        if ($taskListText -notmatch $taskItemOpenPattern) {
           Add-Error "package '${pkgName}' task.md has no pending tasks (- [ ]) (exec mode requires at least one pending task). If you need follow-up work, add a Delta to ## 上下文快照 and create a new - [ ] task."
         }
+      }
 
+      if ($Mode -eq "archive") {
+        if ($taskListText -match $taskItemOpenPattern) {
+          Add-Error "package '${pkgName}' task.md still has pending tasks (- [ ]) (archive mode requires all tasks to be terminal). Keep the package under HAGSWorks/plan and continue from _current.md."
+        }
+        if ($taskListText -match $taskItemFailedPattern) {
+          Add-Error "package '${pkgName}' task.md still has failed tasks (- [X]) (archive mode requires failures to be resolved or explicitly converted to skipped with a reason)."
+        }
+        if ($taskListText -match $taskItemConfirmPattern) {
+          Add-Error "package '${pkgName}' task.md still has confirmation tasks (- [?]) (archive mode requires all confirmations to be closed or left as Pending)."
+        }
+        $taskLines = $taskListText -split "\r?\n"
+        for ($i = 0; $i -lt $taskLines.Count; $i++) {
+          if ($taskLines[$i] -notmatch $taskItemSkippedPattern) {
+            continue
+          }
+
+          $hasSkipReason = $false
+          for ($j = $i + 1; $j -lt [Math]::Min($taskLines.Count, $i + 4); $j++) {
+            $next = $taskLines[$j].Trim()
+            if ([string]::IsNullOrWhiteSpace($next)) {
+              continue
+            }
+            if ($next -match $taskItemAnyPattern) {
+              break
+            }
+            if ($next -match '^>\s*备注\s*[:：]\s*\S') {
+              $hasSkipReason = $true
+            }
+            break
+          }
+          if (-not $hasSkipReason) {
+            Add-Error "package '${pkgName}' task.md has skipped task without a following '> 备注: <reason>' (archive mode requires explicit reasons for [-] tasks)."
+          }
+        }
+      }
+
+      if ($Mode -in @("exec", "archive")) {
         $nextBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '###\s*下一步唯一动作.*'
         $nextBody = Strip-HtmlComments $nextBody
         $nextLines = $nextBody -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
         $nextActionLines = $nextLines | Where-Object { $_ -match '下一步唯一动作\s*[:：]\s*\S' }
         if ($nextActionLines.Count -eq 0) {
-          Add-Error "package '${pkgName}' task.md missing next_unique_action under '### 下一步唯一动作' (exec mode requires a concrete next_unique_action)"
+          Add-Error "package '${pkgName}' task.md missing next_unique_action under '### 下一步唯一动作' (${Mode} mode requires a concrete next_unique_action)"
         } else {
           $okNextAction = $false
           foreach ($line in $nextActionLines) {
@@ -286,14 +332,18 @@ foreach ($pkg in $packages) {
           }
 
           if (-not $okNextAction) {
-            Add-Error "package '${pkgName}' task.md next_unique_action looks like a template placeholder (exec mode requires a concrete next_unique_action). Expected a line like: 下一步唯一动作: `<command>` 预期: ..."
+            Add-Error "package '${pkgName}' task.md next_unique_action looks like a template placeholder (${Mode} mode requires a concrete next_unique_action). Expected a line like: 下一步唯一动作: `<command>` 预期: ..."
           }
         }
 
-        if ($textNoCode -notmatch '(?mi)progress_phase\s*[:：]\s*(start|mid|late|final)\b') {
+        if ($Mode -eq "archive") {
+          if ($textNoCode -notmatch '(?mi)progress_phase\s*[:：]\s*final\b') {
+            Add-Error "package '${pkgName}' task.md archive mode requires progress_phase: final before migration to history. If work is partial, keep the package active under HAGSWorks/plan."
+          }
+        } elseif ($textNoCode -notmatch '(?mi)progress_phase\s*[:：]\s*(start|mid|late|final)\b') {
           Add-Warn "package '${pkgName}' task.md snapshot missing progress_phase. Recommended: record start|mid|late|final so long tasks do not wait until the end to expose drift."
         } else {
-          $taskCount = ([regex]::Matches($textNoCode, $taskItemAnyPattern)).Count
+          $taskCount = ([regex]::Matches($taskListText, $taskItemAnyPattern)).Count
           $hasMidOrLater = ($textNoCode -match '(?mi)progress_phase\s*[:：]\s*(mid|late|final)\b')
           if ($taskCount -ge 4 -and -not $hasMidOrLater) {
             Add-Warn "package '${pkgName}' looks like a long task (>=4 task items) but snapshot has no mid/late/final progress_phase checkpoint yet. Add at least one mid-phase checkpoint before final Review."
@@ -306,7 +356,7 @@ foreach ($pkg in $packages) {
           $repoLines = $repoBody -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
           $repoStateLines = $repoLines | Where-Object { $_ -match '(?i)\brepo_state\s*[:：]\s*\S' }
           if ($repoStateLines.Count -eq 0) {
-            Add-Error "package '${pkgName}' task.md missing repo_state checkpoint under '### Repo 状态' (exec mode requires repo_state when git is available)"
+            Add-Error "package '${pkgName}' task.md missing repo_state checkpoint under '### Repo 状态' (${Mode} mode requires repo_state when git is available)"
           } else {
             $okRepoState = $false
             foreach ($line in $repoStateLines) {
@@ -322,8 +372,22 @@ foreach ($pkg in $packages) {
               }
             }
             if (-not $okRepoState) {
-              Add-Error "package '${pkgName}' task.md repo_state looks like a template placeholder or missing head/dirty (exec mode requires a concrete repo_state). Expected a line like: repo_state: branch=<name> head=<sha> dirty=<true/false> diffstat=<...>"
+              Add-Error "package '${pkgName}' task.md repo_state looks like a template placeholder or missing head/dirty (${Mode} mode requires a concrete repo_state). Expected a line like: repo_state: branch=<name> head=<sha> dirty=<true/false> diffstat=<...>"
             }
+          }
+        }
+
+        if ($Mode -eq "archive") {
+          $reviewBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '##\s*Review\s*记录'
+          $reviewBody = Strip-HtmlComments $reviewBody
+          $reviewLines = $reviewBody -split "\r?\n" | ForEach-Object { $_.Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+          $reviewLines = $reviewLines | Where-Object {
+            -not ($_ -match '^（?仅在完成收尾时填写') -and
+            -not ($_ -match '^小任务可只写') -and
+            -not ($_ -match '^\(?仅在命中时填写')
+          }
+          if ($reviewLines.Count -eq 0) {
+            Add-Error "package '${pkgName}' task.md archive mode requires a non-empty '## Review 记录'. Keep the package active until Review evidence and retest summary are recorded."
           }
         }
 
@@ -412,7 +476,7 @@ foreach ($pkg in $packages) {
         # Backward compatible: ignore template-like placeholder TODO lines that still contain ellipsis.
         $pendingLines = $pendingLines | Where-Object { -not (($_ -match '^\-\s*\[SRC:TODO\]') -and (($_ -match '…') -or ($_ -match '\.\.\.'))) }
         if ($pendingLines.Count -gt 0) {
-          Add-Error "package '${pkgName}' task.md has unresolved Pending items (exec mode requires Pending to be empty)"
+          Add-Error "package '${pkgName}' task.md has unresolved Pending items (${Mode} mode requires Pending to be empty)"
         }
       }
     }

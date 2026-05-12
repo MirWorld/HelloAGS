@@ -247,6 +247,12 @@ HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 
 **步骤2 - 逐个迁移选定的方案包:**
 
+**迁移前门禁（防误归档）:**
+- 只迁移用户在本次交互中明确选择的遗留包；不得把当前 active 包当作普通遗留包自动迁移。
+- 若 `HAGSWorks/plan/_current.md` 指向某包，默认视为仍需续作；除非用户明确选择“放弃续作/未执行归档”，否则不得迁移。
+- 若某包不是“未执行清理”，而是已经执行过的方案包，必须先通过 `references/plan-lifecycle.md` 的 Archive Readiness Gate；未通过时保留在 `HAGSWorks/plan/` 并提示补 Review / verify / progress / 下一步唯一动作。
+- “未执行（用户清理）”迁移只用于用户明确放弃的旧方案，不代表开发实施完成。
+
 ```yaml
 for each 选定的方案包:
   1. 更新任务状态: 所有任务状态更新为 [-]
@@ -256,7 +262,7 @@ for each 选定的方案包:
      - 从 plan/ 移动到 history/YYYY-MM/
      - YYYY-MM 从方案包目录名提取
      - 同名冲突: 禁止覆盖；如目标已存在则追加 `_v2/_v3/...`（以 `references/plan-lifecycle.md` 为准）
-     - 若 `HAGSWorks/plan/_current.md` 指向了该方案包：迁移后将 `current_package` 置空（避免断层恢复误选）
+     - 若 `HAGSWorks/plan/_current.md` 指向了该方案包：只有用户明确选择“放弃续作/未执行归档”时才允许迁移；迁移后将 `current_package` 置空（避免断层恢复误选）
 
   3. 更新历史记录索引: history/index.md（标注"未执行"；若信息可得，补 `tags/touched_files/decisions/verify/signals` 轻量元数据，不复制方案包正文）
 ```
@@ -276,7 +282,7 @@ for each 选定的方案包:
 <legacy_plan_scan>
 **触发时机:**
 - 方案包创建后: 方案设计完成、规划命令完成、轻量迭代完成
-- 方案包迁移后: 开发实施完成、执行命令完成、全授权命令完成
+- 方案包迁移后: Archive Readiness Gate 已通过并完成迁移、或用户明确选择“放弃续作/未执行归档”后完成迁移
 
 **扫描逻辑:**
 1. 扫描 plan/ 目录下所有方案包目录
@@ -288,7 +294,7 @@ for each 选定的方案包:
 
 **输出格式:**
 ```
-📦 plan/遗留方案: 检测到 X 个遗留方案包([列表])，是否需要迁移至历史记录?
+📦 plan/遗留方案: 检测到 X 个遗留方案包([列表])，是否需要迁移至历史记录?（仅限明确放弃续作的未执行旧方案；已执行方案需先过 Archive Readiness Gate）
 ```
 
 列表格式: YYYYMMDDHHMM_<feature>（每个一行，最多5个，超过显示"...等X个"）

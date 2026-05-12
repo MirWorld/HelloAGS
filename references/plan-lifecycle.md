@@ -10,6 +10,7 @@ history_overwrite: deny
 history_conflict_suffix: _v2
 current_pointer_file: HAGSWorks/plan/_current.md
 current_pointer_key: current_package
+archive_readiness_gate: required
 </plan_lifecycle_contract>
 
 ---
@@ -33,7 +34,28 @@ current_pointer_key: current_package
 
 ---
 
-## 3) 执行后强制迁移（开发实施结束的原子动作）
+## 3) 归档就绪门禁（Archive Readiness Gate）
+
+核心原则：**本轮执行结束 ≠ 方案包完成**。长任务、多轮任务、被压缩/中断后的任务，只要仍有未完成项或收尾证据不足，就必须继续保留在 `HAGSWorks/plan/`，并保持 `_current.md` 指向它。
+
+只有同时满足以下条件，才允许迁移到 `HAGSWorks/history/`：
+1. `task.md` 中不存在 `- [ ]` / `- [X]` / `- [?]` 任务项；未做项只能明确标为 `[-]` 并写备注。
+2. `### 待用户输入（Pending）` 为空。
+3. `progress_phase: final` 已写入 `task.md##上下文快照`。
+4. `verify_min` 与已触发门禁已有可追溯结果；未执行项必须写明原因与下一步。
+5. `## Review 记录` 已填写本轮 Review / 修复 / 复测摘要；不能只保留模板占位。
+6. 若存在 `HAGSWorks/scripts/validate-plan-package.ps1`，迁移前必须运行：
+   - `pwsh -NoProfile -File HAGSWorks/scripts/validate-plan-package.ps1 -Mode archive -Package <CURRENT_PACKAGE>`
+
+门禁未通过时：
+- 禁止迁移到 `history/`
+- 禁止清空 `HAGSWorks/plan/_current.md`
+- 必须把当前进度、剩余任务、下一步唯一动作写回 `task.md##上下文快照`
+- 最终输出应说明“本轮已完成哪些，方案包仍保持 active”，等待下一轮继续，而不是临时重规划
+
+---
+
+## 4) 完成态迁移（仅 Archive Readiness Gate 通过后）
 
 1. 回写 `task.md`：所有任务标注真实状态；非 `[√]` 的任务必须写 `> 备注: ...`
 2. 迁移目录：`HAGSWorks/history/YYYY-MM/YYYYMMDDHHMM_<feature>/`
@@ -45,7 +67,7 @@ current_pointer_key: current_package
 
 ---
 
-## 4) 遗留方案扫描与清理（可选交互）
+## 5) 遗留方案扫描与清理（可选交互）
 
 触发：
 - 方案设计/轻量迭代结束后（新包创建）

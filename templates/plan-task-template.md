@@ -57,6 +57,7 @@
 - [ ] 6.3 记录 Review：在文末 `## Review 记录` 填写（问题≤5条/修复≤5条/复测摘要），优先记录结构侵蚀 / 累计回归 / 设计债务
 - [ ] 6.4 如 Review 引入修复：重跑受影响门禁（通常为 fmt/lint/typecheck/build/test），最多 3 轮“Review→修复→复测”
 - [ ] 6.5 交付前收尾：按 `references/finish-checklist.md` 自检（证据/快照/active_context/输出格式）
+- [ ] 6.6 归档就绪检查：仅当所有任务已终态、Pending 为空、`progress_phase: final`、Review 记录已填写且验证证据可追溯时，才允许按 `references/plan-lifecycle.md` 迁移到 history；否则保持当前方案包 active 并写清下一步唯一动作
 
 ---
 

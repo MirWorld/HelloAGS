@@ -358,6 +358,13 @@ try {
 
 - [√] 1.0 hooks 守卫已验证
 
+## 任务状态符号
+- [ ] 待执行
+- [√] 已完成
+- [X] 执行失败
+- [-] 已跳过
+- [?] 待确认
+
 ## 上下文快照
 
 ### 已确认事实（可验证）
@@ -376,23 +383,70 @@ try {
 ### 待用户输入（Pending）
 
 ### 下一步唯一动作（可执行）
-- 下一步唯一动作: `等待新需求` 预期: 用户提出新任务或新建方案包
+- 下一步唯一动作: `执行 Archive Readiness Gate` 预期: 门禁通过才归档，否则保持 active 并补收尾证据
 "@
   Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $completedTask
 
   $sessionCompletedOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-sessionstart.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/sessionstart-hook-fixture.json") -projectRoot $projectRoot
-  Assert-Contains $sessionCompletedOut.systemMessage "already completed" "SessionStart should warn when current_package is already completed."
+  Assert-Contains $sessionCompletedOut.systemMessage "tasks are terminal" "SessionStart should warn when current_package tasks are terminal."
   Assert-Contains $sessionCompletedOut.hookSpecificOutput.additionalContext "signal: package_completed" "SessionStart completed warning should expose package_completed signal."
-  Assert-Contains $sessionCompletedOut.hookSpecificOutput.additionalContext "package_status: completed" "SessionStart completed warning should expose completed package status."
-  Assert-Contains $sessionCompletedOut.hookSpecificOutput.additionalContext "next_unique_action: 等待新需求或新建方案包，不要继续执行当前包" "SessionStart completed warning should expose next_unique_action."
+  Assert-Contains $sessionCompletedOut.hookSpecificOutput.additionalContext "package_status: completed_looking" "SessionStart completed warning should expose completed-looking package status."
+  Assert-Contains $sessionCompletedOut.hookSpecificOutput.additionalContext "Archive Readiness Gate" "SessionStart completed warning should route to Archive Readiness Gate."
 
   $payloadCompleted = Join-Path $scratchRoot "userpromptsubmit-completed.json"
   New-SmokePayload -path $payloadCompleted -prompt "~exec" -projectRoot $projectRoot -turnId "turn_demo_prompt_005"
   $userCompletedOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadCompleted -projectRoot $projectRoot
-  Assert-True ($userCompletedOut.decision -eq "block") "Completed package should block resume/execute-like prompts."
-  Assert-Contains $userCompletedOut.systemMessage "已完成且无 Pending" "Completed-package block should explain why execution was stopped."
-  Assert-Contains $userCompletedOut.hookSpecificOutput.additionalContext "package_status: completed" "Completed-package block should expose package_status for downstream consumption."
-  Assert-Contains $userCompletedOut.hookSpecificOutput.additionalContext "severity: Red" "Completed-package block should emit a Red severity signal."
+  Assert-True ([string]::IsNullOrWhiteSpace($userCompletedOut.decision)) "Completed-looking package should not block the prompt; it should allow the model to run Archive Readiness Gate."
+  Assert-Contains $userCompletedOut.systemMessage "不得继续改代码" "Completed-package warning should prohibit code edits while allowing closeout."
+  Assert-Contains $userCompletedOut.hookSpecificOutput.additionalContext "package_status: completed_looking" "Completed-package warning should expose package_status for downstream consumption."
+  Assert-Contains $userCompletedOut.hookSpecificOutput.additionalContext "severity: Red" "Completed-package warning should emit a Red severity signal."
+  Assert-Contains $userCompletedOut.hookSpecificOutput.additionalContext "Archive Readiness Gate" "Completed-package warning should route to Archive Readiness Gate before archive."
+
+  $validatorArchiveMissingReview = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "archive" -package $packageRel
+  Assert-True (-not $validatorArchiveMissingReview.ok) "Archive mode should fail completed-looking packages that still lack closeout Review evidence."
+  $archiveMissingReviewText = ($validatorArchiveMissingReview.errors -join "`n")
+  Assert-Contains $archiveMissingReviewText "Review 记录" "Archive mode should require a non-empty Review record before history migration."
+
+  $archiveReadyTask = $completedTask + @"
+
+## Review 记录
+- Review: 规格一致性与结构质量已检查
+- 复测: `pwsh -NoProfile -Command "Write-Output smoke"` 结果: 通过
+"@
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $archiveReadyTask
+  $validatorArchiveReady = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "archive" -package $packageRel
+  Assert-True ($validatorArchiveReady.ok) "Archive mode should pass only after tasks are terminal, Pending is empty, progress is final, Review is recorded, and status legend lines are ignored."
+
+  $archiveSkippedNoReasonTask = @"
+# 任务清单: smoke
+
+- [-] 1.0 明确跳过的任务
+
+## 上下文快照
+
+### Repo 状态（复现/防漂移，执行域必填）
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: final
+
+### 待用户输入（Pending）
+
+### 下一步唯一动作（可执行）
+- 下一步唯一动作: `执行 Archive Readiness Gate` 预期: 检查跳过原因
+
+## Review 记录
+- Review: smoke
+"@
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $archiveSkippedNoReasonTask
+  $validatorArchiveSkippedNoReason = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "archive" -package $packageRel
+  Assert-True (-not $validatorArchiveSkippedNoReason.ok) "Archive mode should fail skipped tasks without explicit reasons."
+  Assert-Contains (($validatorArchiveSkippedNoReason.errors -join "`n")) "skipped task without" "Archive mode should explain missing skip reason."
+
+  $archiveSkippedWithReasonTask = $archiveSkippedNoReasonTask.Replace("- [-] 1.0 明确跳过的任务", "- [-] 1.0 明确跳过的任务`r`n> 备注: 用户明确确认本项不执行")
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $archiveSkippedWithReasonTask
+  $validatorArchiveSkippedWithReason = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "archive" -package $packageRel
+  Assert-True ($validatorArchiveSkippedWithReason.ok) "Archive mode should allow skipped tasks only when a reason is recorded."
 
   $missingCarryForwardHow = @"
 # 技术设计: smoke

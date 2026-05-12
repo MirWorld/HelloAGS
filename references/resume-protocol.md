@@ -70,14 +70,14 @@
       - 多个：先尝试“唯一候选自动选包”（仅在确定性唯一时启用）；否则列出清单让用户选（禁止擅自猜）
         - 唯一候选自动选包（确定性规则）：
           - 先对每个包做最小完整性检查：`why.md/how.md/task.md` 均存在且非空
-         - 再做“完成态判定”（引用第 3 步的完成态规则；只做判断，不做归档）：
-           - 若任务全为 `[√]/[-]` 且 Pending 为空 → 该包视为完成态（不作为续作候选）
+         - 再做“执行任务完成态判定”（引用第 3 步的完成态规则；只做判断，不做归档）：
+           - 若任务全为 `[√]/[-]` 且 Pending 为空 → 该包视为“执行任务可能完成”，但仍需通过 Archive Readiness Gate 才能归档；未通过时仍是可续作的 closeout 候选
            - 否则 → 该包视为可续作候选
          - 候选数 = 1 → 自动选中该包并继续（减少选包交互）
          - 候选数 = 0 → 视为“无可续作包”，按原因分流（默认更无感）：
            - 若存在“不完整/损坏包”（未通过最小完整性检查：`why.md/how.md/task.md` 缺失或为空）：不得擅自归档/删除；提示用户选择：修复该包 / 新建方案 / 放弃续作
            - 若所有包均为“完整且完成态”（任务全为 `[√]/[-]` 且 Pending 为空）：
-             - 若允许写入（`write_scope != no_write`）：默认下一步唯一动作=按 `references/plan-lifecycle.md` 将这些包迁移到 `HAGSWorks/history/` 并清空 `_current.md`（防止下次续作误选）
+             - 若允许写入（`write_scope != no_write`）：默认下一步唯一动作=逐个执行 Archive Readiness Gate；仅门禁通过的包可迁移到 `HAGSWorks/history/` 并清空对应 `_current.md`，未通过的包仍保留为 closeout 候选
              - 若不允许写入（`write_scope = no_write`）：直接输出“已完成/无需续作”，等待新需求（或用户明确要做新 Delta/修正时再 `~plan` 新建方案包）
          - 候选数 ≥ 2 → 必须走交互选择（不要猜）
        - 排序：若 `_current.md` 指向其中一个包，则该项置顶并标注 `（current）`；其余按目录名时间戳前缀倒序（`YYYYMMDDHHMM`）
@@ -100,10 +100,10 @@
    <!-- CONTRACT: resume-no-redo v1 -->
    - 完成态判定（防重复执行，硬规则）：
      - 条件：`task.md` 中**所有任务**均为 `[√]` 或 `[-]`，且 `### 待用户输入（Pending）` 为空
-     - 行为：判定该方案包已完成；**禁止**再次执行/重复修改任何任务
+     - 行为：判定该方案包“执行任务可能完成”；**禁止**再次执行/重复修改任何任务，但不得仅凭该条件归档
      - 下一步唯一动作（按 write_scope 自动收口）：
-       - 若允许写入（`helloagents_only|code_write`）：按 `references/plan-lifecycle.md` 迁移到 `HAGSWorks/history/` 并更新索引（防止后续压缩/续作误选中）
-         - 同时清空 `${PROJECT_ROOT}/HAGSWorks/plan/_current.md` 的 `current_package`（避免指向已归档包）
+       - 若允许写入（`helloagents_only|code_write`）：先按 `references/plan-lifecycle.md` 的 Archive Readiness Gate 做归档就绪检查；通过后才迁移到 `HAGSWorks/history/` 并清空 `_current.md`
+       - 若归档门禁未通过：保持方案包在 `HAGSWorks/plan/`，保持/修复 `_current.md` 指向该包，并把缺失的 Review / verify / progress / 下一步唯一动作补齐后等待续作
        - 若不允许写入（`no_write`）：本轮不做任何写入，只输出“已完成/无需续作”，等待新需求（或等待用户允许归档）
      - 例外：若用户提出新问题/必须修正既有结论 → 作为新 Delta 处理（先写 `task.md##上下文快照` 决策，再新增任务或新建方案包），禁止无说明地“二次重做”
 

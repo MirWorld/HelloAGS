@@ -1,6 +1,6 @@
 ---
 name: helloagents
-description: 用于处理软件开发/维护类请求（常见说法包括但不限于：修改、修复 bug、新增功能、开发模块、重构/优化、补充/编写/运行测试、生成并执行计划）。会自动判定是问答/改动/命令（~auto/~plan/~exec/~init），并选择咨询问答/微调/轻量迭代/标准开发/完整研发路径；需要写入时生成方案包（why/how/task）、执行与验证、同步知识库（HAGSWorks/wiki、HAGSWorks/CHANGELOG.md、HAGSWorks/history/index.md），最终按统一输出格式汇总结果。
+description: 用于处理软件开发/维护类请求（常见说法包括但不限于：修改、修复 bug、新增功能、开发模块、重构/优化、补充/编写/运行测试、生成并执行计划）。会自动判定是问答/改动/命令（~auto/~plan/~exec/~init），并选择咨询问答/微调/轻量迭代/标准开发/完整研发路径；需要写入时生成方案包（why/how/task）、执行与验证、同步知识库（HAGSWorks/wiki、HAGSWorks/CHANGELOG.md、HAGSWorks/history/index.md），仅在归档就绪门禁通过后归档，最终按统一输出格式汇总结果。
 ---
 
 # HelloAGENTS - 面向 Codex CLI 的高理解研发流程 Skill
@@ -26,7 +26,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 - **可验证优先**：优先建立“项目能力画像”（怎么跑/怎么测/怎么检查），并让成功标准落到可执行验证动作（参考 `references/project-profile.md`、`references/quality-gates.md`）
 - **术语口径**：统一见 `references/terminology.md`（校验/`loose`/`strict`/漂移等）
 <!-- CONTRACT: skill-no-redo v1 -->
-- **防重复执行（No-Redo）**：断层续作/自动压缩后，以 `task.md` 状态为准；若任务已全部完成且无 Pending，则判定已完成并归档/等待新需求；任何“重做/二次触碰已完成改动”必须先写 Delta 到 `task.md##上下文快照` 并新增任务承接（细则：`references/resume-protocol.md`、`references/context-snapshot.md`）
+- **防重复执行（No-Redo）**：断层续作/自动压缩后，以 `task.md` 状态为准；若任务已全部完成且无 Pending，只能判定“执行任务可能完成”，不得直接归档；必须先通过 `references/plan-lifecycle.md` 的 Archive Readiness Gate，未通过时保持方案包 active 并补齐 Review / verify / 快照收尾。任何“重做/二次触碰已完成改动”必须先写 Delta 到 `task.md##上下文快照` 并新增任务承接（细则：`references/resume-protocol.md`、`references/context-snapshot.md`）
 - **功能删减保护（Feature Removal Guard）**：默认保留现有功能；任何可能通过删除、隐藏、禁用、短路、降级既有功能来完成任务的路径，都必须先按 `references/feature-removal-guard.md` 询问用户并获得明确批准；不得把“简化实现/最小改动面/更易维护”解释为删功能授权
 - **失败/Review 闭环**：阻断性失败遵循 `references/failure-protocol.md`（默认连续 3 次升级）；最终输出前强制执行 `references/review-protocol.md` 的两段式 Review 并记录（防止漂移与耦合回潮）
 - **中期落盘（上下文快照）**：在关键决策/需求变更/阻断失败/会话可能中断/最终输出前，必须将“关键决策/约束/下一步唯一动作”写入 `task.md##上下文快照`，并为每条结论标注来源标签；推断必须隔离到待确认区（详见 `references/context-snapshot.md`）
@@ -108,7 +108,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 |---|---|---|
 | `analyze/SKILL.md` | 需求评分、追问、代码分析步骤 | 进入需求分析阶段 |
 | `design/SKILL.md` | 方案构思、方案包创建、任务拆解 | 进入方案设计阶段 / `~plan` |
-| `develop/SKILL.md` | 按 `task.md` 执行、测试分级、迁移归档 | 进入开发实施阶段 / `~exec` |
+| `develop/SKILL.md` | 按 `task.md` 执行、测试分级、Archive Readiness Gate 后归档 | 进入开发实施阶段 / `~exec` |
 | `kb/SKILL.md` | 知识库初始化/同步/审计/上下文获取 | `~init` 或知识库缺失/不合格 |
 | `templates/output-format.md` | **输出规范单一来源（G6.1–G6.4）** | 任何阶段/命令完成输出前 |
 | `templates/*.md` | 方案包与知识库模板 | 创建/更新文档时 |
@@ -166,7 +166,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 ### G5 | 写入授权与静默执行
 - 需求分析：只读检查
 - 方案设计：可创建/更新 `HAGSWorks/plan/`，可创建/重建知识库
-- 开发实施：可修改代码、更新知识库；结束时**必须**迁移方案包到 `HAGSWorks/history/`
+- 开发实施：可修改代码、更新知识库；结束时**必须**执行 Archive Readiness Gate；仅门禁通过才迁移方案包到 `HAGSWorks/history/`，未通过保持 active
 
 ### G6 | 阶段输出规范
 - 统一输出格式定义：`templates/output-format.md`
@@ -190,7 +190,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 ### G11 | 方案包生命周期
 - 方案包目录：`HAGSWorks/plan/YYYYMMDDHHMM_<feature>/`（必需 `why.md/how.md/task.md`）
 - 任务状态符号：`[ ] [√] [X] [-] [?]`
-- 开发实施完成后：更新任务状态 → 迁移到 `HAGSWorks/history/YYYY-MM/` → 更新 `HAGSWorks/history/index.md`
+- 开发实施完成后：更新任务状态 → 执行 Archive Readiness Gate → 通过后迁移到 `HAGSWorks/history/YYYY-MM/` 并更新 `HAGSWorks/history/index.md`；未通过则保持在 `HAGSWorks/plan/` 并写明下一步唯一动作
 - 细则：`references/plan-lifecycle.md`
 
 ### G12 | 状态变量（跨阶段传递）

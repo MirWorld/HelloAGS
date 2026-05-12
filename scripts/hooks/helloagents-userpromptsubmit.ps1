@@ -273,7 +273,13 @@ function Test-PackageCompleted([string]$taskText, [string[]]$pendingLines) {
     return $false
   }
 
-  $taskMatches = [regex]::Matches($taskText, '(?m)^\s*-\s*\[(?<state>\s|√|X|-|\?)\]\s+')
+  $taskListText = $taskText
+  $taskLegendMatch = [regex]::Match($taskListText, '(?ms)^\s*##\s*任务状态符号\s*$')
+  if ($taskLegendMatch.Success) {
+    $taskListText = $taskListText.Substring(0, $taskLegendMatch.Index)
+  }
+
+  $taskMatches = [regex]::Matches($taskListText, '(?m)^\s*-\s*\[(?<state>\s|√|X|-|\?)\]\s+')
   if ($taskMatches.Count -eq 0) {
     return $false
   }
@@ -707,20 +713,19 @@ try {
   if ($pendingLines.Count -eq 0 -and $featureRemovalGuardLines.Count -eq 0) {
     if ($packageCompleted -and $isResumeOrExecutePrompt) {
       $completeLines = @(
-        "[HelloAGENTS Guard] 当前方案包已完成且无 Pending；不要继续执行当前包。",
+        "[HelloAGENTS Guard] 当前方案包任务已全终态且无 Pending；不要重复执行当前任务，需先做 Archive Readiness Gate。",
         ("current_package: {0}" -f $packagePointer),
-        "package_status: completed",
+        "package_status: completed_looking",
         "signal: package_completed",
         "severity: Red",
-        "next_unique_action: 等待新需求或新建方案包"
+        "next_unique_action: 先执行 Archive Readiness Gate；门禁通过才归档，否则保持 active 并补 Review / verify / progress"
       )
       if (-not [string]::IsNullOrWhiteSpace($turnId)) {
         $completeLines += ("current_turn_id: {0}" -f $turnId)
       }
 
-      $msg = "当前方案包已完成且无 Pending，已阻断误续作以避免重复修改。"
-      $reason = "请直接提出新需求，或先新建方案包；不要继续执行当前已完成包。"
-      Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext ($completeLines -join "`n")
+      $msg = "当前方案包任务已全终态且无 Pending；本轮不得继续改代码，只允许执行 Archive Readiness Gate。"
+      Write-HookOutputJson -SystemMessage $msg -AdditionalContext ($completeLines -join "`n")
       exit 0
     }
 
