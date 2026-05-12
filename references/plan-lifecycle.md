@@ -41,8 +41,8 @@ archive_readiness_gate: required
 只有同时满足以下条件，才允许迁移到 `HAGSWorks/history/`：
 1. `task.md` 中不存在 `- [ ]` / `- [X]` / `- [?]` 任务项；未做项只能明确标为 `[-]` 并写备注。
 2. `### 待用户输入（Pending）` 为空。
-3. `progress_phase: final` 已写入 `task.md##上下文快照`。
-4. `verify_min` 与已触发门禁已有可追溯结果；未执行项必须写明原因与下一步。
+3. `progress_phase: final` 已作为结构字段写入 `task.md##上下文快照`；任务说明、模板文字、Review 文案里的同名文本不算数。
+4. `verify_min` 是具体可执行命令/脚本/可复现手动步骤，且与已触发门禁已有可追溯结果；`unknown` / `无` / 模板占位不允许进入归档。
 5. `## Review 记录` 已填写本轮 Review / 修复 / 复测摘要，并能追溯到验证/复测证据；不能只保留模板占位。
 6. 若存在 `HAGSWorks/scripts/validate-plan-package.ps1`，迁移前必须运行：
    - `pwsh -NoProfile -File HAGSWorks/scripts/validate-plan-package.ps1 -Mode archive -Package <CURRENT_PACKAGE>`

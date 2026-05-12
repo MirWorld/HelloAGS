@@ -487,6 +487,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/signal-severity
   '`feature_removal_approved: no`',
   '`current_package` 无效 / 不完整 / 指向 history',
   '`package_status: completed_looking`',
+  '`archive_gate_missing_evidence`',
   "只允许执行 Archive Readiness Gate",
   "SessionStart hooks"
 )
@@ -904,9 +905,12 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/validate-plan-pa
   "progress_phase",
   "archive",
   "progress_phase: final",
+  "inside '## 上下文快照'",
   "Review 记录",
   "verification or retest evidence",
   "summary/decision line",
+  "verify_min is not concrete",
+  "archive_gate_missing_evidence",
   "Keep the package active",
   "任务状态符号",
   "skipped task without",

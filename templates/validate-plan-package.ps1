@@ -77,6 +77,62 @@ function Get-MarkdownSectionBody([string]$text, [string]$headingRegex) {
   return ""
 }
 
+function Get-MarkdownH2SectionBody([string]$text, [string]$headingRegex) {
+  if ($null -eq $text) {
+    return ""
+  }
+  $pattern = '(?m)^\s*(?:' + $headingRegex + ')\s*$\r?\n'
+  $m = [regex]::Match($text, $pattern)
+  if ($m.Success) {
+    $start = $m.Index + $m.Length
+    $tail = $text.Substring($start)
+    $next = [regex]::Match($tail, '(?m)^\s*##\s+')
+    if ($next.Success) {
+      return $tail.Substring(0, $next.Index)
+    }
+    return $tail
+  }
+  return ""
+}
+
+function Get-KeyValueLines([string]$text, [string]$key) {
+  if ($null -eq $text) {
+    return @()
+  }
+  $escapedKey = [regex]::Escape($key)
+  $lines = @()
+  foreach ($line in ($text -split "\r?\n")) {
+    $m = [regex]::Match($line, "(?i)\b${escapedKey}\b\s*[:：]\s*(?<rest>.+)$")
+    if (-not $m.Success) {
+      continue
+    }
+    $rest = $m.Groups["rest"].Value.Trim()
+    $rest = $rest.Trim("*").Trim()
+    $lines += $rest
+  }
+  return $lines
+}
+
+function Test-ConcreteValue([string]$value) {
+  if ([string]::IsNullOrWhiteSpace($value)) {
+    return $false
+  }
+  $trimmed = $value.Trim().Trim([char]0x60, '"', "'", "*").Trim()
+  if ([string]::IsNullOrWhiteSpace($trimmed)) {
+    return $false
+  }
+  if ($trimmed -match '^(?:unknown|未定|待确认|none|n/a|na|无)(?:\b|$)') {
+    return $false
+  }
+  if ($trimmed -match '^(?:\.{3}|…|\[.*\]|<.*>)$') {
+    return $false
+  }
+  if ($trimmed -match '^(?:\.{3}|…)$') {
+    return $false
+  }
+  return $true
+}
+
 function Text-HasAll([string]$text, [string[]]$needles) {
   foreach ($needle in $needles) {
     if ($text -notmatch [regex]::Escape($needle)) {
@@ -225,25 +281,44 @@ foreach ($pkg in $packages) {
     }
 
     if ($fileName -eq "how.md") {
-      if ($text -notmatch '(?m)verify_min\s*[:：]\s*\S') {
-        Add-Error "package '${pkgName}' how.md missing verify_min (expected a line like: verify_min: <command/steps>)"
+      $textNoCode = Strip-HtmlComments (Strip-FencedCodeBlocks $text)
+      $verifyMinLines = @(Get-KeyValueLines -text $textNoCode -key "verify_min")
+      if ($verifyMinLines.Count -eq 0) {
+        Add-Error "package '${pkgName}' how.md missing verify_min (expected a line like: verify_min: <command/steps>; signal: archive_gate_missing_evidence)"
       } else {
-        $textNoCode = Strip-FencedCodeBlocks $text
-        if (($Mode -in @("exec", "archive")) -and $textNoCode -match '(?mi)verify_min\s*[:：]\s*unknown\b') {
-          Add-Error "package '${pkgName}' how.md verify_min is unknown (${Mode} mode requires a runnable verify_min)"
+        $hasConcreteVerifyMin = $false
+        foreach ($line in $verifyMinLines) {
+          if (Test-ConcreteValue $line) {
+            $hasConcreteVerifyMin = $true
+            break
+          }
+        }
+        if (($Mode -in @("exec", "archive")) -and -not $hasConcreteVerifyMin) {
+          Add-Error "package '${pkgName}' how.md verify_min is not concrete (${Mode} mode requires a runnable verify_min, not unknown/无/placeholders; signal: archive_gate_missing_evidence)"
         }
       }
 
-      $textNoCode = Strip-FencedCodeBlocks $text
-      if ($textNoCode -notmatch '(?mi)carry_forward_verify\s*[:：]\s*\S') {
+      $carryForwardLines = @(Get-KeyValueLines -text $textNoCode -key "carry_forward_verify")
+      if ($carryForwardLines.Count -eq 0) {
         Add-Warn "package '${pkgName}' how.md missing carry_forward_verify. Recommended: explicitly state '无' or list the previous validations that must be rerun when the same Workset is touched again."
-      } elseif ($textNoCode -match '(?mi)carry_forward_verify\s*[:：]\s*(unknown|…|\.\.\.)\b') {
+      } else {
+        $hasConcreteCarryForward = $false
+        foreach ($line in $carryForwardLines) {
+          if ((Test-ConcreteValue $line) -or ($line -match '^\s*无\s*$')) {
+            $hasConcreteCarryForward = $true
+            break
+          }
+        }
+        if (-not $hasConcreteCarryForward) {
         Add-Warn "package '${pkgName}' how.md carry_forward_verify still looks like a placeholder. Replace it with a concrete list or explicit '无'."
+        }
       }
     }
 
     if ($fileName -eq "task.md") {
       $textNoCode = Strip-FencedCodeBlocks $text
+      $snapshotBody = Get-MarkdownH2SectionBody -text $textNoCode -headingRegex '##\s*上下文快照'
+      $snapshotBody = Strip-HtmlComments $snapshotBody
       $taskListText = $textNoCode
       $taskLegendMatch = [regex]::Match($taskListText, '(?ms)^\s*##\s*任务状态符号\s*$')
       if ($taskLegendMatch.Success) {
@@ -296,7 +371,7 @@ foreach ($pkg in $packages) {
             break
           }
           if (-not $hasSkipReason) {
-            Add-Error "package '${pkgName}' task.md has skipped task without a following '> 备注: <reason>' (archive mode requires explicit reasons for [-] tasks)."
+            Add-Error "package '${pkgName}' task.md has skipped task without a following '> 备注: <reason>' (archive mode requires explicit reasons for [-] tasks; signal: archive_gate_missing_evidence)."
           }
         }
       }
@@ -337,14 +412,22 @@ foreach ($pkg in $packages) {
         }
 
         if ($Mode -eq "archive") {
-          if ($textNoCode -notmatch '(?mi)progress_phase\s*[:：]\s*final\b') {
-            Add-Error "package '${pkgName}' task.md archive mode requires progress_phase: final before migration to history. If work is partial, keep the package active under HAGSWorks/plan."
+          $progressLines = @(Get-KeyValueLines -text $snapshotBody -key "progress_phase")
+          $hasFinalProgress = $false
+          foreach ($line in $progressLines) {
+            if ($line -match '^\s*final\b') {
+              $hasFinalProgress = $true
+              break
+            }
           }
-        } elseif ($textNoCode -notmatch '(?mi)progress_phase\s*[:：]\s*(start|mid|late|final)\b') {
+          if (-not $hasFinalProgress) {
+            Add-Error "package '${pkgName}' task.md archive mode requires progress_phase: final inside '## 上下文快照' before migration to history. If work is partial, keep the package active under HAGSWorks/plan. signal: archive_gate_missing_evidence"
+          }
+        } elseif ($snapshotBody -notmatch '(?mi)\bprogress_phase\s*[:：]\s*(start|mid|late|final)\b') {
           Add-Warn "package '${pkgName}' task.md snapshot missing progress_phase. Recommended: record start|mid|late|final so long tasks do not wait until the end to expose drift."
         } else {
           $taskCount = ([regex]::Matches($taskListText, $taskItemAnyPattern)).Count
-          $hasMidOrLater = ($textNoCode -match '(?mi)progress_phase\s*[:：]\s*(mid|late|final)\b')
+          $hasMidOrLater = ($snapshotBody -match '(?mi)\bprogress_phase\s*[:：]\s*(mid|late|final)\b')
           if ($taskCount -ge 4 -and -not $hasMidOrLater) {
             Add-Warn "package '${pkgName}' looks like a long task (>=4 task items) but snapshot has no mid/late/final progress_phase checkpoint yet. Add at least one mid-phase checkpoint before final Review."
           }
@@ -387,7 +470,7 @@ foreach ($pkg in $packages) {
             -not ($_ -match '^\(?仅在命中时填写')
           }
           if ($reviewLines.Count -eq 0) {
-            Add-Error "package '${pkgName}' task.md archive mode requires a non-empty '## Review 记录'. Keep the package active until Review evidence and retest summary are recorded."
+            Add-Error "package '${pkgName}' task.md archive mode requires a non-empty '## Review 记录'. Keep the package active until Review evidence and retest summary are recorded. signal: archive_gate_missing_evidence"
           } else {
             $hasReviewSummary = $false
             $hasReviewEvidence = $false
@@ -400,10 +483,10 @@ foreach ($pkg in $packages) {
               }
             }
             if (-not $hasReviewSummary) {
-              Add-Error "package '${pkgName}' task.md archive mode requires Review 记录 to include a summary/decision line (e.g. Review/结论/摘要/问题/修复)."
+              Add-Error "package '${pkgName}' task.md archive mode requires Review 记录 to include a summary/decision line (e.g. Review/结论/摘要/问题/修复). signal: archive_gate_missing_evidence"
             }
             if (-not $hasReviewEvidence) {
-              Add-Error "package '${pkgName}' task.md archive mode requires Review 记录 to include verification or retest evidence (e.g. 复测/验证/build/test/lint/fmt/security/check)."
+              Add-Error "package '${pkgName}' task.md archive mode requires Review 记录 to include verification or retest evidence (e.g. 复测/验证/build/test/lint/fmt/security/check). signal: archive_gate_missing_evidence"
             }
           }
         }
@@ -424,12 +507,6 @@ foreach ($pkg in $packages) {
         # NOTE: Get-MarkdownSectionBody stops at the next heading of any level (##/###/...),
         # so it cannot be used to capture an H2 section that contains H3 subsections.
         # For snapshots we want the whole H2 block until the next H2.
-        $snapshotBody = ""
-        $snapshotMatch = [regex]::Match($textNoCode, '(?ms)^\s*##\s*上下文快照\s*$\r?\n(?<body>.*?)(?=^\s*##\s+|\z)')
-        if ($snapshotMatch.Success) {
-          $snapshotBody = $snapshotMatch.Groups["body"].Value
-        }
-        $snapshotBody = Strip-HtmlComments $snapshotBody
         if (-not [string]::IsNullOrWhiteSpace($snapshotBody)) {
           $eventMatches = [regex]::Matches($snapshotBody, '(?im)^\s*-\s*\[SRC:TOOL\]\s*model_event\s*[:：]\s*(?<kind>\S+)(?:\s+#.*)?\s*$')
           if ($eventMatches.Count -gt 0) {

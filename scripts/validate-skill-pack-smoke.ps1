@@ -417,6 +417,37 @@ try {
   Assert-True (-not $validatorArchiveReviewSummaryOnly.ok) "Archive mode should fail Review records that lack verification or retest evidence."
   Assert-Contains (($validatorArchiveReviewSummaryOnly.errors -join "`n")) "verification or retest evidence" "Archive mode should explain missing evidence."
 
+  $archiveProgressOnlyInInstructionTask = @"
+# 任务清单: smoke
+
+- [√] 1.0 hooks 守卫已验证
+- [√] 2.0 归档就绪检查：仅当 `progress_phase: final` 已写入快照时才允许归档
+
+## 上下文快照
+
+### 已确认事实（可验证）
+- [SRC:CODE] smoke package fixture is present
+
+### Repo 状态（复现/防漂移，执行域必填）
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: mid
+
+### 待用户输入（Pending）
+
+### 下一步唯一动作（可执行）
+- 下一步唯一动作: `执行 Archive Readiness Gate` 预期: 验证 progress_phase 是否真的在快照中 final
+
+## Review 记录
+- Review: 规格一致性与结构质量已检查
+- 复测: `pwsh -NoProfile -Command "Write-Output smoke"` 结果: 通过
+"@
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $archiveProgressOnlyInInstructionTask
+  $validatorArchiveProgressOnlyInInstruction = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "archive" -package $packageRel
+  Assert-True (-not $validatorArchiveProgressOnlyInInstruction.ok) "Archive mode should not accept progress_phase: final when it only appears in task instructions."
+  Assert-Contains (($validatorArchiveProgressOnlyInInstruction.errors -join "`n")) "inside '## 上下文快照'" "Archive mode should require final progress inside the snapshot section."
+
   $archiveReadyTask = $completedTask + @"
 
 ## Review 记录
