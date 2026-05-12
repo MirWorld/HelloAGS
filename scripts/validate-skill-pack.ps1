@@ -539,6 +539,7 @@ Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-s
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "UserPromptSubmit hook should only guard/augment via JSON output; never execute payload content."
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -needles @(
   '"SessionStart"',
+  "Test-IsPathUnderDirectory",
   "signal:",
   "severity:",
   "package_status:",
@@ -551,6 +552,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -needles @(
+  "Test-IsPathUnderDirectory",
   "package_completed",
   "completed_looking",
   "任务状态符号",
@@ -564,12 +566,14 @@ Assert-NotMatches `
   -hint "completed_looking should allow the prompt to continue into Archive Readiness Gate; it must not block the whole turn."
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-context-threshold.ps1" -needles @(
+  "Test-IsPathUnderDirectory",
   "Invoke-WithTaskFileLock",
   "_codex_temp/locks",
   "task.md lock busy"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-compact.ps1" -needles @(
+  "Test-IsPathUnderDirectory",
   "PreCompact",
   "PostCompact",
   '"continue"',
@@ -582,9 +586,16 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/capture-runtime-events.ps1" -needles @(
+  "Test-IsPathUnderDirectory",
   "Invoke-WithTaskFileLock",
   "_codex_temp/locks",
   "task.md lock busy"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/validate-skill-pack-smoke.ps1" -needles @(
+  "plan_evil",
+  "outside HAGSWorks/plan",
+  "outside plan root"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/hooks.json" -needles @(
@@ -901,6 +912,7 @@ Assert-NotContainsAny -repoRoot $repoRoot -relativePath "references/review-proto
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/validate-plan-package.ps1" -needles @(
+  "Test-IsPathUnderDirectory",
   "carry_forward_verify",
   "progress_phase",
   "archive",
@@ -912,6 +924,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/validate-plan-pa
   "verify_min is not concrete",
   "archive_gate_missing_evidence",
   "Keep the package active",
+  "package is outside plan root",
   "任务状态符号",
   "skipped task without",
   "design_debt",

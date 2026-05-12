@@ -150,13 +150,45 @@ function Invoke-WithTaskFileLock([string]$lockPath, [scriptblock]$body, [int]$ti
   }
 }
 
+function Test-IsPathUnderDirectory([string]$path, [string]$directory) {
+  if ([string]::IsNullOrWhiteSpace($path) -or [string]::IsNullOrWhiteSpace($directory)) {
+    return $false
+  }
+
+  try {
+    $fullPath = [System.IO.Path]::GetFullPath($path)
+    $fullDirectory = [System.IO.Path]::GetFullPath($directory)
+  } catch {
+    return $false
+  }
+
+  $separator = [System.IO.Path]::DirectorySeparatorChar
+  $altSeparator = [System.IO.Path]::AltDirectorySeparatorChar
+  if (-not ($fullDirectory.EndsWith($separator) -or $fullDirectory.EndsWith($altSeparator))) {
+    $fullDirectory = $fullDirectory + $separator
+  }
+
+  return $fullPath.StartsWith($fullDirectory, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
 function Resolve-CurrentPackage([string]$projectRoot, [string]$planRoot, [string]$packageArg) {
+  $planRootFull = [System.IO.Path]::GetFullPath((Join-Path $projectRoot $planRoot))
+
   if (-not [string]::IsNullOrWhiteSpace($packageArg)) {
     $p = $packageArg.Trim()
+    $candidatePath = $null
     if ([System.IO.Path]::IsPathRooted($p)) {
-      return $p
+      $candidatePath = $p
+    } else {
+      $candidatePath = Join-Path $projectRoot $p
     }
-    return (Join-Path $projectRoot $p)
+
+    $candidateFull = $null
+    try { $candidateFull = [System.IO.Path]::GetFullPath($candidatePath) } catch { $candidateFull = $null }
+    if (Test-IsPathUnderDirectory -path $candidateFull -directory $planRootFull) {
+      return $candidateFull
+    }
+    return $null
   }
 
   $pointer = Join-Path $projectRoot (Join-Path $planRoot "_current.md")
@@ -178,19 +210,38 @@ function Resolve-CurrentPackage([string]$projectRoot, [string]$planRoot, [string
   }
 
   if ([System.IO.Path]::IsPathRooted($v)) {
-    return $v
+    $candidatePath = $v
+  } else {
+    $candidatePath = Join-Path $projectRoot $v
   }
 
-  return (Join-Path $projectRoot $v)
+  $candidateFull = $null
+  try { $candidateFull = [System.IO.Path]::GetFullPath($candidatePath) } catch { $candidateFull = $null }
+  if (Test-IsPathUnderDirectory -path $candidateFull -directory $planRootFull) {
+    return $candidateFull
+  }
+  return $null
 }
 
 function Resolve-TaskFile([string]$projectRoot, [string]$taskFileArg, [string]$packagePath) {
   if (-not [string]::IsNullOrWhiteSpace($taskFileArg)) {
     $p = $taskFileArg.Trim()
+    $candidatePath = $null
     if ([System.IO.Path]::IsPathRooted($p)) {
-      return $p
+      $candidatePath = $p
+    } else {
+      $candidatePath = Join-Path $projectRoot $p
     }
-    return (Join-Path $projectRoot $p)
+
+    $candidateFull = $null
+    try { $candidateFull = [System.IO.Path]::GetFullPath($candidatePath) } catch { $candidateFull = $null }
+    if ((-not [string]::IsNullOrWhiteSpace($packagePath)) -and (Test-IsPathUnderDirectory -path $candidateFull -directory $packagePath)) {
+      $leaf = Split-Path -Leaf $candidateFull
+      if ($leaf -eq "task.md") {
+        return $candidateFull
+      }
+    }
+    return $null
   }
 
   if ([string]::IsNullOrWhiteSpace($packagePath)) {

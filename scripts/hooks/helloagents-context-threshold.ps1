@@ -207,12 +207,44 @@ function Invoke-WithTaskFileLock([string]$lockPath, [scriptblock]$body, [int]$ti
   }
 }
 
+function Test-IsPathUnderDirectory([string]$path, [string]$directory) {
+  if ([string]::IsNullOrWhiteSpace($path) -or [string]::IsNullOrWhiteSpace($directory)) {
+    return $false
+  }
+
+  try {
+    $fullPath = [System.IO.Path]::GetFullPath($path)
+    $fullDirectory = [System.IO.Path]::GetFullPath($directory)
+  } catch {
+    return $false
+  }
+
+  $separator = [System.IO.Path]::DirectorySeparatorChar
+  $altSeparator = [System.IO.Path]::AltDirectorySeparatorChar
+  if (-not ($fullDirectory.EndsWith($separator) -or $fullDirectory.EndsWith($altSeparator))) {
+    $fullDirectory = $fullDirectory + $separator
+  }
+
+  return $fullPath.StartsWith($fullDirectory, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
 function Resolve-CurrentPackage([string]$projectRoot, [string]$packageArg) {
+  $planRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot "HAGSWorks/plan"))
+
   if (-not [string]::IsNullOrWhiteSpace($packageArg)) {
+    $candidatePath = $null
     if ([System.IO.Path]::IsPathRooted($packageArg)) {
-      return $packageArg
+      $candidatePath = $packageArg
+    } else {
+      $candidatePath = Join-Path $projectRoot $packageArg
     }
-    return (Join-Path $projectRoot $packageArg)
+
+    $candidateFull = $null
+    try { $candidateFull = [System.IO.Path]::GetFullPath($candidatePath) } catch { $candidateFull = $null }
+    if (Test-IsPathUnderDirectory -path $candidateFull -directory $planRoot) {
+      return $candidateFull
+    }
+    return $null
   }
 
   $pointer = Join-Path $projectRoot "HAGSWorks/plan/_current.md"
@@ -232,10 +264,17 @@ function Resolve-CurrentPackage([string]$projectRoot, [string]$packageArg) {
   }
 
   if ([System.IO.Path]::IsPathRooted($raw)) {
-    return $raw
+    $candidatePath = $raw
+  } else {
+    $candidatePath = Join-Path $projectRoot $raw
   }
 
-  return (Join-Path $projectRoot $raw)
+  $candidateFull = $null
+  try { $candidateFull = [System.IO.Path]::GetFullPath($candidatePath) } catch { $candidateFull = $null }
+  if (Test-IsPathUnderDirectory -path $candidateFull -directory $planRoot) {
+    return $candidateFull
+  }
+  return $null
 }
 
 function Resolve-TaskFile([string]$packagePath) {

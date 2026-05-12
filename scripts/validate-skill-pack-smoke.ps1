@@ -235,6 +235,42 @@ try {
   }
 
   $packageRel = New-SmokePackage -projectRoot $projectRoot
+  $pointerPath = Join-Path $projectRoot "HAGSWorks/plan/_current.md"
+
+  $outsidePackageRel = "HAGSWorks/plan_evil/202603261201_outside_plan"
+  $outsidePackageDir = Join-Path $projectRoot $outsidePackageRel
+  New-Item -ItemType Directory -Path $outsidePackageDir -Force | Out-Null
+  Write-Utf8Text -path (Join-Path $outsidePackageDir "why.md") -text "# outside plan`n`n## 对齐摘要`n- 目标：不应被 hooks 当作 active plan`n"
+  Write-Utf8Text -path (Join-Path $outsidePackageDir "how.md") -text "# outside plan`n`n## 执行域声明（Allow/Deny）`n- Allow: []`n`nverify_min: `pwsh -NoProfile -Command ""Write-Output smoke""``ncarry_forward_verify: 无`n"
+  Write-Utf8Text -path (Join-Path $outsidePackageDir "task.md") -text "# outside plan`n`n- [ ] 1.0 不应执行`n`n## 上下文快照`n`n### Repo 状态（复现/防漂移，执行域必填）`n- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none`n`n### 决策（做了什么选择 + 为什么）`n- [SRC:CODE|TOOL] progress_phase: start`n`n### 待用户输入（Pending）`n`n### 下一步唯一动作（可执行）`n- 下一步唯一动作: `不应执行` 预期: hooks 应拒绝 plan_evil 前缀路径`n"
+  Write-Utf8Text -path $pointerPath -text ("# 当前方案包指针`n`ncurrent_package: {0}`n" -f $outsidePackageRel)
+
+  $sessionOutsideOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-sessionstart.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/sessionstart-hook-fixture.json") -projectRoot $projectRoot
+  Assert-Contains $sessionOutsideOut.systemMessage "outside plan root" "SessionStart should reject current_package paths that only share the HAGSWorks/plan prefix."
+  Assert-Contains $sessionOutsideOut.hookSpecificOutput.additionalContext "signal: current_package_invalid" "SessionStart outside-plan rejection should expose current_package_invalid."
+
+  $payloadOutside = Join-Path $scratchRoot "userpromptsubmit-outside-plan.json"
+  New-SmokePayload -path $payloadOutside -prompt "~exec" -projectRoot $projectRoot -turnId "turn_demo_prompt_outside"
+  $userOutsideOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadOutside -projectRoot $projectRoot
+  Assert-True ($userOutsideOut.decision -eq "block") "UserPromptSubmit should block current_package paths outside HAGSWorks/plan."
+
+  $thresholdOutsidePayload = Join-Path $scratchRoot "context-threshold-outside-plan.json"
+  New-ThresholdPayload -path $thresholdOutsidePayload -projectRoot $projectRoot -source "pre_submit" -usedTokens 188000 -threshold 200000 -remainingToCompact 12000
+  $thresholdOutsideOut = & pwsh -NoProfile -File (Join-Path $repoRoot "scripts/hooks/helloagents-context-threshold.ps1") -InputFile $thresholdOutsidePayload -ProjectRoot $projectRoot
+  Assert-Contains ($thresholdOutsideOut -join "`n") "SKIP: no active plan package." "Context-threshold hook should skip current_package paths outside HAGSWorks/plan."
+
+  $outsideTaskFileRel = Join-Path ($outsidePackageRel.Replace('/', '\')) "task.md"
+  $captureOutsideOut = & pwsh -NoProfile -File (Join-Path $projectRoot "HAGSWorks/scripts/capture-runtime-events.ps1") -Mode append -Kind model_rerouted -TaskFile $outsideTaskFileRel
+  Assert-Contains ($captureOutsideOut -join "`n") "SKIP: task.md not found" "Runtime event capture should reject explicit TaskFile paths outside the active plan package."
+
+  $validatorOutside = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "plan" -package $outsidePackageRel
+  Assert-True (-not $validatorOutside.ok) "Plan validator should reject explicit -Package paths outside HAGSWorks/plan."
+  Assert-Contains (($validatorOutside.errors -join "`n")) "outside plan root" "Plan validator should explain outside-plan package rejection."
+
+  $compactOutsideOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-compact.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/precompact-hook-fixture.json") -projectRoot $projectRoot -DryRun
+  Assert-Contains $compactOutsideOut.systemMessage "SKIP: no active plan package." "Compact hook should skip current_package paths outside HAGSWorks/plan."
+
+  Write-Utf8Text -path $pointerPath -text ("# 当前方案包指针`n`ncurrent_package: {0}`n" -f $packageRel.Replace('\', '/'))
 
   $sessionOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-sessionstart.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/sessionstart-hook-fixture.json") -projectRoot $projectRoot
   try { $sessionMessage = $sessionOut.systemMessage } catch { $sessionMessage = $null }

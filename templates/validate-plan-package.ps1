@@ -133,6 +133,27 @@ function Test-ConcreteValue([string]$value) {
   return $true
 }
 
+function Test-IsPathUnderDirectory([string]$path, [string]$directory) {
+  if ([string]::IsNullOrWhiteSpace($path) -or [string]::IsNullOrWhiteSpace($directory)) {
+    return $false
+  }
+
+  try {
+    $fullPath = [System.IO.Path]::GetFullPath($path)
+    $fullDirectory = [System.IO.Path]::GetFullPath($directory)
+  } catch {
+    return $false
+  }
+
+  $separator = [System.IO.Path]::DirectorySeparatorChar
+  $altSeparator = [System.IO.Path]::AltDirectorySeparatorChar
+  if (-not ($fullDirectory.EndsWith($separator) -or $fullDirectory.EndsWith($altSeparator))) {
+    $fullDirectory = $fullDirectory + $separator
+  }
+
+  return $fullPath.StartsWith($fullDirectory, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
 function Text-HasAll([string]$text, [string[]]$needles) {
   foreach ($needle in $needles) {
     if ($text -notmatch [regex]::Escape($needle)) {
@@ -217,8 +238,7 @@ if (Test-Path -LiteralPath $currentPointer) {
         }
 
         $planFull = [System.IO.Path]::GetFullPath($planRootFull)
-        $planPrefix = if ($planFull.EndsWith([System.IO.Path]::DirectorySeparatorChar)) { $planFull } else { $planFull + [System.IO.Path]::DirectorySeparatorChar }
-        $inPlan = $full.StartsWith($planPrefix, [System.StringComparison]::OrdinalIgnoreCase)
+        $inPlan = Test-IsPathUnderDirectory -path $full -directory $planFull
         if (-not $inPlan) {
           Add-Warn "_current.md current_package is outside plan root (expected under: $PlanRoot): '$pathValue' (resolved: $full)"
         } elseif (-not (Test-Path -LiteralPath $full -PathType Container)) {
@@ -239,7 +259,13 @@ if (-not [string]::IsNullOrWhiteSpace($Package)) {
     if ($Json) { Emit-Json }
     exit 1
   }
-  $packages = @((Resolve-Path -LiteralPath $packageFull).Path)
+  $packageResolved = (Resolve-Path -LiteralPath $packageFull).Path
+  if (-not (Test-IsPathUnderDirectory -path $packageResolved -directory $planRootFull)) {
+    Add-Error "package is outside plan root: $Package (resolved: $packageResolved; expected under: $PlanRoot)"
+    if ($Json) { Emit-Json }
+    exit 1
+  }
+  $packages = @($packageResolved)
 } else {
   $packages = Get-ChildItem -LiteralPath $planRootFull -Directory | Select-Object -ExpandProperty FullName
 }

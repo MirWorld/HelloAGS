@@ -160,6 +160,27 @@ function Resolve-PackagePath([string]$projectRoot, [string]$pointerValue) {
   return (Join-Path $projectRoot $pointerValue)
 }
 
+function Test-IsPathUnderDirectory([string]$path, [string]$directory) {
+  if ([string]::IsNullOrWhiteSpace($path) -or [string]::IsNullOrWhiteSpace($directory)) {
+    return $false
+  }
+
+  try {
+    $fullPath = [System.IO.Path]::GetFullPath($path)
+    $fullDirectory = [System.IO.Path]::GetFullPath($directory)
+  } catch {
+    return $false
+  }
+
+  $separator = [System.IO.Path]::DirectorySeparatorChar
+  $altSeparator = [System.IO.Path]::AltDirectorySeparatorChar
+  if (-not ($fullDirectory.EndsWith($separator) -or $fullDirectory.EndsWith($altSeparator))) {
+    $fullDirectory = $fullDirectory + $separator
+  }
+
+  return $fullPath.StartsWith($fullDirectory, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
 function Get-CurrentPackageFromPointer([string]$projectRoot) {
   $pointerFile = Join-Path $projectRoot "HAGSWorks/plan/_current.md"
   if (-not (Test-Path -LiteralPath $pointerFile -PathType Leaf)) {
@@ -623,8 +644,10 @@ try {
   $packagePath = Resolve-PackagePath -projectRoot $projectRootResolved -pointerValue $packagePointer
   $packageFull = $null
   try { $packageFull = [System.IO.Path]::GetFullPath($packagePath) } catch { $packageFull = $null }
+  $planRootFull = $null
+  try { $planRootFull = [System.IO.Path]::GetFullPath((Join-Path $projectRootResolved "HAGSWorks/plan")) } catch { $planRootFull = $null }
 
-  if (-not (Test-CompletePackage -packageFullPath $packageFull)) {
+  if ((-not (Test-IsPathUnderDirectory -path $packageFull -directory $planRootFull)) -or (-not (Test-CompletePackage -packageFullPath $packageFull))) {
     $msg = "当前 current_package 指针无效或方案包不完整，已阻断以避免跑偏/重做。"
     $reason = "请先修复 `HAGSWorks/plan/_current.md` 指针或重新选择有效方案包（why/how/task齐全），再继续对话。"
     Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason

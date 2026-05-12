@@ -186,6 +186,27 @@ function Resolve-CurrentPackagePath([string]$projectRoot, [string]$pointerValue)
   return (Join-Path $projectRoot $pointerValue)
 }
 
+function Test-IsPathUnderDirectory([string]$path, [string]$directory) {
+  if ([string]::IsNullOrWhiteSpace($path) -or [string]::IsNullOrWhiteSpace($directory)) {
+    return $false
+  }
+
+  try {
+    $fullPath = [System.IO.Path]::GetFullPath($path)
+    $fullDirectory = [System.IO.Path]::GetFullPath($directory)
+  } catch {
+    return $false
+  }
+
+  $separator = [System.IO.Path]::DirectorySeparatorChar
+  $altSeparator = [System.IO.Path]::AltDirectorySeparatorChar
+  if (-not ($fullDirectory.EndsWith($separator) -or $fullDirectory.EndsWith($altSeparator))) {
+    $fullDirectory = $fullDirectory + $separator
+  }
+
+  return $fullPath.StartsWith($fullDirectory, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
 function Get-MarkdownSectionBody([string]$text, [string]$headingText) {
   if ([string]::IsNullOrWhiteSpace($text)) {
     return ""
@@ -349,7 +370,7 @@ try {
   exit 0
 }
 
-if ($resolvedPackageFull.StartsWith($historyRootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+if (Test-IsPathUnderDirectory -path $resolvedPackageFull -directory $historyRootFull) {
   Write-SessionWarn `
     -SystemMessage "WARN: _current.md points to history: '$rawPointer'. next=改回 HAGSWorks/plan 下的有效方案包" `
     -Signal "current_package_invalid" `
@@ -358,7 +379,7 @@ if ($resolvedPackageFull.StartsWith($historyRootFull, [System.StringComparison]:
   exit 0
 }
 
-if (-not $resolvedPackageFull.StartsWith($planRootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+if (-not (Test-IsPathUnderDirectory -path $resolvedPackageFull -directory $planRootFull)) {
   Write-SessionWarn `
     -SystemMessage "WARN: _current.md points outside plan root: '$rawPointer'. next=改回 HAGSWorks/plan 下的有效方案包" `
     -Signal "current_package_invalid" `

@@ -159,11 +159,36 @@ function Resolve-CurrentPackagePath([string]$projectRoot, [string]$pointerValue)
   return (Join-Path $projectRoot $pointerValue)
 }
 
+function Test-IsPathUnderDirectory([string]$path, [string]$directory) {
+  if ([string]::IsNullOrWhiteSpace($path) -or [string]::IsNullOrWhiteSpace($directory)) {
+    return $false
+  }
+
+  try {
+    $fullPath = [System.IO.Path]::GetFullPath($path)
+    $fullDirectory = [System.IO.Path]::GetFullPath($directory)
+  } catch {
+    return $false
+  }
+
+  $separator = [System.IO.Path]::DirectorySeparatorChar
+  $altSeparator = [System.IO.Path]::AltDirectorySeparatorChar
+  if (-not ($fullDirectory.EndsWith($separator) -or $fullDirectory.EndsWith($altSeparator))) {
+    $fullDirectory = $fullDirectory + $separator
+  }
+
+  return $fullPath.StartsWith($fullDirectory, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
 function Resolve-CurrentPackage([string]$projectRoot, [string]$packageArg) {
+  $planRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot "HAGSWorks/plan"))
+
   if (-not [string]::IsNullOrWhiteSpace($packageArg)) {
     $candidate = Resolve-CurrentPackagePath -projectRoot $projectRoot -pointerValue $packageArg
-    if (Test-Path -LiteralPath $candidate -PathType Container) {
-      return (Resolve-Path -LiteralPath $candidate).Path
+    $candidateFullForArg = $null
+    try { $candidateFullForArg = [System.IO.Path]::GetFullPath($candidate) } catch { $candidateFullForArg = $null }
+    if ((Test-IsPathUnderDirectory -path $candidateFullForArg -directory $planRoot) -and (Test-Path -LiteralPath $candidateFullForArg -PathType Container)) {
+      return (Resolve-Path -LiteralPath $candidateFullForArg).Path
     }
   }
 
@@ -184,10 +209,9 @@ function Resolve-CurrentPackage([string]$projectRoot, [string]$packageArg) {
   }
 
   $candidatePath = Resolve-CurrentPackagePath -projectRoot $projectRoot -pointerValue $pointerValue
-  $planRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot "HAGSWorks/plan"))
   $candidateFull = [System.IO.Path]::GetFullPath($candidatePath)
 
-  if (-not $candidateFull.StartsWith($planRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+  if (-not (Test-IsPathUnderDirectory -path $candidateFull -directory $planRoot)) {
     return $null
   }
   if (-not (Test-Path -LiteralPath $candidateFull -PathType Container)) {
