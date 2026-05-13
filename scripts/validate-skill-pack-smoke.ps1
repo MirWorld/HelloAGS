@@ -99,6 +99,30 @@ function Invoke-ArchivePlanPackageJson([string]$projectRoot, [string]$package) {
   return $result
 }
 
+function Invoke-AbandonPlanPackageJson([string]$projectRoot, [string]$package, [switch]$ConfirmCurrent) {
+  $scriptPath = Join-Path $projectRoot "HAGSWorks/scripts/abandon-plan-package.ps1"
+  $args = @(
+    "-NoProfile",
+    "-File", $scriptPath,
+    "-ProjectRoot", $projectRoot,
+    "-Package", $package,
+    "-ConfirmAbandon",
+    "-Json"
+  )
+  if ($ConfirmCurrent) {
+    $args += "-ConfirmCurrent"
+  }
+
+  $raw = & pwsh @args
+  $exitCode = $LASTEXITCODE
+  if ([string]::IsNullOrWhiteSpace(($raw -join ""))) {
+    throw "Abandon cleanup script returned empty output."
+  }
+  $result = (($raw -join "`n") | ConvertFrom-Json -Depth 64)
+  $result | Add-Member -NotePropertyName exit_code -NotePropertyValue $exitCode -Force
+  return $result
+}
+
 function New-SmokePayload([string]$path, [string]$prompt, [string]$projectRoot, [string]$turnId = "") {
   $payload = [ordered]@{
     prompt = $prompt
@@ -248,6 +272,58 @@ function New-ArchiveReadyPackage([string]$projectRoot, [string]$packageName) {
 ## Review 记录
 - Review: 归档脚本 smoke 方案包已满足终态任务、空 Pending、final progress 与 Review 证据
 - 复测: `pwsh -NoProfile -Command "Write-Output archive-smoke"` 结果: 通过
+"@
+
+  Write-Utf8Text -path (Join-Path $packageDir "why.md") -text $whyText
+  Write-Utf8Text -path (Join-Path $packageDir "how.md") -text $howText
+  Write-Utf8Text -path (Join-Path $packageDir "task.md") -text $taskText
+
+  return $packageRel.Replace('\', '/')
+}
+
+function New-UnexecutedPackage([string]$projectRoot, [string]$packageName) {
+  $packageRel = "HAGSWorks/plan/$packageName"
+  $packageDir = Join-Path $projectRoot $packageRel
+  New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
+
+  $whyText = @"
+# 对齐摘要: abandoned smoke
+
+## 对齐摘要
+- 目标：验证未执行旧方案放弃清理脚本
+"@
+
+  $howText = @"
+# 技术设计: abandoned smoke
+
+## 技术方案
+- **verify_min:** `未执行；用户放弃执行`
+- **carry_forward_verify:** `无`
+
+## 执行域声明（Allow/Deny）
+- Allow: [`HAGSWorks/plan/$packageName`]
+"@
+
+  $taskText = @"
+# 任务清单: abandoned smoke
+
+- [ ] 1.0 这个方案尚未执行
+
+## 上下文快照
+
+### 已确认事实（可验证）
+- [SRC:USER] 用户明确放弃执行该旧方案
+
+### Repo 状态（复现/防漂移，执行域必填）
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: start
+
+### 待用户输入（Pending）
+
+### 下一步唯一动作（可执行）
+- 下一步唯一动作: `执行 abandon-plan-package.ps1` 预期: 按未执行清理迁移
 "@
 
   Write-Utf8Text -path (Join-Path $packageDir "why.md") -text $whyText
@@ -800,6 +876,31 @@ carry_forward_verify: 无
   $historyIndexAfterArchive = Read-Utf8Text -path (Join-Path $projectRoot "HAGSWorks/history/index.md")
   Assert-Contains $historyIndexAfterArchive "202604011200_archive_ready" "Archive script should append history/index.md."
   Assert-Contains $historyIndexAfterArchive "validate-plan-package.ps1 -Mode archive" "Archive index entry should include validation evidence."
+
+  $abandonRel = New-UnexecutedPackage -projectRoot $projectRoot -packageName "202604011210_abandon_unexecuted"
+  $abandonOut = Invoke-AbandonPlanPackageJson -projectRoot $projectRoot -package $abandonRel
+  Assert-True ($abandonOut.ok -eq $true) "Abandon cleanup script should archive an unexecuted non-active package."
+  Assert-True ($abandonOut.exit_code -eq 0) "Abandon cleanup script should exit 0 for an unexecuted package."
+  Assert-Contains $abandonOut.history_package "HAGSWorks/history/2026-04/202604011210_abandon_unexecuted/" "Abandon cleanup script should place packages under history/YYYY-MM."
+  Assert-True (-not (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/plan/202604011210_abandon_unexecuted") -PathType Container)) "Abandon cleanup script should remove the source package from HAGSWorks/plan."
+  $abandonedTask = Read-Utf8Text -path (Join-Path $projectRoot "HAGSWorks/history/2026-04/202604011210_abandon_unexecuted/task.md")
+  Assert-Contains $abandonedTask "archive_intent: abandoned_unexecuted" "Abandon cleanup script should stamp abandoned intent into task.md."
+  Assert-Contains $abandonedTask "未执行（用户放弃执行；这不是完成证据）" "Abandon cleanup script should mark not-run validation as non-completion evidence."
+  $historyIndexAfterAbandon = Read-Utf8Text -path (Join-Path $projectRoot "HAGSWorks/history/index.md")
+  Assert-Contains $historyIndexAfterAbandon "abandoned_unexecuted" "Abandon cleanup script should append abandoned_unexecuted index metadata."
+
+  $abandonCurrentRel = New-UnexecutedPackage -projectRoot $projectRoot -packageName "202604011211_abandon_current_guard"
+  Set-CurrentPackage -projectRoot $projectRoot -packageRel $abandonCurrentRel
+  $abandonCurrentBlocked = Invoke-AbandonPlanPackageJson -projectRoot $projectRoot -package $abandonCurrentRel
+  Assert-True ($abandonCurrentBlocked.ok -eq $false) "Abandon cleanup script should reject current_package without ConfirmCurrent."
+  Assert-Contains (($abandonCurrentBlocked.errors -join "`n")) "current_package" "Abandon current-package rejection should explain the current pointer risk."
+  Assert-True (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/plan/202604011211_abandon_current_guard") -PathType Container) "Abandon cleanup script should keep current packages active when ConfirmCurrent is absent."
+
+  $abandonExecutedRel = New-ArchiveReadyPackage -projectRoot $projectRoot -packageName "202604011212_abandon_executed_guard"
+  $abandonExecutedBlocked = Invoke-AbandonPlanPackageJson -projectRoot $projectRoot -package $abandonExecutedRel
+  Assert-True ($abandonExecutedBlocked.ok -eq $false) "Abandon cleanup script should reject packages that contain execution evidence."
+  Assert-Contains (($abandonExecutedBlocked.errors -join "`n")) "execution evidence" "Abandon executed-package rejection should explain that resume/archive gate is required."
+  Assert-True (Test-Path -LiteralPath (Join-Path $projectRoot "HAGSWorks/plan/202604011212_abandon_executed_guard") -PathType Container) "Abandon cleanup script should keep executed packages under HAGSWorks/plan."
 
   $archiveConflictRel = New-ArchiveReadyPackage -projectRoot $projectRoot -packageName "202604011200_archive_ready"
   Set-CurrentPackage -projectRoot $projectRoot -packageRel $archiveConflictRel

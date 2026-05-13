@@ -340,6 +340,7 @@ $required = @(
   "templates/hooks/hooks.json",
   "templates/hooks/config.toml.snippet",
   "templates/validate-active-context.ps1",
+  "templates/abandon-plan-package.ps1",
   "templates/archive-plan-package.ps1",
   "templates/validate-plan-package.ps1",
   "references/routing.md",
@@ -425,7 +426,9 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/workspace-bootst
   '"directories"',
   '"files"',
   '"HAGSWorks/scripts/archive-plan-package.ps1"',
-  '"templates/archive-plan-package.ps1"'
+  '"templates/archive-plan-package.ps1"',
+  '"HAGSWorks/scripts/abandon-plan-package.ps1"',
+  '"templates/abandon-plan-package.ps1"'
 )
 Assert-ContainsAll -repoRoot $repoRoot -relativePath ".gitignore" -needles @(
   "/HAGSWorks/",
@@ -961,6 +964,18 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/archive-plan-pac
   "Invoke-ArchiveRollback"
 )
 
+Assert-NotMatches -repoRoot $repoRoot -relativePath "templates/abandon-plan-package.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Abandon cleanup script should only classify and move local plan-package files; never execute dynamic content."
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/abandon-plan-package.ps1" -needles @(
+  "ConfirmAbandon",
+  "ConfirmCurrent",
+  "Get-ExecutionEvidence",
+  "archive_intent: abandoned_unexecuted",
+  "package has execution evidence",
+  "abandoned cleanup failed after move and rollback was incomplete",
+  "HAGSWorks/plan",
+  "HAGSWorks/history"
+)
+
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @(
   "功能删减确认",
   "等待用户确认是否允许本次功能删减",
@@ -972,6 +987,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "kb/SKILL.md" -needles @(
   "候选清单必须先过滤",
   '不得原样列出 `HAGSWorks/plan/` 下所有目录',
   "执行证据",
+  "abandon-plan-package.ps1",
   "archive_intent: abandoned_unexecuted",
   "默认视为仍需续作",
   "放弃续作/未执行归档",
@@ -982,6 +998,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.
   "遗留清单必须先过滤候选",
   '清除内存变量不等于清空 `_current.md`',
   "已执行/半执行/完成态但未归档",
+  "abandon-plan-package.ps1",
   "archive_intent: abandoned_unexecuted"
 )
 

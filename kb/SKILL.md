@@ -259,6 +259,9 @@ HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 - 若某包不是“未执行清理”，而是已经执行过的方案包，必须先通过 `references/plan-lifecycle.md` 的 Archive Readiness Gate；未通过时保留在 `HAGSWorks/plan/` 并提示补 Review / verify / progress / 下一步唯一动作。
 - “未执行（用户清理）”迁移只用于用户明确放弃的旧方案，不代表开发实施完成。
 - 迁移前必须重新读取该包 `task.md` 做二次分类；只要发现执行证据，立即停止本包迁移，并把它转为“续作/收尾候选”。
+- 若存在 `HAGSWorks/scripts/abandon-plan-package.ps1`，必须优先使用脚本执行未执行清理，禁止手动拼移动/索引/清指针：
+  - 非 active 候选：`pwsh -NoProfile -File HAGSWorks/scripts/abandon-plan-package.ps1 -Package <PACKAGE> -ConfirmAbandon`
+  - 当前 active 包只有在用户明确说“放弃续作/未执行归档”时才可加 `-ConfirmCurrent`
 
 ```yaml
 for each 选定的方案包:

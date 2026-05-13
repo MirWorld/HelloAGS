@@ -41,6 +41,11 @@
       "description": "方案包归档迁移脚本"
     },
     {
+      "target": "HAGSWorks/scripts/abandon-plan-package.ps1",
+      "template": "templates/abandon-plan-package.ps1",
+      "description": "未执行方案包放弃清理脚本"
+    },
+    {
       "target": "HAGSWorks/scripts/capture-runtime-events.ps1",
       "template": "templates/capture-runtime-events.ps1",
       "description": "运行时/模型事件回填脚本"

@@ -220,6 +220,7 @@ HAGSWorks/
 ├── project.md
 ├── active_context.md
 ├── scripts/
+│   ├── abandon-plan-package.ps1
 │   ├── archive-plan-package.ps1
 │   ├── validate-active-context.ps1
 │   └── validate-plan-package.ps1
