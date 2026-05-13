@@ -81,5 +81,8 @@ archive_script: HAGSWorks/scripts/archive-plan-package.ps1
 - 开发实施/执行命令/全授权命令结束后（迁移完成）
 
 规则：
-- 扫描 `HAGSWorks/plan/` 下的方案包目录（忽略 `_current.md` 等文件），排除本次 `CURRENT_PACKAGE`
+- 扫描 `HAGSWorks/plan/` 下的方案包目录（忽略 `_current.md` 等文件），但遗留清单必须先过滤候选，不能原样列出所有目录。
+- 必须排除 `HAGSWorks/plan/_current.md` 指向的当前 active 包与本次 `CURRENT_PACKAGE`；清除内存变量不等于清空 `_current.md`。
+- 必须排除已执行/半执行/完成态但未归档的包；只要存在任务终态、Review/验证记录、运行时事件、压缩事件或 touched files / verify 结果，就应按恢复协议或 Archive Readiness Gate 处理，不能按“未执行清理”迁移。
+- 只有完整、非 active、无执行证据、且用户明确放弃执行的包，才可作为“未执行清理”候选；归档时需写入 `archive_intent: abandoned_unexecuted`，并明确“未执行验证不是完成证据”。
 - 如存在遗留包：在完成输出末尾提示，并提供迁移选择流程（见 `kb/SKILL.md` 的遗留方案迁移规则）

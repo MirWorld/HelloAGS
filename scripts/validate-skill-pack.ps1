@@ -964,14 +964,25 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/archive-plan-pac
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @(
   "功能删减确认",
   "等待用户确认是否允许本次功能删减",
-  "已执行方案必须先通过 Archive Readiness Gate"
+  "已执行/半执行方案必须先恢复续作或通过 Archive Readiness Gate"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "kb/SKILL.md" -needles @(
   "迁移前门禁（防误归档）",
+  "候选清单必须先过滤",
+  '不得原样列出 `HAGSWorks/plan/` 下所有目录',
+  "执行证据",
+  "archive_intent: abandoned_unexecuted",
   "默认视为仍需续作",
   "放弃续作/未执行归档",
   "已执行方案需先过 Archive Readiness Gate"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.md" -needles @(
+  "遗留清单必须先过滤候选",
+  '清除内存变量不等于清空 `_current.md`',
+  "已执行/半执行/完成态但未归档",
+  "archive_intent: abandoned_unexecuted"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation.md" -needles @(

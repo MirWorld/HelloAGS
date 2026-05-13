@@ -222,12 +222,18 @@ HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 <legacy_plan_migration>
 **适用场景:** 用户响应"确认迁移"后的批量处理流程
 
-**步骤1 - 用户选择迁移范围:**
+**步骤1 - 构造候选清单并让用户选择范围:**
 
-列出所有遗留方案包，询问用户选择:
+候选清单必须先过滤，**不得原样列出 `HAGSWorks/plan/` 下所有目录**：
+- 排除 `HAGSWorks/plan/_current.md` 指向的当前 active 包；排除本轮 `CURRENT_PACKAGE`。
+- 排除不完整/损坏包（缺 `why.md/how.md/task.md` 或为空）；这类包只能提示“修复 / 新建 / 放弃续作”，不得自动迁移。
+- 排除任何已经开始执行或存在执行证据的包：例如任务含 `[√]` / `[X]` / `[?]`、存在 Review/验证记录、`progress_phase: in_progress|final`、`model_event` / `compact_event` / `threshold_event`、或已记录 touched files / verify 结果。这类包是“续作/收尾候选”，必须走恢复协议或 Archive Readiness Gate，不得按遗留清理迁移。
+- 只有“完整、非 active、无执行证据、用户明确放弃执行”的包，才可进入“未执行清理”候选清单。
+
+只列出过滤后的“未执行清理”候选，询问用户选择:
 ```
 检测到 X 个遗留方案包，请选择迁移方式:
-- 输入"全部" → 迁移所有遗留方案包
+- 输入"全部" → 迁移候选清单中的所有未执行遗留方案包
 - 输入方案包序号（如 1, 1,3, 1-3）→ 迁移指定方案包
 - 输入"取消" → 保留所有遗留方案包
 
@@ -238,7 +244,7 @@ HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 ```
 
 **用户响应处理:**
-- "全部" → 迁移所有
+- "全部" → 迁移候选清单中的所有包（不是 plan/ 下所有目录）
 - 单个序号（如 1）→ 迁移第1个
 - 多个序号（如 1,3）→ 迁移指定的
 - 序号范围（如 1-3）→ 迁移第1到第3个
@@ -252,11 +258,17 @@ HAGSWorks/                 # HelloAGENTS 工作空间（知识沉淀主落点）
 - 若 `HAGSWorks/plan/_current.md` 指向某包，默认视为仍需续作；除非用户明确选择“放弃续作/未执行归档”，否则不得迁移。
 - 若某包不是“未执行清理”，而是已经执行过的方案包，必须先通过 `references/plan-lifecycle.md` 的 Archive Readiness Gate；未通过时保留在 `HAGSWorks/plan/` 并提示补 Review / verify / progress / 下一步唯一动作。
 - “未执行（用户清理）”迁移只用于用户明确放弃的旧方案，不代表开发实施完成。
+- 迁移前必须重新读取该包 `task.md` 做二次分类；只要发现执行证据，立即停止本包迁移，并把它转为“续作/收尾候选”。
 
 ```yaml
 for each 选定的方案包:
   1. 更新任务状态: 所有任务状态更新为 [-]
      顶部添加: > **状态:** 未执行（用户清理）
+     在 task.md##上下文快照 追加:
+       - archive_intent: abandoned_unexecuted
+       - abandon_confirmed_by_user: yes
+       - progress_phase: final
+       - 验证: 未执行（用户放弃执行；这不是完成证据）
 
   2. 迁移至历史记录目录:
      - 从 plan/ 移动到 history/YYYY-MM/
@@ -285,10 +297,12 @@ for each 选定的方案包:
 - 方案包迁移后: Archive Readiness Gate 已通过并完成迁移、或用户明确选择“放弃续作/未执行归档”后完成迁移
 
 **扫描逻辑:**
-1. 扫描 plan/ 目录下所有方案包目录
-2. 排除本次已执行的方案包（读取CURRENT_PACKAGE变量）
-3. 清除CURRENT_PACKAGE变量
-4. 剩余方案包即为遗留方案
+1. 扫描 plan/ 目录下所有方案包目录（忽略 `_current.md` 等文件）
+2. 读取 `HAGSWorks/plan/_current.md` 与 CURRENT_PACKAGE，排除当前 active/本轮执行包
+3. 对每个剩余包做最小完整性与执行证据分类
+4. 只有“完整、非 active、无执行证据”的包才进入遗留清理候选
+5. 已执行/半执行/完成态但未归档的包不进入遗留清单；它们必须继续走恢复协议或 Archive Readiness Gate
+6. 清除 CURRENT_PACKAGE 变量只影响本轮内存状态，不得据此清空 `_current.md`
 
 **输出位置:** 自动注入到 G6.1 输出格式的末尾插槽中
 
