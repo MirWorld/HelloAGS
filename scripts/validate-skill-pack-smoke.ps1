@@ -889,6 +889,17 @@ carry_forward_verify: 无
   $historyIndexAfterAbandon = Read-Utf8Text -path (Join-Path $projectRoot "HAGSWorks/history/index.md")
   Assert-Contains $historyIndexAfterAbandon "abandoned_unexecuted" "Abandon cleanup script should append abandoned_unexecuted index metadata."
 
+  $templateAbandonRel = "HAGSWorks/plan/202604011213_abandon_template_placeholders"
+  $templateAbandonDir = Join-Path $projectRoot $templateAbandonRel
+  New-Item -ItemType Directory -Path $templateAbandonDir -Force | Out-Null
+  Copy-Item -LiteralPath (Join-Path $repoRoot "templates/plan-why-template.md") -Destination (Join-Path $templateAbandonDir "why.md") -Force
+  Copy-Item -LiteralPath (Join-Path $repoRoot "templates/plan-how-template.md") -Destination (Join-Path $templateAbandonDir "how.md") -Force
+  Copy-Item -LiteralPath (Join-Path $repoRoot "templates/plan-task-template.md") -Destination (Join-Path $templateAbandonDir "task.md") -Force
+  $templateAbandonOut = Invoke-AbandonPlanPackageJson -projectRoot $projectRoot -package $templateAbandonRel
+  Assert-True ($templateAbandonOut.ok -eq $true) "Abandon cleanup script should ignore template HTML comments/placeholders when classifying execution evidence."
+  $templateAbandonedTask = Read-Utf8Text -path (Join-Path $projectRoot "HAGSWorks/history/2026-04/202604011213_abandon_template_placeholders/task.md")
+  Assert-Contains $templateAbandonedTask "archive_intent: abandoned_unexecuted" "Template-based abandoned cleanup should stamp abandoned intent into task.md."
+
   $abandonCurrentRel = New-UnexecutedPackage -projectRoot $projectRoot -packageName "202604011211_abandon_current_guard"
   Set-CurrentPackage -projectRoot $projectRoot -packageRel $abandonCurrentRel
   $abandonCurrentBlocked = Invoke-AbandonPlanPackageJson -projectRoot $projectRoot -package $abandonCurrentRel

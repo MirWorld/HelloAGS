@@ -119,6 +119,14 @@ function Strip-FencedCodeBlocks([string]$text) {
   return ([regex]::Replace($text, '(?ms)```.*?```|~~~.*?~~~', ''))
 }
 
+function Strip-HtmlComments([string]$text) {
+  if ($null -eq $text) {
+    return ""
+  }
+
+  return ([regex]::Replace($text, '(?ms)<!--.*?-->', ''))
+}
+
 function Get-MarkdownSectionBody([string]$text, [string]$headingRegex) {
   if ($null -eq $text) {
     return ""
@@ -188,7 +196,9 @@ function Get-ExecutionEvidence([string]$taskText) {
   $evidence = New-Object System.Collections.Generic.List[string]
   $textNoCode = Strip-FencedCodeBlocks $taskText
   $snapshotBody = Get-MarkdownH2SectionBody -text $textNoCode -headingRegex '##\s*上下文快照'
+  $snapshotBody = Strip-HtmlComments $snapshotBody
   $reviewBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '##\s*Review\s*记录'
+  $reviewBody = Strip-HtmlComments $reviewBody
 
   if ($textNoCode -match '(?m)^\s*-\s*\[(?:√|X|\?)\]\s+') {
     $evidence.Add("terminal_or_confirmation_task")

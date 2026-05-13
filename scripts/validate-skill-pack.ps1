@@ -968,6 +968,7 @@ Assert-NotMatches -repoRoot $repoRoot -relativePath "templates/abandon-plan-pack
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/abandon-plan-package.ps1" -needles @(
   "ConfirmAbandon",
   "ConfirmCurrent",
+  "Strip-HtmlComments",
   "Get-ExecutionEvidence",
   "archive_intent: abandoned_unexecuted",
   "package has execution evidence",
