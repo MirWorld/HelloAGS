@@ -595,6 +595,48 @@ foreach ($pkg in $packages) {
               }
             }
           }
+
+          $compactMatches = [regex]::Matches($snapshotBody, '(?im)^\s*-\s*\[SRC:TOOL\]\s*compact_event\s*[:：]\s*(?<kind>\S+)(?:\s+#.*)?\s*$')
+          if ($compactMatches.Count -gt 0) {
+            $lastPostCompact = $null
+            foreach ($m in $compactMatches) {
+              $kind = $m.Groups["kind"].Value.Trim([char]0x60, '"', "'", ",", ";")
+              if ($kind -match '(?i)^post_compact\b') {
+                $lastPostCompact = $m
+              }
+            }
+
+            if ($lastPostCompact) {
+              $after = ""
+              try {
+                $start = [Math]::Min($snapshotBody.Length, $lastPostCompact.Index + $lastPostCompact.Length)
+                $after = $snapshotBody.Substring($start)
+              } catch {
+                $after = ""
+              }
+
+              $hasRepoAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?repo_state\s*[:：]\s*\S')
+              $hasNextAfter = ($after -match '(?im)^\s*-\s*下一步唯一动作\s*[:：]\s*\S')
+              $hasHydrationRequiredAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?resume_hydration_required\s*[:：]\s*yes\b')
+              $hasHydratedFromPackageAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?hydrated_from_package\s*[:：]\s*\S')
+              $hasHydrationSourceAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?hydration_source\s*[:：]\s*`?_current\.md\s*\+\s*task\.md\s*\+\s*repo_state`?\b')
+              $hasRebootOkAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?reboot_check\s*[:：]\s*ok\b')
+              $hasContractOkAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?contract_checkpoint\s*[:：]\s*ok\b')
+
+              if (-not ($hasRepoAfter -and $hasNextAfter)) {
+                Add-Error "package '${pkgName}' task.md contains compact_event: post_compact but has no recovery checkpoint after it. Add repo_state + next_unique_action AFTER post_compact before entering exec mode."
+              }
+              if (-not ($hasHydrationRequiredAfter -and $hasHydratedFromPackageAfter -and $hasHydrationSourceAfter)) {
+                Add-Error "package '${pkgName}' task.md contains compact_event: post_compact but is missing hydration metadata. Add resume_hydration_required: yes + hydrated_from_package + hydration_source AFTER post_compact."
+              }
+              if (-not $hasRebootOkAfter) {
+                Add-Error "package '${pkgName}' task.md contains compact_event: post_compact but has no reboot_check: ok after it. Run Resume Hydration Gate before entering exec mode."
+              }
+              if (-not $hasContractOkAfter) {
+                Add-Error "package '${pkgName}' task.md contains compact_event: post_compact but has no contract_checkpoint: ok after it. Confirm goal/success/non-goals/constraints before entering exec mode."
+              }
+            }
+          }
         }
 
         $pendingBody = Get-MarkdownSectionBody -text $textNoCode -headingRegex '###\s*待用户输入（Pending）'

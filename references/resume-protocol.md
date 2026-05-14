@@ -7,6 +7,7 @@
 - 恢复的产出必须落到**下一步唯一动作**（命令/任务号/文件修改），避免空泛“继续排查”
 - 恢复完成前，必须做一次 **5 问 Reboot Check**，强制把“我在哪/要去哪/下一步是什么”说清楚（见第 2 节第 5 步）
 - 恢复出“可继续执行”不等于“可以直接继续改代码”；命中压缩/模型切换/输出不完整后，必须再做一次 **contract 复核**，确认目标/成功标准/非目标/禁止项仍然成立
+- `develop/SKILL.md` 只是开发实施操作手册，不是进度源；压缩/断层恢复的进度真值只能来自 `HAGSWorks/plan/_current.md` 指向的方案包、`task.md##上下文快照`、`repo_state` 与可复现工具证据
 
 ---
 
@@ -17,6 +18,7 @@
 - 会话明显不连续（例如中断后重进）或你无法解释“当前任务目标/下一步”
 - 检测到模型切换/以不同模型继续/明显 reroute（例如收到 `model/rerouted` 通知；此时禁止依赖“记忆”，必须按磁盘状态恢复）
 - 发现“输出不完整/压缩异常”（例如 `response.incomplete`、工具输出被截断），无法确认已完成内容与下一步
+- 快照中存在未恢复的 `compact_event: post_compact`，或 hooks 输出 `signal: compact_resume_required`
 - 工具调用密集或失败反复，怀疑上下文即将被压缩（可参考 `references/context-budget.md`）
 
 补充（无感启发式，避免绑定具体措辞）：若对话中出现系统级警告/提示包含 “routed / rerouted / fallback / 降级” 这类字样，也视为 `model/rerouted` 信号；应当记录一次 `[SRC:TOOL] model_event: model_rerouted` 并优先走本恢复流程（不要凭聊天记忆继续推进）。
@@ -32,6 +34,38 @@
 ## 2) 固定恢复顺序（只读优先）
 
 按顺序执行，禁止跳步（除非目录不存在）：
+
+<!-- CONTRACT: resume-hydration-gate v1 -->
+### 2.0 Resume Hydration Gate（压缩后硬门）
+
+命中 `compact_event: post_compact` / `signal: compact_resume_required` 时，必须先通过本门禁，才允许进入 `develop/SKILL.md` 的业务实施步骤。
+
+固定顺序：
+1. 读取 `${PROJECT_ROOT}/HAGSWorks/plan/_current.md`
+2. 校验 `current_package` 非空时只能指向 `${PROJECT_ROOT}/HAGSWorks/plan/` 下的方案包目录，禁止指向 `history/` 或包外路径
+3. 读取当前包 `why.md`、`how.md`、`task.md`
+4. 从 `task.md` 提取任务状态、Pending、最新 `compact_event` / `threshold_event` / `repo_state` / `下一步唯一动作`
+5. 对照当前 git 的 `branch/head/dirty/diffstat` 与快照中的最近 `repo_state`
+6. 完成 5 问 Reboot Check，并确认不是从 `develop/SKILL.md` 或聊天摘要推断进度
+7. 在 `task.md##上下文快照` 追加恢复结果：
+   - `resume_hydration_required: yes|no`
+   - `reboot_check: ok|needs_realign`
+   - `hydrated_from_package: HAGSWorks/plan/...`
+   - `hydration_source: _current.md + task.md + repo_state`
+   - `contract_checkpoint: ok|needs_realign`
+
+Hydration 完成前禁止项：
+- 禁止读取业务文件继续实现
+- 禁止修改代码或运行会产生业务变更的命令
+- 禁止临时重规划替代当前方案包
+- 禁止凭聊天摘要、压缩摘要或 `develop/SKILL.md` 判断进度
+
+冲突处理：
+- `_current.md` 无效 / 指向 history / 指向包外：`Red`，先修复指针或重新选包
+- `_current.md` 指向的包与 `task.md` 状态不一致：以 `task.md + repo_state + 工具证据` 纠偏，先写 `reboot_check: needs_realign`，不得继续实现
+- `task.md` 与当前代码/git 状态不一致：先写纠偏检查点和新的“下一步唯一动作”，必要时新增 Delta 任务；不得把 `develop/SKILL.md` 当作进度补丁
+- Reboot Check 说不清 5 问任一项：写 `reboot_check: needs_realign`，回到对齐/重规划或等待用户决策
+- 只有 `reboot_check: ok` 且 `contract_checkpoint: ok` 才允许继续进入开发实施；`needs_realign` 只能进入重新对齐 / 等待用户决策，不得改代码
 
 0. **确定项目根目录（Repo Root）**
    - 优先使用 `git rev-parse --show-toplevel` 作为 `PROJECT_ROOT`
@@ -163,6 +197,7 @@
    - 若快照中存在 `threshold_event: near_autocompact`：优先把它视为“压缩前最后检查点”，并优先采用其后的 `repo_state + 下一步唯一动作` 恢复，而不是依赖聊天记忆判断进度。
    - 若快照中存在 `compact_event: pre_compact`：优先把它视为“官方压缩前最后检查点”，并采用同一检查点中的 `repo_state + 下一步唯一动作` 恢复；这是压缩发生前保存任务进度的首选证据。
    - 若快照中存在 `compact_event: post_compact`：视为已跨过压缩边界；必须完成本协议的 5 问 Reboot Check 后再继续，禁止凭压缩后的聊天摘要直接重开任务。
+   - 若 `compact_event: post_compact` 之后缺少 `reboot_check: ok`、`hydrated_from_package:`、`hydration_source: _current.md + task.md + repo_state` 或 `contract_checkpoint: ok`：视为 `compact_resume_required` 的 Red 信号，执行域不得继续。
 
 9. **恢复后 contract 复核（高风险事件后必做）**
    - 当本次恢复触发原因包含以下任一信号时，必须做一次极小 contract 复核：
@@ -179,6 +214,7 @@
      - 若任一项说不清 → 禁止直接继续改代码；必须先补一条快照决策（或 Pending / Delta），把问题收口到新的“下一步唯一动作”
    - 推荐落盘：
      - 在 `task.md##上下文快照` 的“决策”区追加一条：`contract_checkpoint: ok` 或 `contract_checkpoint: needs_realign`
+     - 压缩后续作还必须写入：`reboot_check: ok|needs_realign`、`hydrated_from_package: HAGSWorks/plan/...`、`hydration_source: _current.md + task.md + repo_state`
 
 10. **信号等级（轻量参考）**
    - 等级定义与稳定映射统一见 `references/signal-severity.md`

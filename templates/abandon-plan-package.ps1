@@ -212,7 +212,21 @@ function Get-ExecutionEvidence([string]$taskText) {
     $evidence.Add("progress_checkpoint_after_start")
   }
 
-  if ($snapshotBody -match '(?mi)\b(model_event|compact_event|threshold_event)\s*[:：]\s*\S') {
+  $runtimeEventLines = @()
+  foreach ($line in ($snapshotBody -split "\r?\n")) {
+    $trimmed = $line.Trim()
+    if ($trimmed -notmatch '(?i)\b(model_event|compact_event|threshold_event)\s*[:：]\s*\S') {
+      continue
+    }
+    if ($trimmed -match '(?i)\bcompact_event\s*[:：]\s*pre_compact\s*\|\s*post_compact\b') {
+      continue
+    }
+    if ($trimmed -match '(?i)\bthreshold_event\s*[:：]\s*near_autocompact\s*\|\s*') {
+      continue
+    }
+    $runtimeEventLines += $trimmed
+  }
+  if ($runtimeEventLines.Count -gt 0) {
     $evidence.Add("runtime_or_compact_event")
   }
 

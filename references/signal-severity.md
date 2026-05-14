@@ -33,6 +33,7 @@
 | `feature_removal_approved: no` 且命中删功能路径 | Red | 等待用户批准，不得继续沿删减路径实施 | `references/feature-removal-guard.md` |
 | `current_package` 无效 / 不完整 / 指向 history | Red | 修复 `_current.md` 指针或重新选包 | `references/resume-protocol.md`、`scripts/hooks/helloagents-sessionstart.ps1` |
 | `package_status: completed_looking` / `signal: package_completed` | Red | 禁止继续改代码；只允许执行 Archive Readiness Gate，未通过则保持 active | `references/plan-lifecycle.md`、`references/resume-protocol.md`、`scripts/hooks/helloagents-sessionstart.ps1` |
+| `compact_event: post_compact` 且无 `reboot_check: ok` / `signal: compact_resume_required` | Red | 先执行 Resume Hydration Gate；Hydration 完成前禁止读取业务文件继续实现、临时重规划或凭聊天摘要判断进度 | `references/resume-protocol.md`、`scripts/hooks/helloagents-compact.ps1`、`scripts/hooks/helloagents-sessionstart.ps1` |
 | `archive_gate_missing_evidence` | Red | 禁止迁移 history；补齐快照 final、verify_min 结果、Review 证据或跳过备注后再归档 | `references/plan-lifecycle.md`、`templates/validate-plan-package.ps1` |
 
 ---

@@ -512,6 +512,46 @@ try {
   Assert-True ($postCompactWriteOut.continue -eq $true) "PostCompact hook should return a valid compact hook continue response."
   $compactTaskAfterPost = Read-Utf8Text -path (Join-Path $projectRoot ($packageRel.Replace('/', '\') + "\task.md"))
   Assert-Contains $compactTaskAfterPost "compact_event: post_compact" "PostCompact hook should append compact_event post_compact."
+  Assert-Contains $compactTaskAfterPost "resume_hydration_required: yes" "PostCompact hook should mark resume hydration as required."
+  Assert-Contains $compactTaskAfterPost "reboot_check: required" "PostCompact hook should mark reboot check as required."
+  Assert-Contains $compactTaskAfterPost "hydration_source: _current.md + task.md + repo_state" "PostCompact hook should record hydration source."
+
+  $validatorPostCompactBlocked = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "exec" -package $packageRel
+  Assert-True (-not $validatorPostCompactBlocked.ok) "Exec validation should fail after post_compact until Resume Hydration Gate writes reboot_check: ok."
+  Assert-Contains (($validatorPostCompactBlocked.errors -join "`n")) "reboot_check: ok" "Exec validation should explain missing reboot_check: ok after post_compact."
+
+  $sessionPostCompactOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-sessionstart.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/sessionstart-hook-fixture.json") -projectRoot $projectRoot
+  Assert-Contains $sessionPostCompactOut.systemMessage "post_compact" "SessionStart should warn when current_package contains unresolved post_compact."
+  Assert-Contains $sessionPostCompactOut.hookSpecificOutput.additionalContext "signal: compact_resume_required" "SessionStart post_compact warning should expose compact_resume_required."
+
+  $payloadPostCompact = Join-Path $scratchRoot "userpromptsubmit-postcompact.json"
+  New-SmokePayload -path $payloadPostCompact -prompt "继续" -projectRoot $projectRoot -turnId "turn_demo_prompt_postcompact"
+  $userPostCompactOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadPostCompact -projectRoot $projectRoot
+  Assert-True ($userPostCompactOut.decision -eq "block") "Unresolved post_compact should block resume/execute-like prompts."
+  Assert-Contains $userPostCompactOut.hookSpecificOutput.additionalContext "compact_resume_required" "UserPromptSubmit should emit compact_resume_required context."
+
+  $payloadPostCompactQuestion = Join-Path $scratchRoot "userpromptsubmit-postcompact-question.json"
+  New-SmokePayload -path $payloadPostCompactQuestion -prompt "这个方案现在是什么状态？" -projectRoot $projectRoot -turnId "turn_demo_prompt_postcompact_question"
+  $userPostCompactQuestionOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadPostCompactQuestion -projectRoot $projectRoot
+  try { $postCompactQuestionDecision = $userPostCompactQuestionOut.decision } catch { $postCompactQuestionDecision = $null }
+  Assert-True ([string]::IsNullOrWhiteSpace($postCompactQuestionDecision)) "Unresolved post_compact should not block non-execution questions."
+  Assert-Contains $userPostCompactQuestionOut.hookSpecificOutput.additionalContext "compact_resume_required" "Non-execution post_compact prompts should still inject hydration context."
+
+  $compactTaskAfterPostNoPending = [regex]::Replace($compactTaskAfterPost, '(?m)^\s*-\s*\[SRC:TODO\]\s*请选择继续路径\s*\r?\n', '')
+  $hydratedTask = $compactTaskAfterPostNoPending + @"
+
+### 压缩恢复 Hydration
+- [SRC:TOOL] resume_hydration_required: yes
+- [SRC:TOOL] reboot_check: ok
+- [SRC:TOOL] hydrated_from_package: $packageRel
+- [SRC:TOOL] hydration_source: _current.md + task.md + repo_state
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+- [SRC:CODE|TOOL] contract_checkpoint: ok
+- 下一步唯一动作: `继续执行 1.0 验证 hooks 守卫` 预期: Hydration 已通过后按当前包续作
+"@
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $hydratedTask
+  $validatorPostCompactRecovered = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "exec" -package $packageRel
+  Assert-True ($validatorPostCompactRecovered.ok) "Exec validation should pass after reboot_check: ok + contract_checkpoint: ok are recorded."
 
   $responseIncompleteTask = @"
 # 任务清单: smoke

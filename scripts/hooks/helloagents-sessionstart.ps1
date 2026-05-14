@@ -309,8 +309,55 @@ function Test-UnresolvedResponseIncomplete([string]$taskText) {
 
   $hasRepoAfter = ($after -match '(?im)\brepo_state\s*[:：]\s*\S')
   $hasNextAfter = ($after -match '(?im)下一步唯一动作\s*[:：]\s*\S')
-  $hasContractAfter = ($after -match '(?im)\bcontract_checkpoint\s*[:：]\s*(ok|needs_realign)\b')
+  $hasContractAfter = ($after -match '(?im)\bcontract_checkpoint\s*[:：]\s*ok\b')
   return (-not ($hasRepoAfter -and $hasNextAfter -and $hasContractAfter))
+}
+
+function Test-UnresolvedPostCompact([string]$taskText) {
+  if ([string]::IsNullOrWhiteSpace($taskText)) {
+    return $false
+  }
+
+  $snapshotMatch = [regex]::Match($taskText, '(?ms)^\s*##\s*上下文快照\s*$\r?\n(?<body>.*?)(?=^\s*##\s+|\z)')
+  if (-not $snapshotMatch.Success) {
+    return $false
+  }
+
+  $snapshotBody = $snapshotMatch.Groups["body"].Value
+  $eventMatches = [regex]::Matches($snapshotBody, '(?im)^\s*-\s*\[SRC:TOOL\]\s*compact_event\s*[:：]\s*(?<kind>\S+)(?:\s+#.*)?\s*$')
+  if ($eventMatches.Count -eq 0) {
+    return $false
+  }
+
+  $lastPostCompact = $null
+  foreach ($m in $eventMatches) {
+    $kind = [regex]::Replace($m.Groups["kind"].Value, '^[`"'',;]+|[`"'',;]+$', '')
+    if ($kind -match '(?i)^post_compact\b') {
+      $lastPostCompact = $m
+    }
+  }
+
+  if ($null -eq $lastPostCompact) {
+    return $false
+  }
+
+  $after = ""
+  try {
+    $start = [Math]::Min($snapshotBody.Length, $lastPostCompact.Index + $lastPostCompact.Length)
+    $after = $snapshotBody.Substring($start)
+  } catch {
+    $after = ""
+  }
+
+  $hasRepoAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?repo_state\s*[:：]\s*\S')
+  $hasNextAfter = ($after -match '(?im)^\s*-\s*下一步唯一动作\s*[:：]\s*\S')
+  $hasHydrationRequiredAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?resume_hydration_required\s*[:：]\s*yes\b')
+  $hasHydratedFromPackageAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?hydrated_from_package\s*[:：]\s*\S')
+  $hasHydrationSourceAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?hydration_source\s*[:：]\s*`?_current\.md\s*\+\s*task\.md\s*\+\s*repo_state`?\b')
+  $hasRebootOkAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?reboot_check\s*[:：]\s*ok\b')
+  $hasContractAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?contract_checkpoint\s*[:：]\s*ok\b')
+
+  return (-not ($hasRepoAfter -and $hasNextAfter -and $hasHydrationRequiredAfter -and $hasHydratedFromPackageAfter -and $hasHydrationSourceAfter -and $hasRebootOkAfter -and $hasContractAfter))
 }
 
 $raw = Get-RawInput -inputFile $InputFile
@@ -425,6 +472,15 @@ if ($missing.Count -gt 0) {
 $taskFile = Join-Path $resolvedPackageFull "task.md"
 $taskText = Read-Utf8Text -path $taskFile
 $pendingLines = @(Get-PendingLines -taskText $taskText)
+if (Test-UnresolvedPostCompact -taskText $taskText) {
+  Write-SessionWarn `
+    -SystemMessage ("WARN: current_package contains unresolved post_compact: '{0}'. next=先从 _current.md + task.md + repo_state 执行 Resume Hydration Gate" -f $rawPointer) `
+    -Signal "compact_resume_required" `
+    -PackagePointer $rawPointer `
+    -NextUniqueAction "读取 _current.md + task.md 并执行 Reboot Check；写入 reboot_check: ok + contract_checkpoint 后再进入 develop"
+  exit 0
+}
+
 if (Test-UnresolvedResponseIncomplete -taskText $taskText) {
   Write-SessionWarn `
     -SystemMessage ("WARN: current_package contains unresolved response_incomplete: '{0}'. next=先补恢复检查点或先走恢复流程" -f $rawPointer) `

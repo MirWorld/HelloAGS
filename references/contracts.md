@@ -127,6 +127,10 @@
 - `session_id: <id>`
 - `turn_id: <id>`
 - `model: <model>`
+- `resume_hydration_required: yes|no`
+- `reboot_check: required|ok|needs_realign`
+- `hydrated_from_package: HAGSWorks/plan/...`
+- `hydration_source: _current.md + task.md + repo_state`
 - `repo_state: branch=... head=... dirty=... diffstat=...`
 - `下一步唯一动作: ...`
 
@@ -136,6 +140,7 @@
 
 约束：
 - `pre_compact` 必须与同一检查点中的 `repo_state`、`下一步唯一动作` 一起写入，才有恢复价值
+- `post_compact` 必须触发 Resume Hydration Gate；只有其后出现 `reboot_check: ok`、`hydrated_from_package:`、`hydration_source: _current.md + task.md + repo_state` 与 `contract_checkpoint: ok` 后，执行域才允许继续
 - 该检查点不替代阈值提前预警；需要提前到“接近阈值”时仍使用 `threshold_event: near_autocompact`
 
 来源：
@@ -189,12 +194,17 @@
 - `signal: response_incomplete`
 - `signal: feature_removal_guard`
 - `signal: package_completed`
+- `signal: compact_resume_required`
 - `severity: Red|Yellow`
 - `package_status: completed_looking`（任务全终态且无 Pending；仍需 Archive Readiness Gate 才能归档）
 - `feature_removal_risk: clear|suspected|approved`
 - `feature_removal_approved: yes|no`
 - `compact_event: pre_compact|post_compact`
 - `compact_trigger: auto|manual`
+- `resume_hydration_required: yes|no`
+- `reboot_check: required|ok|needs_realign`
+- `hydrated_from_package: HAGSWorks/plan/...`
+- `hydration_source: _current.md + task.md + repo_state`
 
 约束：
 - hooks 只输出结构化结果，不执行 payload 中的动态内容
@@ -203,6 +213,7 @@
 - `feature_removal_risk` 若由 prompt 启发式首次识别，也应**先归一化为** `suspected` 再输出，避免主流程只能依赖自然语言猜测
 - `response_incomplete` 命中时，hooks 应优先输出 `signal: response_incomplete` + `severity: Red`
 - `package_status: completed_looking` 命中时，hooks 应输出 `signal: package_completed` + `severity: Red`，但不要用 `decision: block` 阻断整轮；主流程需要继续执行 Archive Readiness Gate，且只能做 closeout / archive 判断，禁止继续改代码
+- `compact_event: post_compact` 命中且未完成 Hydration 时，hooks 应输出 `signal: compact_resume_required` + `severity: Red`；执行类输入必须阻断，非执行提问只注入 Hydration 上下文
 - `Stop` hook 的事件回填预览应显式提示“恢复检查点”存在（至少含 `repo_state` + `下一步唯一动作`）
 
 来源：

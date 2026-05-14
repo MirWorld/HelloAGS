@@ -348,8 +348,50 @@ function Test-UnresolvedResponseIncomplete([string]$taskText) {
 
   $hasRepoAfter = ($after -match '(?im)\brepo_state\s*[:：]\s*\S')
   $hasNextAfter = ($after -match '(?im)下一步唯一动作\s*[:：]\s*\S')
-  $hasContractAfter = ($after -match '(?im)\bcontract_checkpoint\s*[:：]\s*(ok|needs_realign)\b')
+  $hasContractAfter = ($after -match '(?im)\bcontract_checkpoint\s*[:：]\s*ok\b')
   return (-not ($hasRepoAfter -and $hasNextAfter -and $hasContractAfter))
+}
+
+function Test-UnresolvedPostCompact([string]$taskText) {
+  $snapshotBody = Get-SnapshotBody -taskText $taskText
+  if ([string]::IsNullOrWhiteSpace($snapshotBody)) {
+    return $false
+  }
+
+  $eventMatches = [regex]::Matches($snapshotBody, '(?im)^\s*-\s*\[SRC:TOOL\]\s*compact_event\s*[:：]\s*(?<kind>\S+)(?:\s+#.*)?\s*$')
+  if ($eventMatches.Count -eq 0) {
+    return $false
+  }
+
+  $lastPostCompact = $null
+  foreach ($m in $eventMatches) {
+    $kind = [regex]::Replace($m.Groups["kind"].Value, '^[`"'',;]+|[`"'',;]+$', '')
+    if ($kind -match '(?i)^post_compact\b') {
+      $lastPostCompact = $m
+    }
+  }
+
+  if ($null -eq $lastPostCompact) {
+    return $false
+  }
+
+  $after = ""
+  try {
+    $start = [Math]::Min($snapshotBody.Length, $lastPostCompact.Index + $lastPostCompact.Length)
+    $after = $snapshotBody.Substring($start)
+  } catch {
+    $after = ""
+  }
+
+  $hasRepoAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?repo_state\s*[:：]\s*\S')
+  $hasNextAfter = ($after -match '(?im)^\s*-\s*下一步唯一动作\s*[:：]\s*\S')
+  $hasHydrationRequiredAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?resume_hydration_required\s*[:：]\s*yes\b')
+  $hasHydratedFromPackageAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?hydrated_from_package\s*[:：]\s*\S')
+  $hasHydrationSourceAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?hydration_source\s*[:：]\s*`?_current\.md\s*\+\s*task\.md\s*\+\s*repo_state`?\b')
+  $hasRebootOkAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?reboot_check\s*[:：]\s*ok\b')
+  $hasContractAfter = ($after -match '(?im)^\s*-\s*(?:\[[^\]]+\]\s*)?contract_checkpoint\s*[:：]\s*ok\b')
+
+  return (-not ($hasRepoAfter -and $hasNextAfter -and $hasHydrationRequiredAfter -and $hasHydratedFromPackageAfter -and $hasHydrationSourceAfter -and $hasRebootOkAfter -and $hasContractAfter))
 }
 
 function Test-ResumeOrExecutePrompt([string]$promptTrimmed) {
@@ -672,6 +714,7 @@ try {
     -promptTrimmed $promptTrimmed
   $packageCompleted = Test-PackageCompleted -taskText $taskText -pendingLines $pendingLines
   $hasUnresolvedResponseIncomplete = Test-UnresolvedResponseIncomplete -taskText $taskText
+  $hasUnresolvedPostCompact = Test-UnresolvedPostCompact -taskText $taskText
   $isResumeOrExecutePrompt = Test-ResumeOrExecutePrompt -promptTrimmed $promptTrimmed
   $shouldInjectFeatureRemovalGuard = Test-FeatureRemovalGuardShouldInject `
     -riskState $effectiveFeatureRemovalRiskState `
@@ -730,6 +773,32 @@ try {
     $msg = "当前方案包存在未恢复的 response_incomplete，已阻断以避免在不确定状态下继续执行。"
     $reason = "请先补一条新的 repo_state + 下一步唯一动作 + contract_checkpoint，或先走恢复/重规划，再继续。"
     Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext ($blockLines -join "`n")
+    exit 0
+  }
+
+  if ($hasUnresolvedPostCompact) {
+    $blockLines = @(
+      "[HelloAGENTS Guard] 当前方案包存在未恢复的 post_compact；Hydration 完成前禁止读取业务文件继续实现、禁止临时重规划、禁止凭聊天摘要判断进度。",
+      ("current_package: {0}" -f $packagePointer)
+    )
+    if (-not [string]::IsNullOrWhiteSpace($turnId)) {
+      $blockLines += ("current_turn_id: {0}" -f $turnId)
+    }
+    $blockLines += "signal: compact_resume_required"
+    $blockLines += "severity: Red"
+    $blockLines += "resume_hydration_required: yes"
+    $blockLines += "reboot_check: required"
+    $blockLines += "hydration_source: _current.md + task.md + repo_state"
+    $blockLines += "next_unique_action: 读取 _current.md + task.md 并执行 Reboot Check；写入 reboot_check: ok + contract_checkpoint 后再进入 develop"
+
+    $additionalContext = ($blockLines -join "`n")
+    if ($isResumeOrExecutePrompt) {
+      $msg = "当前方案包存在未恢复的 post_compact，已阻断执行类输入以避免压缩后丢进度/重做。"
+      $reason = "请先执行 Resume Hydration Gate：读取 _current.md + task.md + repo_state，完成 5 问 Reboot Check，并写入 reboot_check: ok + contract_checkpoint。"
+      Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext $additionalContext
+    } else {
+      Write-HookOutputJson -AdditionalContext $additionalContext
+    }
     exit 0
   }
 

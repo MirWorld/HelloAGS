@@ -449,7 +449,18 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-templa
   "## 上下文快照",
   "## Review 记录",
   "## Active Context 更新记录",
-  "默认任务数建议"
+  "默认任务数建议",
+  "resume_hydration_required:",
+  "reboot_check:",
+  "hydrated_from_package:",
+  "hydration_source:"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-quickfix-template.md" -needles @(
+  "resume_hydration_required:",
+  "reboot_check:",
+  "hydrated_from_package:",
+  "hydration_source:"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-how-template.md" -needles @(
@@ -493,6 +504,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/signal-severity
   '`feature_removal_approved: no`',
   '`current_package` 无效 / 不完整 / 指向 history',
   '`package_status: completed_looking`',
+  "signal: compact_resume_required",
+  "Resume Hydration Gate",
   '`archive_gate_missing_evidence`',
   "只允许执行 Archive Readiness Gate",
   "SessionStart hooks"
@@ -535,6 +548,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation
   "templates/hooks/postcompact-hook-fixture.json",
   "templates/hooks/hooks.json",
   "templates/hooks/config.toml.snippet",
+  "compact_resume_required",
   "不重复解释预算"
 )
 
@@ -546,6 +560,12 @@ Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-u
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -needles @(
   '"SessionStart"',
   "Test-IsPathUnderDirectory",
+  "Test-UnresolvedPostCompact",
+  "compact_resume_required",
+  "resume_hydration_required",
+  "reboot_check",
+  "hydrated_from_package",
+  "hydration_source",
   "signal:",
   "severity:",
   "package_status:",
@@ -559,6 +579,11 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -needles @(
   "Test-IsPathUnderDirectory",
+  "Test-UnresolvedPostCompact",
+  "compact_resume_required",
+  "resume_hydration_required",
+  "reboot_check",
+  "hydration_source",
   "package_completed",
   "completed_looking",
   "new_requirement_policy",
@@ -587,6 +612,11 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-
   '"suppressOutput"',
   "compact_event",
   "compact_trigger",
+  "resume_hydration_required",
+  "reboot_check",
+  "hydrated_from_package",
+  "hydration_source",
+  "compact_resume_required",
   "Invoke-WithTaskFileLock",
   "_codex_temp/locks",
   "task.md lock busy"
@@ -603,7 +633,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/validate-skill-pac
   "plan_evil",
   "outside HAGSWorks/plan",
   "outside plan root",
-  "new_requirement_policy"
+  "new_requirement_policy",
+  "compact_resume_required",
+  "reboot_check: ok",
+  "Resume Hydration Gate"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/hooks.json" -needles @(
@@ -641,6 +674,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -
   "remaining_to_compact:",
   "compact_event:",
   "compact_trigger:",
+  "resume_hydration_required:",
+  "reboot_check:",
+  "hydrated_from_package:",
+  "hydration_source:",
   "turn_id:",
   "awaiting_topic:",
   "feature_removal_risk:",
@@ -656,6 +693,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -
   "helloagents-compact.ps1",
   "signal: response_incomplete",
   "signal: feature_removal_guard",
+  "signal: compact_resume_required",
   "severity: Red",
   "HAGSWorks/plan/_current.md",
   "<!-- CONTRACT: signal-severity v1 -->"
@@ -700,6 +738,12 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "develop/SKILL.md" -needles @(
   "<!-- CONTRACT: develop-no-redo v1 -->",
+  "Resume Hydration Gate",
+  "compact_resume_required",
+  "resume_hydration_required: yes",
+  "reboot_check: ok",
+  "hydrated_from_package:",
+  "hydration_source: _current.md + task.md + repo_state",
   "Archive Readiness Gate",
   "archive-plan-package.ps1",
   "-Mode archive",
@@ -720,6 +764,13 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol
   "list_tiebreaker: dirname_desc",
   "</resume_package_selection_contract>",
   "<!-- CONTRACT: resume-current-package-pointer v1 -->",
+  "<!-- CONTRACT: resume-hydration-gate v1 -->",
+  "Resume Hydration Gate",
+  "signal: compact_resume_required",
+  "resume_hydration_required: yes|no",
+  "reboot_check: ok|needs_realign",
+  "hydrated_from_package: HAGSWorks/plan/...",
+  "hydration_source: _current.md + task.md + repo_state",
   "threshold_event: near_autocompact",
   "compact_event: pre_compact",
   "compact_event: post_compact",
@@ -735,6 +786,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapsho
   "remaining_to_compact:",
   "compact_event:",
   "compact_trigger:",
+  "resume_hydration_required:",
+  "reboot_check:",
+  "hydrated_from_package:",
+  "hydration_source:",
   "turn_id:",
   "contract_checkpoint:",
   "progress_phase:",

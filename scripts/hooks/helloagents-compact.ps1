@@ -364,6 +364,7 @@ function Append-CompactCheckpoint(
   [string]$sessionId,
   [string]$turnId,
   [string]$model,
+  [string]$hydratedFromPackage,
   [string]$repoState,
   [string]$nextUniqueActionTail
 ) {
@@ -385,6 +386,14 @@ function Append-CompactCheckpoint(
   }
   if (-not [string]::IsNullOrWhiteSpace($model)) {
     $body += "- [SRC:TOOL] model: $model`n"
+  }
+  if ($eventName -eq "post_compact") {
+    $body += "- [SRC:TOOL] resume_hydration_required: yes`n"
+    $body += "- [SRC:TOOL] reboot_check: required`n"
+    if (-not [string]::IsNullOrWhiteSpace($hydratedFromPackage)) {
+      $body += "- [SRC:TOOL] hydrated_from_package: $hydratedFromPackage`n"
+    }
+    $body += "- [SRC:TOOL] hydration_source: _current.md + task.md + repo_state`n"
   }
   $body += "- [SRC:TOOL] repo_state: $repoState`n"
   $body += "- ${LABEL_NEXT_UNIQUE_ACTION}: $nextUniqueActionTail`n`n"
@@ -457,7 +466,9 @@ $lockResult = Invoke-WithTaskFileLock -lockPath $lockPath -body {
 
   $repoState = Get-RepoState -projectRoot $projectRootResolved
   $nextUniqueActionTail = Get-LastNextUniqueActionTail -taskText $taskText
-  if ([string]::IsNullOrWhiteSpace($nextUniqueActionTail)) {
+  if ($eventName -eq "post_compact") {
+    $nextUniqueActionTail = '`读取 HAGSWorks/plan/_current.md + task.md + repo_state 并执行 Resume Hydration Gate` 预期: 写入 reboot_check: ok 后再进入 develop；禁止读取业务文件继续实现、临时重规划或凭聊天摘要判断进度'
+  } elseif ([string]::IsNullOrWhiteSpace($nextUniqueActionTail)) {
     $nextUniqueActionTail = '`按 references/resume-protocol.md 恢复当前方案包，再继续当前未完成任务` 预期: 压缩后仍按磁盘检查点续作，不重开已完成任务'
   }
 
@@ -469,11 +480,12 @@ $lockResult = Invoke-WithTaskFileLock -lockPath $lockPath -body {
     -sessionId $sessionId `
     -turnId $turnId `
     -model $model `
+    -hydratedFromPackage $packagePath `
     -repoState $repoState `
     -nextUniqueActionTail $nextUniqueActionTail
 
   if ($DryRun) {
-    return @(
+    $preview = @(
       ("DRYRUN: would append {0} checkpoint to '{1}'." -f $eventName, $taskPath),
       "- compact_event: $eventName",
       "- compact_trigger: $trigger",
@@ -481,7 +493,14 @@ $lockResult = Invoke-WithTaskFileLock -lockPath $lockPath -body {
       "- turn_id: $turnId",
       "- repo_state: $repoState",
       "- ${LABEL_NEXT_UNIQUE_ACTION}: $nextUniqueActionTail"
-    ) -join "`n"
+    )
+    if ($eventName -eq "post_compact") {
+      $preview += "- resume_hydration_required: yes"
+      $preview += "- reboot_check: required"
+      $preview += "- hydrated_from_package: $packagePath"
+      $preview += "- hydration_source: _current.md + task.md + repo_state"
+    }
+    return ($preview -join "`n")
   }
 
   $newText = $snapshot.before + $newBody + $snapshot.after
@@ -499,6 +518,18 @@ $additionalContext = @(
   "compact_trigger: $trigger",
   "current_package: $packagePath",
   "next_unique_action: 压缩后优先读取 task.md##上下文快照 的最新 compact_event/repo_state/下一步唯一动作"
-) -join "`n"
+)
+
+if ($eventName -eq "post_compact") {
+  $additionalContext += "signal: compact_resume_required"
+  $additionalContext += "severity: Red"
+  $additionalContext += "resume_hydration_required: yes"
+  $additionalContext += "reboot_check: required"
+  $additionalContext += "hydrated_from_package: $packagePath"
+  $additionalContext += "hydration_source: _current.md + task.md + repo_state"
+  $additionalContext += "next_unique_action: 先执行 Resume Hydration Gate；写入 reboot_check: ok 后再进入 develop"
+}
+
+$additionalContext = $additionalContext -join "`n"
 
 Write-HookOutputJson -HookEventName $hookEventName -HookMessage $lockResult.value -AdditionalContext $additionalContext

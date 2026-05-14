@@ -81,6 +81,15 @@
 - [SRC:TOOL] turn_id: ...
 - [SRC:TOOL] trace_id: ...
 
+### 压缩生命周期检查点（可选，结构化）
+<!-- PreCompact/PostCompact hook 自动写入；post_compact 后必须先 Resume Hydration Gate。示例：
+- [SRC:TOOL] compact_event: pre_compact | post_compact
+- [SRC:TOOL] resume_hydration_required: yes | no
+- [SRC:TOOL] reboot_check: required | ok | needs_realign
+- [SRC:TOOL] hydrated_from_package: HAGSWorks/plan/...
+- [SRC:TOOL] hydration_source: _current.md + task.md + repo_state
+-->
+
 ### Repo 状态（复现/防漂移，执行域必填）
 - [SRC:TOOL] repo_state: branch=... head=... dirty=... diffstat=...
 <!-- 推荐采集: git rev-parse --abbrev-ref HEAD / git rev-parse --short HEAD / git status --porcelain / git diff --stat -->
