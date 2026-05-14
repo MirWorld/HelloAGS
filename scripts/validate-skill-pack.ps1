@@ -602,7 +602,15 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/check-target-hooks
   "helloagents-userpromptsubmit.ps1",
   "helloagents-stop.ps1",
   "helloagents-compact.ps1",
-  "skill_root_exists"
+  "skill_root_exists",
+  "[switch]$DryRun",
+  "Invoke-HookDryRun",
+  "dryrun_{0}_exit_zero",
+  "dryrun_{0}_json",
+  "dryrun_{0}_effective",
+  "precompact-hook-fixture.json",
+  "postcompact-hook-fixture.json",
+  "stop-hook-fixture.json"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -needles @(

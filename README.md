@@ -36,7 +36,7 @@
 - 即使完全不配置 hooks，helloagents 的核心流程（路由、方案包、验证、Review、resume）仍然可用
 - 仅把 skill 仓库复制到 skills 路径，**不会自动安装/启用 hooks**
 - 若要启用 hooks，再按 `references/hook-simulation.md` 把 `templates/hooks/hooks.json` 与 `templates/hooks/config.toml.snippet` 接到你的 `.codex` 配置中
-- 接线后可在目标项目运行 `pwsh -NoProfile -File <helloagents>/scripts/check-target-hooks.ps1 -ProjectRoot <目标项目> -SkillRoot <helloagents>` 检查 `codex_hooks`、`.codex/hooks.json` 与脚本路径是否可用
+- 接线后可在目标项目运行 `pwsh -NoProfile -File <helloagents>/scripts/check-target-hooks.ps1 -ProjectRoot <目标项目> -SkillRoot <helloagents>` 检查 `codex_hooks`、`.codex/hooks.json` 与脚本路径是否可用；若目标项目已有 active 方案包，可追加 `-DryRun` 真实执行 fixture，确认 `Stop/PreCompact/PostCompact` 不会只返回 `SKIP`
 
 ## 常见场景怎么选
 

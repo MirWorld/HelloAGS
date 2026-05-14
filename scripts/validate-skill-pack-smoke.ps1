@@ -62,9 +62,19 @@ function Invoke-HookJson([string]$scriptPath, [string]$inputFile, [string]$proje
   return (($raw -join "`n") | ConvertFrom-Json -Depth 64)
 }
 
-function Invoke-HooksHealthJson([string]$repoRoot, [string]$projectRoot) {
+function Invoke-HooksHealthJson([string]$repoRoot, [string]$projectRoot, [switch]$DryRun) {
   $scriptPath = Join-Path $repoRoot "scripts/check-target-hooks.ps1"
-  $raw = & pwsh -NoProfile -File $scriptPath -ProjectRoot $projectRoot -SkillRoot $repoRoot -Json
+  $args = @(
+    "-NoProfile",
+    "-File", $scriptPath,
+    "-ProjectRoot", $projectRoot,
+    "-SkillRoot", $repoRoot,
+    "-Json"
+  )
+  if ($DryRun) {
+    $args += "-DryRun"
+  }
+  $raw = & pwsh @args
   if ([string]::IsNullOrWhiteSpace(($raw -join ""))) {
     throw "Hooks health check returned empty output."
   }
@@ -427,6 +437,15 @@ try {
 
   $packageRel = New-SmokePackage -projectRoot $projectRoot
   $pointerPath = Join-Path $projectRoot "HAGSWorks/plan/_current.md"
+  $hooksHealthDryRun = Invoke-HooksHealthJson -repoRoot $repoRoot -projectRoot $projectRoot -DryRun
+  Assert-True ($hooksHealthDryRun.ok -eq $true) "Hooks health dry-run should pass with an active HAGSWorks plan package."
+  Assert-True ($hooksHealthDryRun.dry_run -eq $true) "Hooks health dry-run should mark dry_run=true."
+  $dryRunHealthNames = @($hooksHealthDryRun.checks | ForEach-Object { $_.name })
+  Assert-True ($dryRunHealthNames -contains "dryrun_SessionStart_json") "Hooks health dry-run should execute SessionStart fixture and parse JSON."
+  Assert-True ($dryRunHealthNames -contains "dryrun_UserPromptSubmit_json") "Hooks health dry-run should execute UserPromptSubmit fixture and parse JSON."
+  Assert-True ($dryRunHealthNames -contains "dryrun_Stop_effective") "Hooks health dry-run should execute Stop fixture without SKIP."
+  Assert-True ($dryRunHealthNames -contains "dryrun_PreCompact_effective") "Hooks health dry-run should execute PreCompact fixture without SKIP."
+  Assert-True ($dryRunHealthNames -contains "dryrun_PostCompact_effective") "Hooks health dry-run should execute PostCompact fixture without SKIP."
 
   $outsidePackageRel = "HAGSWorks/plan_evil/202603261201_outside_plan"
   $outsidePackageDir = Join-Path $projectRoot $outsidePackageRel

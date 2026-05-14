@@ -1,6 +1,7 @@
 param(
   [string]$ProjectRoot = "",
   [string]$SkillRoot = "",
+  [switch]$DryRun,
   [switch]$Json
 )
 
@@ -59,6 +60,56 @@ function Test-HookCommandTargetsScript([string]$command, [string]$scriptName) {
     return $false
   }
   return ($command -match [regex]::Escape($scriptName))
+}
+
+function Invoke-HookDryRun(
+  [string]$hookName,
+  [string]$scriptPath,
+  [string]$fixturePath,
+  [string]$projectRoot,
+  [bool]$passDryRun
+) {
+  $result = [ordered]@{
+    exit_code = $null
+    raw = ""
+    json_ok = $false
+    parsed = $null
+  }
+
+  if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) {
+    $result.exit_code = 127
+    $result.raw = "script not found: $scriptPath"
+    return $result
+  }
+  if (-not (Test-Path -LiteralPath $fixturePath -PathType Leaf)) {
+    $result.exit_code = 126
+    $result.raw = "fixture not found: $fixturePath"
+    return $result
+  }
+
+  $args = @(
+    "-NoProfile",
+    "-File", $scriptPath,
+    "-InputFile", $fixturePath,
+    "-ProjectRoot", $projectRoot
+  )
+  if ($passDryRun) {
+    $args += "-DryRun"
+  }
+
+  $rawLines = & pwsh @args 2>&1
+  $result.exit_code = $LASTEXITCODE
+  $result.raw = ($rawLines -join "`n").Trim()
+  if ($result.exit_code -eq 0 -and -not [string]::IsNullOrWhiteSpace($result.raw)) {
+    try {
+      $result.parsed = ($result.raw | ConvertFrom-Json -Depth 64)
+      $result.json_ok = $true
+    } catch {
+      $result.json_ok = $false
+    }
+  }
+
+  return $result
 }
 
 $checks = [System.Collections.ArrayList]::new()
@@ -150,11 +201,71 @@ foreach ($scriptName in @(
   Add-Check $checks ("skill_script_{0}" -f ($scriptName -replace '\.ps1$', '')) (Test-Path -LiteralPath $scriptPath -PathType Leaf) $scriptPath
 }
 
+if ($DryRun) {
+  $dryRunCases = @(
+    @{
+      name = "SessionStart"
+      script = "helloagents-sessionstart.ps1"
+      fixture = "sessionstart-hook-fixture.json"
+      passDryRun = $false
+      requireNonSkip = $false
+    },
+    @{
+      name = "UserPromptSubmit"
+      script = "helloagents-userpromptsubmit.ps1"
+      fixture = "userpromptsubmit-hook-fixture.json"
+      passDryRun = $false
+      requireNonSkip = $false
+    },
+    @{
+      name = "Stop"
+      script = "helloagents-stop.ps1"
+      fixture = "stop-hook-fixture.json"
+      passDryRun = $true
+      requireNonSkip = $true
+    },
+    @{
+      name = "PreCompact"
+      script = "helloagents-compact.ps1"
+      fixture = "precompact-hook-fixture.json"
+      passDryRun = $true
+      requireNonSkip = $true
+    },
+    @{
+      name = "PostCompact"
+      script = "helloagents-compact.ps1"
+      fixture = "postcompact-hook-fixture.json"
+      passDryRun = $true
+      requireNonSkip = $true
+    }
+  )
+
+  foreach ($case in $dryRunCases) {
+    $scriptPath = Join-Path $skillRootResolved ("scripts/hooks/{0}" -f $case.script)
+    $fixturePath = Join-Path $skillRootResolved ("templates/hooks/{0}" -f $case.fixture)
+    Add-Check $checks ("dryrun_{0}_fixture_exists" -f $case.name) (Test-Path -LiteralPath $fixturePath -PathType Leaf) $fixturePath
+
+    $dryRunResult = Invoke-HookDryRun `
+      -hookName $case.name `
+      -scriptPath $scriptPath `
+      -fixturePath $fixturePath `
+      -projectRoot $projectRootResolved `
+      -passDryRun ([bool]$case.passDryRun)
+
+    Add-Check $checks ("dryrun_{0}_exit_zero" -f $case.name) ($dryRunResult.exit_code -eq 0) ("exit_code={0}; output={1}" -f $dryRunResult.exit_code, $dryRunResult.raw)
+    Add-Check $checks ("dryrun_{0}_json" -f $case.name) ([bool]$dryRunResult.json_ok) ("output should be valid hook JSON; output={0}" -f $dryRunResult.raw)
+    if ([bool]$case.requireNonSkip) {
+      Add-Check $checks ("dryrun_{0}_effective" -f $case.name) (-not ($dryRunResult.raw -match '(?im)\bSKIP\s*:')) ("expected non-SKIP dry-run with active HAGSWorks plan package; output={0}" -f $dryRunResult.raw)
+    }
+  }
+}
+
 $failed = @($checks | Where-Object { -not $_.ok })
 $result = [ordered]@{
   ok = ($failed.Count -eq 0)
   project_root = $projectRootResolved
   skill_root = $skillRootResolved
+  dry_run = [bool]$DryRun
   checks = @($checks)
 }
 
@@ -163,6 +274,8 @@ if ($Json) {
 } else {
   if ($result.ok) {
     Write-Output "OK: helloagents hooks wiring health check passed"
+  } elseif ($DryRun) {
+    Write-Output "FAIL: helloagents hooks wiring health check failed (dry-run)"
   } else {
     Write-Output "FAIL: helloagents hooks wiring health check failed"
   }
