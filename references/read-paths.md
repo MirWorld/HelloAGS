@@ -107,14 +107,17 @@
 
 ### 5.1) 快照最短读取顺序（默认）
 
-优先只读 `task.md##上下文快照` 中这 4 段：
+优先只读 `task.md##上下文快照` 中这 5 段：
 1. `### 待用户输入（Pending）`
-2. `### Repo 状态`
-3. `### 决策`
-4. `### 下一步唯一动作（可执行）`
+2. `### 压缩生命周期检查点` / `### 压缩阈值检查点` / `### 运行时/模型事件`
+3. `### Repo 状态`
+4. `### 决策`
+5. `### 下一步唯一动作（可执行）`
 
 停止条件：
 - Pending 非空：先等待/处理该输入，不继续扩读
+- 存在未恢复的 `compact_event: post_compact` / `signal: compact_resume_required`：进入 `hydration_only`，只读 `_current.md`、当前包与 `repo_state`
+- 存在未恢复的 `response_incomplete` / `model_rerouted`：进入 `recovery_only`，先补恢复检查点与 `contract_checkpoint`
 - Repo 状态与当前工作树不一致：先纠偏，再决定是否继续
 - 决策已经明确：直接消费，不重复做人肉判断
 - 下一步唯一动作已可执行：立刻停读并推进
@@ -122,7 +125,7 @@
 补充：
 - 只有在以上 4 段无法支撑推进时，才继续读 `### 已确认事实`、`### 待确认 / 假设` 或完整 `task.md`
 - 默认目标不是“读完整快照”，而是用最短路径恢复到单一可执行动作
-- 若快照中已出现 `model_event: model_rerouted | response_incomplete`：读取 `### 决策` 时必须先确认 contract 是否仍有效（目标/成功标准/非目标/禁止项），再决定是否执行“下一步唯一动作”
+- 若快照中已出现 `compact_event: post_compact` / `model_event: model_rerouted | response_incomplete`：读取 `### 决策` 时必须先确认 contract 是否仍有效（目标/成功标准/非目标/禁止项），再决定是否执行“下一步唯一动作”
 - 若快照/恢复信号已可归类为 `Green / Yellow / Red`：优先按等级行动，不要重复展开同一套规则说明
 
 ---

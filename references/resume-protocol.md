@@ -35,6 +35,11 @@
 
 按顺序执行，禁止跳步（除非目录不存在）：
 
+恢复模式先行：
+- `hydration_only`：命中 `compact_event: post_compact` / `signal: compact_resume_required` 后，只允许读取 `_current.md`、当前包 `why.md/how.md/task.md` 与当前 `repo_state`；写回 `reboot_check` / `contract_checkpoint` 前不得进入实现。
+- `recovery_only`：命中 `response_incomplete` / `model_rerouted` 后，只允许补齐 `repo_state + 下一步唯一动作 + contract_checkpoint`，不得把“继续”解释成直接改代码。
+- 显式执行命令（如 `~exec/~auto`）遇到上述未恢复信号时必须阻断；纯续作输入（如“继续/接着/上次”）只能驱动恢复，不驱动实现。
+
 <!-- CONTRACT: resume-hydration-gate v1 -->
 ### 2.0 Resume Hydration Gate（压缩后硬门）
 
@@ -55,6 +60,7 @@
    - `contract_checkpoint: ok|needs_realign`
 
 Hydration 完成前禁止项：
+- 只读白名单：`${PROJECT_ROOT}/HAGSWorks/plan/_current.md`、当前包 `why.md/how.md/task.md`、只读 `git status/rev-parse/diff --stat`
 - 禁止读取业务文件继续实现
 - 禁止修改代码或运行会产生业务变更的命令
 - 禁止临时重规划替代当前方案包
@@ -187,12 +193,13 @@ Hydration 完成前禁止项：
 
 8. **运行时/模型异常信号闭环（触发式，推荐默认；response_incomplete 为高风险）**
    - （无感增强，最佳努力）若存在 `HAGSWorks/scripts/capture-runtime-events.ps1` 且可运行：先运行一次用于**自动回填**本线程的 `model_event` 到 `task.md##上下文快照`（并追加恢复检查点），再按下述规则补齐/确认。
-   - 若本次恢复的触发原因包含 `model/rerouted` 或 `response.incomplete`（或等价系统警告）：
+   - 若本次恢复的触发原因包含 `model/rerouted` 或 `response.incomplete`（或等价系统警告）：进入 `recovery_only`
      - 在 `task.md##上下文快照` 记录一条结构化事件（来源 `[SRC:TOOL]`）：
        - `- [SRC:TOOL] model_event: model_rerouted` 或 `response_incomplete`
      - 并在该事件**之后**追加一次恢复检查点（至少包含）：
        - `repo_state: branch=... head=... dirty=... diffstat=...`
        - `下一步唯一动作: ...`
+       - `contract_checkpoint: ok|needs_realign`
    - 说明：`response_incomplete` 属于执行域高风险信号；若没有补齐“事件后的恢复检查点”，进入 `~exec` 会被方案包校验阻止（避免断层误重做）。
    - 若快照中存在 `threshold_event: near_autocompact`：优先把它视为“压缩前最后检查点”，并优先采用其后的 `repo_state + 下一步唯一动作` 恢复，而不是依赖聊天记忆判断进度。
    - 若快照中存在 `compact_event: pre_compact`：优先把它视为“官方压缩前最后检查点”，并采用同一检查点中的 `repo_state + 下一步唯一动作` 恢复；这是压缩发生前保存任务进度的首选证据。

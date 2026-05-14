@@ -317,6 +317,7 @@ $required = @(
   "design/SKILL.md",
   "develop/SKILL.md",
   "kb/SKILL.md",
+  "scripts/check-target-hooks.ps1",
   "scripts/validate-skill-pack-smoke.ps1",
   "scripts/hooks/helloagents-context-threshold.ps1",
   "scripts/hooks/helloagents-compact.ps1",
@@ -440,6 +441,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "kb/SKILL.md" -needles @(
 )
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/SKILL.md" -needles @(
   "templates/workspace-bootstrap-manifest.json",
+  "scripts/check-target-hooks.ps1",
   "唯一来源"
 )
 
@@ -548,7 +550,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation
   "templates/hooks/postcompact-hook-fixture.json",
   "templates/hooks/hooks.json",
   "templates/hooks/config.toml.snippet",
+  "scripts/check-target-hooks.ps1",
   "compact_resume_required",
+  "hydration_only",
+  "recovery_only",
   "不重复解释预算"
 )
 
@@ -557,6 +562,7 @@ Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-c
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-compact.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Compact hook should treat payload as data only; never execute dynamic content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "SessionStart hook should only validate pointers, not execute payload content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "UserPromptSubmit hook should only guard/augment via JSON output; never execute payload content."
+Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/check-target-hooks.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Hooks health check must inspect local config only; never execute hook command strings."
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -needles @(
   '"SessionStart"',
   "Test-IsPathUnderDirectory",
@@ -568,6 +574,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-
   "hydration_source",
   "signal:",
   "severity:",
+  '-Mode "hydration_only"',
+  '-Mode "recovery_only"',
+  "allowed_reads:",
+  "forbidden:",
   "package_status:",
   "current_package_invalid",
   "response_incomplete",
@@ -577,12 +587,34 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-
   "Archive Readiness Gate"
 )
 
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/check-target-hooks.ps1" -needles @(
+  "config_toml_exists",
+  "codex_hooks_enabled",
+  "hooks_json_exists",
+  "hooks_json_valid",
+  "hook_{0}_present",
+  "PreCompact",
+  "PostCompact",
+  "HELLOAGENTS_SKILL_ROOT",
+  "CODEX_HOME",
+  "skills/helloagents",
+  "helloagents-sessionstart.ps1",
+  "helloagents-userpromptsubmit.ps1",
+  "helloagents-stop.ps1",
+  "helloagents-compact.ps1",
+  "skill_root_exists"
+)
+
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -needles @(
   "Test-IsPathUnderDirectory",
   "Test-UnresolvedPostCompact",
   "compact_resume_required",
   "resume_hydration_required",
   "reboot_check",
+  "mode: hydration_only",
+  "mode: recovery_only",
+  "Test-ExplicitExecutePrompt",
+  "Test-RecoveryPrompt",
   "hydration_source",
   "package_completed",
   "completed_looking",
@@ -744,6 +776,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "develop/SKILL.md" -needles
   "reboot_check: ok",
   "hydrated_from_package:",
   "hydration_source: _current.md + task.md + repo_state",
+  "只读白名单",
   "Archive Readiness Gate",
   "archive-plan-package.ps1",
   "-Mode archive",
@@ -767,6 +800,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol
   "<!-- CONTRACT: resume-hydration-gate v1 -->",
   "Resume Hydration Gate",
   "signal: compact_resume_required",
+  "hydration_only",
+  "recovery_only",
   "resume_hydration_required: yes|no",
   "reboot_check: ok|needs_realign",
   "hydrated_from_package: HAGSWorks/plan/...",
@@ -802,7 +837,17 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapsho
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -needles @(
-  "references/signal-severity.md"
+  "references/signal-severity.md",
+  "compact_resume_required",
+  "hydration_only",
+  "recovery_only"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/read-paths.md" -needles @(
+  "compact_event: post_compact",
+  "signal: compact_resume_required",
+  "hydration_only",
+  "recovery_only"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/resume-protocol.md" -needles @(

@@ -122,6 +122,7 @@ IF 不满足任何条件:
 在任何“读取业务文件 / 继续实现 / 临时重规划 / 运行业务变更命令”之前，先检查当前 `task.md##上下文快照`：
 - 若存在 `compact_event: post_compact`，且其后没有完整的 `resume_hydration_required: yes` + `reboot_check: ok` + `hydrated_from_package:` + `hydration_source: _current.md + task.md + repo_state` + `contract_checkpoint: ok`，必须立即停止开发实施，转入 `references/resume-protocol.md#Resume Hydration Gate`。
 - Hydration Gate 的进度来源固定为：`HAGSWorks/plan/_current.md` → 当前包 `why.md/how.md/task.md` → 最新 `compact_event/repo_state/下一步唯一动作` → 当前 git 状态。不得把 `develop/SKILL.md`、压缩摘要或聊天记忆当进度源。
+- Hydration 未完成前的只读白名单固定为：`HAGSWorks/plan/_current.md`、当前包 `why.md/how.md/task.md`、只读 `git status/rev-parse/diff --stat`；禁止读取业务文件继续实现、禁止改代码、禁止跑验证、禁止临时重规划。
 - 通过后必须把 `reboot_check: ok` 和 `contract_checkpoint: ok` 写回 `task.md##上下文快照`；若只能得到 `needs_realign`，禁止继续改代码，先重新对齐或等待用户决策。
 - 若 `_current.md` 与 `task.md` / `repo_state` 不一致：先写 `reboot_check: needs_realign` 和纠偏检查点；不得继续执行旧任务，也不得新开临时方案绕过当前包。
 

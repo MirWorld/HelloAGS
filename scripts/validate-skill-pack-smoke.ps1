@@ -62,6 +62,15 @@ function Invoke-HookJson([string]$scriptPath, [string]$inputFile, [string]$proje
   return (($raw -join "`n") | ConvertFrom-Json -Depth 64)
 }
 
+function Invoke-HooksHealthJson([string]$repoRoot, [string]$projectRoot) {
+  $scriptPath = Join-Path $repoRoot "scripts/check-target-hooks.ps1"
+  $raw = & pwsh -NoProfile -File $scriptPath -ProjectRoot $projectRoot -SkillRoot $repoRoot -Json
+  if ([string]::IsNullOrWhiteSpace(($raw -join ""))) {
+    throw "Hooks health check returned empty output."
+  }
+  return (($raw -join "`n") | ConvertFrom-Json -Depth 64)
+}
+
 function Invoke-PlanValidatorJson([string]$projectRoot, [string]$mode = "plan", [string]$package = "") {
   $scriptPath = Join-Path $projectRoot "HAGSWorks/scripts/validate-plan-package.ps1"
   $args = @(
@@ -404,6 +413,18 @@ try {
     Assert-True (-not [string]::IsNullOrWhiteSpace((Read-Utf8Text -path $targetPath))) ("Generated file is empty: {0}" -f $entry.target)
   }
 
+  $codexDir = Join-Path $projectRoot ".codex"
+  New-Item -ItemType Directory -Path $codexDir -Force | Out-Null
+  Write-Utf8Text -path (Join-Path $codexDir "config.toml") -text (Read-Utf8Text -path (Join-Path $repoRoot "templates/hooks/config.toml.snippet"))
+  Write-Utf8Text -path (Join-Path $codexDir "hooks.json") -text (Read-Utf8Text -path (Join-Path $repoRoot "templates/hooks/hooks.json"))
+  $hooksHealth = Invoke-HooksHealthJson -repoRoot $repoRoot -projectRoot $projectRoot
+  Assert-True ($hooksHealth.ok -eq $true) "Hooks health check should pass for copied config.toml + hooks.json templates."
+  $healthNames = @($hooksHealth.checks | ForEach-Object { $_.name })
+  Assert-True ($healthNames -contains "codex_hooks_enabled") "Hooks health check should verify codex_hooks_enabled."
+  Assert-True ($healthNames -contains "hook_PreCompact_present") "Hooks health check should verify PreCompact wiring."
+  Assert-True ($healthNames -contains "hook_PostCompact_present") "Hooks health check should verify PostCompact wiring."
+  Assert-True ($healthNames -contains "skill_script_helloagents-compact") "Hooks health check should verify compact script availability."
+
   $packageRel = New-SmokePackage -projectRoot $projectRoot
   $pointerPath = Join-Path $projectRoot "HAGSWorks/plan/_current.md"
 
@@ -523,12 +544,24 @@ try {
   $sessionPostCompactOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-sessionstart.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/sessionstart-hook-fixture.json") -projectRoot $projectRoot
   Assert-Contains $sessionPostCompactOut.systemMessage "post_compact" "SessionStart should warn when current_package contains unresolved post_compact."
   Assert-Contains $sessionPostCompactOut.hookSpecificOutput.additionalContext "signal: compact_resume_required" "SessionStart post_compact warning should expose compact_resume_required."
+  Assert-Contains $sessionPostCompactOut.hookSpecificOutput.additionalContext "mode: hydration_only" "SessionStart post_compact warning should expose hydration_only mode."
+  Assert-Contains $sessionPostCompactOut.hookSpecificOutput.additionalContext "allowed_reads: HAGSWorks/plan/_current.md; current package why.md/how.md/task.md; git status/rev-parse/diff --stat" "SessionStart hydration_only should expose allowed reads."
+  Assert-Contains $sessionPostCompactOut.hookSpecificOutput.additionalContext "forbidden: business_files; code_changes; verify_commands; temporary_replan" "SessionStart hydration_only should expose forbidden actions."
 
   $payloadPostCompact = Join-Path $scratchRoot "userpromptsubmit-postcompact.json"
   New-SmokePayload -path $payloadPostCompact -prompt "继续" -projectRoot $projectRoot -turnId "turn_demo_prompt_postcompact"
   $userPostCompactOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadPostCompact -projectRoot $projectRoot
-  Assert-True ($userPostCompactOut.decision -eq "block") "Unresolved post_compact should block resume/execute-like prompts."
+  try { $postCompactResumeDecision = $userPostCompactOut.decision } catch { $postCompactResumeDecision = $null }
+  Assert-True ([string]::IsNullOrWhiteSpace($postCompactResumeDecision)) "Unresolved post_compact should allow plain resume prompts to enter hydration_only instead of blocking the whole turn."
   Assert-Contains $userPostCompactOut.hookSpecificOutput.additionalContext "compact_resume_required" "UserPromptSubmit should emit compact_resume_required context."
+  Assert-Contains $userPostCompactOut.hookSpecificOutput.additionalContext "mode: hydration_only" "Plain resume after post_compact should expose hydration_only mode."
+  Assert-Contains $userPostCompactOut.hookSpecificOutput.additionalContext "forbidden: business_files; code_changes; verify_commands; temporary_replan" "hydration_only should prohibit implementation actions."
+
+  $payloadPostCompactExec = Join-Path $scratchRoot "userpromptsubmit-postcompact-exec.json"
+  New-SmokePayload -path $payloadPostCompactExec -prompt "~exec" -projectRoot $projectRoot -turnId "turn_demo_prompt_postcompact_exec"
+  $userPostCompactExecOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadPostCompactExec -projectRoot $projectRoot
+  Assert-True ($userPostCompactExecOut.decision -eq "block") "Unresolved post_compact should still block explicit execute commands."
+  Assert-Contains $userPostCompactExecOut.hookSpecificOutput.additionalContext "mode: hydration_only" "Blocked post_compact execute commands should still explain hydration_only mode."
 
   $payloadPostCompactQuestion = Join-Path $scratchRoot "userpromptsubmit-postcompact-question.json"
   New-SmokePayload -path $payloadPostCompactQuestion -prompt "这个方案现在是什么状态？" -projectRoot $projectRoot -turnId "turn_demo_prompt_postcompact_question"
@@ -538,6 +571,17 @@ try {
   Assert-Contains $userPostCompactQuestionOut.hookSpecificOutput.additionalContext "compact_resume_required" "Non-execution post_compact prompts should still inject hydration context."
 
   $compactTaskAfterPostNoPending = [regex]::Replace($compactTaskAfterPost, '(?m)^\s*-\s*\[SRC:TODO\]\s*请选择继续路径\s*\r?\n', '')
+  $deceptiveHydrationTask = $compactTaskAfterPostNoPending + @"
+
+### 错误示例（不应被当成结构化恢复）
+- [SRC:TOOL] 说明: 文本里出现 reboot_check: ok，但字段名不是本行结构键
+- [SRC:CODE|TOOL] 说明: 文本里出现 contract_checkpoint: ok，但字段名不是本行结构键
+"@
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $deceptiveHydrationTask
+  $validatorPostCompactDeceptive = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "exec" -package $packageRel
+  Assert-True (-not $validatorPostCompactDeceptive.ok) "Exec validation should not accept natural-language mentions of reboot_check: ok / contract_checkpoint: ok as structured recovery fields."
+  Assert-Contains (($validatorPostCompactDeceptive.errors -join "`n")) "reboot_check: ok" "Deceptive hydration text should still fail with missing structured reboot_check: ok."
+
   $hydratedTask = $compactTaskAfterPostNoPending + @"
 
 ### 压缩恢复 Hydration
@@ -552,6 +596,17 @@ try {
   Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $hydratedTask
   $validatorPostCompactRecovered = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "exec" -package $packageRel
   Assert-True ($validatorPostCompactRecovered.ok) "Exec validation should pass after reboot_check: ok + contract_checkpoint: ok are recorded."
+  $sessionPostCompactRecoveredOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-sessionstart.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/sessionstart-hook-fixture.json") -projectRoot $projectRoot
+  try { $sessionPostCompactRecoveredMessage = $sessionPostCompactRecoveredOut.systemMessage } catch { $sessionPostCompactRecoveredMessage = $null }
+  Assert-True ([string]::IsNullOrWhiteSpace($sessionPostCompactRecoveredMessage)) "SessionStart should be silent after structured post_compact hydration is complete."
+
+  $payloadPostCompactRecovered = Join-Path $scratchRoot "userpromptsubmit-postcompact-recovered.json"
+  New-SmokePayload -path $payloadPostCompactRecovered -prompt "继续" -projectRoot $projectRoot -turnId "turn_demo_prompt_postcompact_recovered"
+  $userPostCompactRecoveredOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadPostCompactRecovered -projectRoot $projectRoot
+  try { $postCompactRecoveredDecision = $userPostCompactRecoveredOut.decision } catch { $postCompactRecoveredDecision = $null }
+  try { $postCompactRecoveredContext = $userPostCompactRecoveredOut.hookSpecificOutput.additionalContext } catch { $postCompactRecoveredContext = "" }
+  Assert-True ([string]::IsNullOrWhiteSpace($postCompactRecoveredDecision)) "UserPromptSubmit should not block plain resume after structured post_compact hydration is complete."
+  Assert-True (($postCompactRecoveredContext -notmatch "compact_resume_required") -and ($postCompactRecoveredContext -notmatch "mode: hydration_only")) "UserPromptSubmit should not inject compact_resume_required after hydration is complete."
 
   $responseIncompleteTask = @"
 # 任务清单: smoke
@@ -591,13 +646,24 @@ try {
   Assert-Contains $sessionIncompleteOut.systemMessage "response_incomplete" "SessionStart should warn when current_package contains unresolved response_incomplete."
   Assert-Contains $sessionIncompleteOut.hookSpecificOutput.additionalContext "signal: response_incomplete" "SessionStart response_incomplete warning should expose a stable signal."
   Assert-Contains $sessionIncompleteOut.hookSpecificOutput.additionalContext "severity: Red" "SessionStart response_incomplete warning should expose Red severity."
+  Assert-Contains $sessionIncompleteOut.hookSpecificOutput.additionalContext "mode: recovery_only" "SessionStart response_incomplete warning should expose recovery_only mode."
+  Assert-Contains $sessionIncompleteOut.hookSpecificOutput.additionalContext "allowed_reads: HAGSWorks/plan/_current.md; current package why.md/how.md/task.md; git status/rev-parse/diff --stat" "SessionStart recovery_only should expose allowed reads."
+  Assert-Contains $sessionIncompleteOut.hookSpecificOutput.additionalContext "forbidden: business_files; code_changes; verify_commands; temporary_replan" "SessionStart recovery_only should expose forbidden actions."
 
   $payloadIncomplete = Join-Path $scratchRoot "userpromptsubmit-incomplete.json"
   New-SmokePayload -path $payloadIncomplete -prompt "继续" -projectRoot $projectRoot -turnId "turn_demo_prompt_004"
   $userIncompleteOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadIncomplete -projectRoot $projectRoot
-  Assert-True ($userIncompleteOut.decision -eq "block") "Unresolved response_incomplete should block execution-like prompts."
+  try { $incompleteResumeDecision = $userIncompleteOut.decision } catch { $incompleteResumeDecision = $null }
+  Assert-True ([string]::IsNullOrWhiteSpace($incompleteResumeDecision)) "Unresolved response_incomplete should allow plain resume prompts to enter recovery_only instead of blocking the whole turn."
   Assert-Contains $userIncompleteOut.systemMessage "response_incomplete" "UserPromptSubmit should explain unresolved response_incomplete."
-  Assert-Contains $userIncompleteOut.hookSpecificOutput.additionalContext "severity: Red" "response_incomplete block should emit a Red severity signal."
+  Assert-Contains $userIncompleteOut.hookSpecificOutput.additionalContext "severity: Red" "response_incomplete recovery context should emit a Red severity signal."
+  Assert-Contains $userIncompleteOut.hookSpecificOutput.additionalContext "mode: recovery_only" "Plain resume after response_incomplete should expose recovery_only mode."
+
+  $payloadIncompleteExec = Join-Path $scratchRoot "userpromptsubmit-incomplete-exec.json"
+  New-SmokePayload -path $payloadIncompleteExec -prompt "~exec" -projectRoot $projectRoot -turnId "turn_demo_prompt_004_exec"
+  $userIncompleteExecOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadIncompleteExec -projectRoot $projectRoot
+  Assert-True ($userIncompleteExecOut.decision -eq "block") "Unresolved response_incomplete should still block explicit execute commands."
+  Assert-Contains $userIncompleteExecOut.hookSpecificOutput.additionalContext "mode: recovery_only" "Blocked response_incomplete execute commands should still explain recovery_only mode."
 
   $completedTask = @"
 # 任务清单: smoke

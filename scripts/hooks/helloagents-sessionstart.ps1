@@ -56,7 +56,11 @@ function Write-SessionWarn {
     [string]$Severity = "Red",
     [string]$PackagePointer = "",
     [string]$NextUniqueAction = "",
-    [string]$PackageStatus = ""
+    [string]$PackageStatus = "",
+    [string]$Mode = "",
+    [string]$AllowedReads = "",
+    [string]$Forbidden = "",
+    [string[]]$ExtraContext = @()
   )
 
   $lines = @()
@@ -71,6 +75,20 @@ function Write-SessionWarn {
   }
   if (-not [string]::IsNullOrWhiteSpace($PackageStatus)) {
     $lines += ("package_status: {0}" -f $PackageStatus)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($Mode)) {
+    $lines += ("mode: {0}" -f $Mode)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($AllowedReads)) {
+    $lines += ("allowed_reads: {0}" -f $AllowedReads)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($Forbidden)) {
+    $lines += ("forbidden: {0}" -f $Forbidden)
+  }
+  foreach ($line in @($ExtraContext)) {
+    if (-not [string]::IsNullOrWhiteSpace($line)) {
+      $lines += $line
+    }
   }
   if (-not [string]::IsNullOrWhiteSpace($NextUniqueAction)) {
     $lines += ("next_unique_action: {0}" -f $NextUniqueAction)
@@ -477,6 +495,14 @@ if (Test-UnresolvedPostCompact -taskText $taskText) {
     -SystemMessage ("WARN: current_package contains unresolved post_compact: '{0}'. next=先从 _current.md + task.md + repo_state 执行 Resume Hydration Gate" -f $rawPointer) `
     -Signal "compact_resume_required" `
     -PackagePointer $rawPointer `
+    -Mode "hydration_only" `
+    -AllowedReads "HAGSWorks/plan/_current.md; current package why.md/how.md/task.md; git status/rev-parse/diff --stat" `
+    -Forbidden "business_files; code_changes; verify_commands; temporary_replan" `
+    -ExtraContext @(
+      "resume_hydration_required: yes",
+      "reboot_check: required",
+      "hydration_source: _current.md + task.md + repo_state"
+    ) `
     -NextUniqueAction "读取 _current.md + task.md 并执行 Reboot Check；写入 reboot_check: ok + contract_checkpoint 后再进入 develop"
   exit 0
 }
@@ -486,6 +512,9 @@ if (Test-UnresolvedResponseIncomplete -taskText $taskText) {
     -SystemMessage ("WARN: current_package contains unresolved response_incomplete: '{0}'. next=先补恢复检查点或先走恢复流程" -f $rawPointer) `
     -Signal "response_incomplete" `
     -PackagePointer $rawPointer `
+    -Mode "recovery_only" `
+    -AllowedReads "HAGSWorks/plan/_current.md; current package why.md/how.md/task.md; git status/rev-parse/diff --stat" `
+    -Forbidden "business_files; code_changes; verify_commands; temporary_replan" `
     -NextUniqueAction "先补 repo_state + 下一步唯一动作 + contract_checkpoint，或先走恢复流程"
   exit 0
 }

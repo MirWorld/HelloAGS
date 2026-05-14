@@ -394,17 +394,34 @@ function Test-UnresolvedPostCompact([string]$taskText) {
   return (-not ($hasRepoAfter -and $hasNextAfter -and $hasHydrationRequiredAfter -and $hasHydratedFromPackageAfter -and $hasHydrationSourceAfter -and $hasRebootOkAfter -and $hasContractAfter))
 }
 
-function Test-ResumeOrExecutePrompt([string]$promptTrimmed) {
+function Test-ExplicitExecutePrompt([string]$promptTrimmed) {
   if ([string]::IsNullOrWhiteSpace($promptTrimmed)) {
     return $false
   }
 
   $patterns = @(
     '^(?i)~(?:exec|run|execute)\b',
-    '^(?i)~auto\b$',
+    '^(?i)~(?:auto|helloauto|fa)\b'
+  )
+
+  foreach ($pattern in $patterns) {
+    if ($promptTrimmed -match $pattern) {
+      return $true
+    }
+  }
+
+  return $false
+}
+
+function Test-RecoveryPrompt([string]$promptTrimmed) {
+  if ([string]::IsNullOrWhiteSpace($promptTrimmed)) {
+    return $false
+  }
+
+  $patterns = @(
     '^(?i)resume\b',
     '^(?i)continue\b',
-    '^(继续|接着|上次|刚才|继续执行|继续做|接着做)'
+    '^(继续|接着|上次|刚才|中断|上下文没了|继续执行|继续做|接着做)'
   )
 
   foreach ($pattern in $patterns) {
@@ -715,7 +732,8 @@ try {
   $packageCompleted = Test-PackageCompleted -taskText $taskText -pendingLines $pendingLines
   $hasUnresolvedResponseIncomplete = Test-UnresolvedResponseIncomplete -taskText $taskText
   $hasUnresolvedPostCompact = Test-UnresolvedPostCompact -taskText $taskText
-  $isResumeOrExecutePrompt = Test-ResumeOrExecutePrompt -promptTrimmed $promptTrimmed
+  $isExplicitExecutePrompt = Test-ExplicitExecutePrompt -promptTrimmed $promptTrimmed
+  $isRecoveryPrompt = Test-RecoveryPrompt -promptTrimmed $promptTrimmed
   $shouldInjectFeatureRemovalGuard = Test-FeatureRemovalGuardShouldInject `
     -riskState $effectiveFeatureRemovalRiskState `
     -approvalState $featureRemovalApproval `
@@ -760,42 +778,60 @@ try {
   }
 
   if ($hasUnresolvedResponseIncomplete) {
-    $blockLines = @(
-      "[HelloAGENTS Guard] 当前方案包存在未恢复的 response_incomplete；在补齐恢复检查点前，禁止继续执行。",
+    $recoveryLines = @(
+      "[HelloAGENTS Guard] 当前方案包存在未恢复的 response_incomplete；本轮只能做 recovery_only，不能继续实现。",
       ("current_package: {0}" -f $packagePointer)
     )
     if (-not [string]::IsNullOrWhiteSpace($turnId)) {
-      $blockLines += ("current_turn_id: {0}" -f $turnId)
+      $recoveryLines += ("current_turn_id: {0}" -f $turnId)
     }
-    $blockLines += "signal: response_incomplete"
-    $blockLines += "severity: Red"
+    $recoveryLines += "signal: response_incomplete"
+    $recoveryLines += "severity: Red"
+    $recoveryLines += "mode: recovery_only"
+    $recoveryLines += "allowed_reads: HAGSWorks/plan/_current.md; current package why.md/how.md/task.md; git status/rev-parse/diff --stat"
+    $recoveryLines += "forbidden: business_files; code_changes; verify_commands; temporary_replan"
+    $recoveryLines += "next_unique_action: 补 repo_state + 下一步唯一动作 + contract_checkpoint: ok|needs_realign 后再决定是否进入 develop"
 
-    $msg = "当前方案包存在未恢复的 response_incomplete，已阻断以避免在不确定状态下继续执行。"
-    $reason = "请先补一条新的 repo_state + 下一步唯一动作 + contract_checkpoint，或先走恢复/重规划，再继续。"
-    Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext ($blockLines -join "`n")
+    $additionalContext = ($recoveryLines -join "`n")
+    if ($isExplicitExecutePrompt) {
+      $msg = "当前方案包存在未恢复的 response_incomplete，已阻断执行命令以避免在不确定状态下继续实现。"
+      $reason = "请先完成 recovery_only：补 repo_state + 下一步唯一动作 + contract_checkpoint，再进入执行域。"
+      Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext $additionalContext
+    } elseif ($isRecoveryPrompt) {
+      $msg = "当前方案包存在未恢复的 response_incomplete；本轮已切换为 recovery_only，只允许恢复检查点。"
+      Write-HookOutputJson -SystemMessage $msg -AdditionalContext $additionalContext
+    } else {
+      Write-HookOutputJson -AdditionalContext $additionalContext
+    }
     exit 0
   }
 
   if ($hasUnresolvedPostCompact) {
-    $blockLines = @(
-      "[HelloAGENTS Guard] 当前方案包存在未恢复的 post_compact；Hydration 完成前禁止读取业务文件继续实现、禁止临时重规划、禁止凭聊天摘要判断进度。",
+    $hydrationLines = @(
+      "[HelloAGENTS Guard] 当前方案包存在未恢复的 post_compact；本轮只能做 hydration_only，不能继续实现。",
       ("current_package: {0}" -f $packagePointer)
     )
     if (-not [string]::IsNullOrWhiteSpace($turnId)) {
-      $blockLines += ("current_turn_id: {0}" -f $turnId)
+      $hydrationLines += ("current_turn_id: {0}" -f $turnId)
     }
-    $blockLines += "signal: compact_resume_required"
-    $blockLines += "severity: Red"
-    $blockLines += "resume_hydration_required: yes"
-    $blockLines += "reboot_check: required"
-    $blockLines += "hydration_source: _current.md + task.md + repo_state"
-    $blockLines += "next_unique_action: 读取 _current.md + task.md 并执行 Reboot Check；写入 reboot_check: ok + contract_checkpoint 后再进入 develop"
+    $hydrationLines += "signal: compact_resume_required"
+    $hydrationLines += "severity: Red"
+    $hydrationLines += "mode: hydration_only"
+    $hydrationLines += "resume_hydration_required: yes"
+    $hydrationLines += "reboot_check: required"
+    $hydrationLines += "hydration_source: _current.md + task.md + repo_state"
+    $hydrationLines += "allowed_reads: HAGSWorks/plan/_current.md; current package why.md/how.md/task.md; git status/rev-parse/diff --stat"
+    $hydrationLines += "forbidden: business_files; code_changes; verify_commands; temporary_replan"
+    $hydrationLines += "next_unique_action: 读取 _current.md + task.md + repo_state 并执行 Reboot Check；写入 reboot_check: ok + contract_checkpoint: ok 后再进入 develop"
 
-    $additionalContext = ($blockLines -join "`n")
-    if ($isResumeOrExecutePrompt) {
-      $msg = "当前方案包存在未恢复的 post_compact，已阻断执行类输入以避免压缩后丢进度/重做。"
+    $additionalContext = ($hydrationLines -join "`n")
+    if ($isExplicitExecutePrompt) {
+      $msg = "当前方案包存在未恢复的 post_compact，已阻断执行命令以避免压缩后丢进度/重做。"
       $reason = "请先执行 Resume Hydration Gate：读取 _current.md + task.md + repo_state，完成 5 问 Reboot Check，并写入 reboot_check: ok + contract_checkpoint。"
       Write-HookOutputJson -SystemMessage $msg -Decision "block" -Reason $reason -AdditionalContext $additionalContext
+    } elseif ($isRecoveryPrompt) {
+      $msg = "当前方案包存在未恢复的 post_compact；本轮已切换为 hydration_only，只允许恢复进度。"
+      Write-HookOutputJson -SystemMessage $msg -AdditionalContext $additionalContext
     } else {
       Write-HookOutputJson -AdditionalContext $additionalContext
     }
@@ -818,7 +854,7 @@ try {
       }
 
       $msg = "当前方案包任务已全终态且无 Pending；本轮不得继续改代码，只允许执行 Archive Readiness Gate。"
-      if ($isResumeOrExecutePrompt) {
+      if ($isExplicitExecutePrompt -or $isRecoveryPrompt) {
         Write-HookOutputJson -SystemMessage $msg -AdditionalContext ($completeLines -join "`n")
       } else {
         Write-HookOutputJson -AdditionalContext ($completeLines -join "`n")
