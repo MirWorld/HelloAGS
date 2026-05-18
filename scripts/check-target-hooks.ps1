@@ -141,6 +141,7 @@ Add-Check $checks "hooks_json_exists" $hooksExists $hooksPath
 $requiredHooks = @(
   @{ name = "SessionStart"; script = "helloagents-sessionstart.ps1" },
   @{ name = "UserPromptSubmit"; script = "helloagents-userpromptsubmit.ps1" },
+  @{ name = "PreToolUse"; script = "helloagents-pretooluse.ps1" },
   @{ name = "Stop"; script = "helloagents-stop.ps1" },
   @{ name = "PreCompact"; script = "helloagents-compact.ps1" },
   @{ name = "PostCompact"; script = "helloagents-compact.ps1" }
@@ -194,6 +195,7 @@ Add-Check $checks "skill_root_exists" (Test-Path -LiteralPath $skillRootResolved
 foreach ($scriptName in @(
   "helloagents-sessionstart.ps1",
   "helloagents-userpromptsubmit.ps1",
+  "helloagents-pretooluse.ps1",
   "helloagents-stop.ps1",
   "helloagents-compact.ps1"
 )) {
@@ -214,6 +216,13 @@ if ($DryRun) {
       name = "UserPromptSubmit"
       script = "helloagents-userpromptsubmit.ps1"
       fixture = "userpromptsubmit-hook-fixture.json"
+      passDryRun = $false
+      requireNonSkip = $false
+    },
+    @{
+      name = "PreToolUse"
+      script = "helloagents-pretooluse.ps1"
+      fixture = "pretooluse-hook-fixture.json"
       passDryRun = $false
       requireNonSkip = $false
     },

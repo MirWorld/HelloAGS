@@ -403,6 +403,31 @@ function New-ThresholdPayload(
   Write-Utf8Text -path $path -text (($payload | ConvertTo-Json -Depth 16) + "`n")
 }
 
+function New-PreToolUsePayload(
+  [string]$path,
+  [string]$projectRoot,
+  [string]$toolName,
+  [string]$toolUseId,
+  [string]$command,
+  [string]$turnId = "turn_demo_pretooluse_001"
+) {
+  $payload = [ordered]@{
+    session_id = "session_demo_pretooluse_001"
+    turn_id = $turnId
+    cwd = $projectRoot
+    transcript_path = (Join-Path $projectRoot ".codex/transcript-demo.jsonl")
+    hook_event_name = "PreToolUse"
+    model = "gpt-5.2"
+    permission_mode = "workspace-write"
+    tool_name = $toolName
+    tool_use_id = $toolUseId
+    tool_input = [ordered]@{
+      command = $command
+    }
+  }
+  Write-Utf8Text -path $path -text (($payload | ConvertTo-Json -Depth 16) + "`n")
+}
+
 $repoRoot = Get-RepoRoot
 $scratchRoot = Join-Path $repoRoot "_codex_temp/scratch/validate-skill-pack-smoke"
 $projectRoot = Join-Path $scratchRoot "project"
@@ -431,8 +456,10 @@ try {
   Assert-True ($hooksHealth.ok -eq $true) "Hooks health check should pass for copied config.toml + hooks.json templates."
   $healthNames = @($hooksHealth.checks | ForEach-Object { $_.name })
   Assert-True ($healthNames -contains "codex_hooks_enabled") "Hooks health check should verify codex_hooks_enabled."
+  Assert-True ($healthNames -contains "hook_PreToolUse_present") "Hooks health check should verify PreToolUse wiring."
   Assert-True ($healthNames -contains "hook_PreCompact_present") "Hooks health check should verify PreCompact wiring."
   Assert-True ($healthNames -contains "hook_PostCompact_present") "Hooks health check should verify PostCompact wiring."
+  Assert-True ($healthNames -contains "skill_script_helloagents-pretooluse") "Hooks health check should verify PreToolUse script availability."
   Assert-True ($healthNames -contains "skill_script_helloagents-compact") "Hooks health check should verify compact script availability."
 
   $packageRel = New-SmokePackage -projectRoot $projectRoot
@@ -443,6 +470,7 @@ try {
   $dryRunHealthNames = @($hooksHealthDryRun.checks | ForEach-Object { $_.name })
   Assert-True ($dryRunHealthNames -contains "dryrun_SessionStart_json") "Hooks health dry-run should execute SessionStart fixture and parse JSON."
   Assert-True ($dryRunHealthNames -contains "dryrun_UserPromptSubmit_json") "Hooks health dry-run should execute UserPromptSubmit fixture and parse JSON."
+  Assert-True ($dryRunHealthNames -contains "dryrun_PreToolUse_json") "Hooks health dry-run should execute PreToolUse fixture and parse JSON."
   Assert-True ($dryRunHealthNames -contains "dryrun_Stop_effective") "Hooks health dry-run should execute Stop fixture without SKIP."
   Assert-True ($dryRunHealthNames -contains "dryrun_PreCompact_effective") "Hooks health dry-run should execute PreCompact fixture without SKIP."
   Assert-True ($dryRunHealthNames -contains "dryrun_PostCompact_effective") "Hooks health dry-run should execute PostCompact fixture without SKIP."
@@ -556,6 +584,39 @@ try {
   Assert-Contains $compactTaskAfterPost "reboot_check: required" "PostCompact hook should mark reboot check as required."
   Assert-Contains $compactTaskAfterPost "hydration_source: _current.md + task.md + repo_state" "PostCompact hook should record hydration source."
 
+  $preToolScript = Join-Path $repoRoot "scripts/hooks/helloagents-pretooluse.ps1"
+  $preToolBusinessReadPayload = Join-Path $scratchRoot "pretooluse-postcompact-business-read.json"
+  New-PreToolUsePayload -path $preToolBusinessReadPayload -projectRoot $projectRoot -toolName "Bash" -toolUseId "tool_demo_pretooluse_business_read" -command "Get-Content src/app.ts"
+  $preToolBusinessReadOut = Invoke-HookJson -scriptPath $preToolScript -inputFile $preToolBusinessReadPayload -projectRoot $projectRoot
+  Assert-True ($preToolBusinessReadOut.decision -eq "block") "PreToolUse should block business file reads while post_compact hydration is unresolved."
+  Assert-Contains $preToolBusinessReadOut.reason "compact_resume_required" "PreToolUse business read block should explain compact_resume_required."
+  Assert-Contains $preToolBusinessReadOut.hookSpecificOutput.additionalContext "mode: hydration_only" "PreToolUse business read block should expose hydration_only context."
+
+  $preToolBusinessWritePayload = Join-Path $scratchRoot "pretooluse-postcompact-business-write.json"
+  New-PreToolUsePayload -path $preToolBusinessWritePayload -projectRoot $projectRoot -toolName "Bash" -toolUseId "tool_demo_pretooluse_business_write" -command "Set-Content src/app.ts 'changed'"
+  $preToolBusinessWriteOut = Invoke-HookJson -scriptPath $preToolScript -inputFile $preToolBusinessWritePayload -projectRoot $projectRoot
+  Assert-True ($preToolBusinessWriteOut.decision -eq "block") "PreToolUse should block code writes while post_compact hydration is unresolved."
+  Assert-Contains $preToolBusinessWriteOut.hookSpecificOutput.additionalContext "forbidden: business_files; code_changes; verify_commands; temporary_replan" "PreToolUse code write block should expose forbidden actions."
+
+  $preToolAllowedPointerPayload = Join-Path $scratchRoot "pretooluse-postcompact-current-pointer.json"
+  New-PreToolUsePayload -path $preToolAllowedPointerPayload -projectRoot $projectRoot -toolName "Bash" -toolUseId "tool_demo_pretooluse_current_pointer" -command "Get-Content HAGSWorks/plan/_current.md"
+  $preToolAllowedPointerOut = Invoke-HookJson -scriptPath $preToolScript -inputFile $preToolAllowedPointerPayload -projectRoot $projectRoot
+  try { $preToolAllowedPointerDecision = $preToolAllowedPointerOut.decision } catch { $preToolAllowedPointerDecision = $null }
+  Assert-True ([string]::IsNullOrWhiteSpace($preToolAllowedPointerDecision)) "PreToolUse should allow reading _current.md during hydration_only."
+  Assert-Contains $preToolAllowedPointerOut.hookSpecificOutput.additionalContext "compact_resume_required" "Allowed PreToolUse hydration reads should still carry compact_resume_required context."
+
+  $preToolAllowedGitPayload = Join-Path $scratchRoot "pretooluse-postcompact-git-status.json"
+  New-PreToolUsePayload -path $preToolAllowedGitPayload -projectRoot $projectRoot -toolName "Bash" -toolUseId "tool_demo_pretooluse_git_status" -command "git status --short"
+  $preToolAllowedGitOut = Invoke-HookJson -scriptPath $preToolScript -inputFile $preToolAllowedGitPayload -projectRoot $projectRoot
+  try { $preToolAllowedGitDecision = $preToolAllowedGitOut.decision } catch { $preToolAllowedGitDecision = $null }
+  Assert-True ([string]::IsNullOrWhiteSpace($preToolAllowedGitDecision)) "PreToolUse should allow git status during hydration_only."
+
+  $preToolAllowedTaskWritePayload = Join-Path $scratchRoot "pretooluse-postcompact-task-write.json"
+  New-PreToolUsePayload -path $preToolAllowedTaskWritePayload -projectRoot $projectRoot -toolName "Bash" -toolUseId "tool_demo_pretooluse_task_write" -command ("Set-Content {0}/task.md '- [SRC:TOOL] reboot_check: ok'" -f $packageRel)
+  $preToolAllowedTaskWriteOut = Invoke-HookJson -scriptPath $preToolScript -inputFile $preToolAllowedTaskWritePayload -projectRoot $projectRoot
+  try { $preToolAllowedTaskWriteDecision = $preToolAllowedTaskWriteOut.decision } catch { $preToolAllowedTaskWriteDecision = $null }
+  Assert-True ([string]::IsNullOrWhiteSpace($preToolAllowedTaskWriteDecision)) "PreToolUse should allow writing the current task.md recovery checkpoint during hydration_only."
+
   $validatorPostCompactBlocked = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "exec" -package $packageRel
   Assert-True (-not $validatorPostCompactBlocked.ok) "Exec validation should fail after post_compact until Resume Hydration Gate writes reboot_check: ok."
   Assert-Contains (($validatorPostCompactBlocked.errors -join "`n")) "reboot_check: ok" "Exec validation should explain missing reboot_check: ok after post_compact."
@@ -626,6 +687,14 @@ try {
   try { $postCompactRecoveredContext = $userPostCompactRecoveredOut.hookSpecificOutput.additionalContext } catch { $postCompactRecoveredContext = "" }
   Assert-True ([string]::IsNullOrWhiteSpace($postCompactRecoveredDecision)) "UserPromptSubmit should not block plain resume after structured post_compact hydration is complete."
   Assert-True (($postCompactRecoveredContext -notmatch "compact_resume_required") -and ($postCompactRecoveredContext -notmatch "mode: hydration_only")) "UserPromptSubmit should not inject compact_resume_required after hydration is complete."
+
+  $preToolRecoveredBusinessReadPayload = Join-Path $scratchRoot "pretooluse-recovered-business-read.json"
+  New-PreToolUsePayload -path $preToolRecoveredBusinessReadPayload -projectRoot $projectRoot -toolName "Bash" -toolUseId "tool_demo_pretooluse_recovered_read" -command "Get-Content src/app.ts"
+  $preToolRecoveredBusinessReadOut = Invoke-HookJson -scriptPath $preToolScript -inputFile $preToolRecoveredBusinessReadPayload -projectRoot $projectRoot
+  try { $preToolRecoveredBusinessReadDecision = $preToolRecoveredBusinessReadOut.decision } catch { $preToolRecoveredBusinessReadDecision = $null }
+  try { $preToolRecoveredBusinessReadContext = $preToolRecoveredBusinessReadOut.hookSpecificOutput.additionalContext } catch { $preToolRecoveredBusinessReadContext = "" }
+  Assert-True ([string]::IsNullOrWhiteSpace($preToolRecoveredBusinessReadDecision)) "PreToolUse should not block ordinary business reads after structured post_compact hydration is complete."
+  Assert-True (($preToolRecoveredBusinessReadContext -notmatch "compact_resume_required") -and ($preToolRecoveredBusinessReadContext -notmatch "mode: hydration_only")) "PreToolUse should not inject hydration_only after hydration is complete."
 
   $responseIncompleteTask = @"
 # 任务清单: smoke

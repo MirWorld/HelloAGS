@@ -1,0 +1,14 @@
+{
+  "session_id": "session_demo_pretooluse_001",
+  "turn_id": "turn_demo_pretooluse_001",
+  "cwd": "__PROJECT_ROOT__",
+  "transcript_path": "__PROJECT_ROOT__/.codex/transcript-demo.jsonl",
+  "hook_event_name": "PreToolUse",
+  "model": "gpt-5.2",
+  "permission_mode": "workspace-write",
+  "tool_name": "Bash",
+  "tool_use_id": "tool_demo_pretooluse_001",
+  "tool_input": {
+    "command": "git status --short"
+  }
+}

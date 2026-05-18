@@ -562,6 +562,7 @@ Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-c
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-compact.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Compact hook should treat payload as data only; never execute dynamic content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "SessionStart hook should only validate pointers, not execute payload content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "UserPromptSubmit hook should only guard/augment via JSON output; never execute payload content."
+Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-pretooluse.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "PreToolUse hook should inspect tool payload as data only; never execute dynamic content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/check-target-hooks.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Hooks health check must inspect local config only; never execute hook command strings."
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-sessionstart.ps1" -needles @(
   '"SessionStart"',
@@ -593,6 +594,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/check-target-hooks
   "hooks_json_exists",
   "hooks_json_valid",
   "hook_{0}_present",
+  "PreToolUse",
   "PreCompact",
   "PostCompact",
   "HELLOAGENTS_SKILL_ROOT",
@@ -600,6 +602,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/check-target-hooks
   "skills/helloagents",
   "helloagents-sessionstart.ps1",
   "helloagents-userpromptsubmit.ps1",
+  "helloagents-pretooluse.ps1",
   "helloagents-stop.ps1",
   "helloagents-compact.ps1",
   "skill_root_exists",
@@ -608,9 +611,25 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/check-target-hooks
   "dryrun_{0}_exit_zero",
   "dryrun_{0}_json",
   "dryrun_{0}_effective",
+  "pretooluse-hook-fixture.json",
   "precompact-hook-fixture.json",
   "postcompact-hook-fixture.json",
   "stop-hook-fixture.json"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-pretooluse.ps1" -needles @(
+  '"PreToolUse"',
+  "Test-UnresolvedPostCompact",
+  "compact_resume_required",
+  "hydration_only",
+  "allowed_reads:",
+  "allowed_write:",
+  "forbidden:",
+  "Test-AllowedGitHydrationCommand",
+  "Test-AllowedHydrationReadCommand",
+  "Test-AllowedHydrationTaskWrite",
+  "decision",
+  "block"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -needles @(
@@ -675,6 +694,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/validate-skill-pac
   "outside plan root",
   "new_requirement_policy",
   "compact_resume_required",
+  "helloagents-pretooluse.ps1",
+  "PreToolUse",
   "reboot_check: ok",
   "Resume Hydration Gate"
 )
@@ -682,6 +703,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/validate-skill-pac
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/hooks.json" -needles @(
   '"SessionStart"',
   '"UserPromptSubmit"',
+  '"PreToolUse"',
+  '"matcher": "*"',
   '"Stop"',
   '"PreCompact"',
   '"PostCompact"',
@@ -690,6 +713,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/hooks.json
   "skills/helloagents",
   "helloagents-sessionstart.ps1",
   "helloagents-userpromptsubmit.ps1",
+  "helloagents-pretooluse.ps1",
   "helloagents-stop.ps1",
   "helloagents-compact.ps1"
 )
@@ -731,6 +755,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -
   "stdout",
   "锁内重新读取",
   "helloagents-compact.ps1",
+  "helloagents-pretooluse.ps1",
   "signal: response_incomplete",
   "signal: feature_removal_guard",
   "signal: compact_resume_required",
@@ -1177,6 +1202,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/codex-upstream-
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation.md" -needles @(
   "plugin-bundled hooks",
+  "PreToolUse",
+  "helloagents-pretooluse.ps1",
   "PreCompact",
   "PostCompact",
   "helloagents-compact.ps1"

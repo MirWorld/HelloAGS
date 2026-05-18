@@ -24,6 +24,19 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -Command \"& { $root=$env:HELLOAGENTS_SKILL_ROOT; if ([string]::IsNullOrWhiteSpace($root)) { $codexHome=$env:CODEX_HOME; if ([string]::IsNullOrWhiteSpace($codexHome)) { $codexHome=Join-Path $HOME '.codex' }; $root=Join-Path $codexHome 'skills/helloagents' }; & (Join-Path $root 'scripts/hooks/helloagents-pretooluse.ps1') }\"",
+            "timeoutSec": 10,
+            "statusMessage": "helloagents: pre tool hydration guard"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

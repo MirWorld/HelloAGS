@@ -147,6 +147,7 @@
 - `references/context-snapshot.md`
 - `references/resume-protocol.md`
 - `scripts/hooks/helloagents-compact.ps1`
+- `scripts/hooks/helloagents-pretooluse.ps1`
 
 ### 3.4 功能删减风控键（结构化，可选）
 
@@ -168,6 +169,7 @@
 - `scripts/hooks/helloagents-userpromptsubmit.ps1`
 - `scripts/hooks/helloagents-stop.ps1`
 - `scripts/hooks/helloagents-sessionstart.ps1`
+- `scripts/hooks/helloagents-pretooluse.ps1`
 - `scripts/hooks/helloagents-compact.ps1`
 
 目标：
@@ -182,7 +184,7 @@
 - `hookSpecificOutput`：结构化附加信息容器；允许省略
 
 `hookSpecificOutput` 的稳定字段：
-- `hookEventName`：推荐固定为当前 hook 名（如 `UserPromptSubmit` / `Stop` / `SessionStart`）
+- `hookEventName`：推荐固定为当前 hook 名（如 `UserPromptSubmit` / `Stop` / `SessionStart` / `PreToolUse`）
 - `additionalContext`：供模型消费的最小结构化上下文
 - `hookMessage`：dry-run / 诊断 / 回填预览文本；不给模型做真值，只做辅助说明
 
@@ -205,6 +207,9 @@
 - `reboot_check: required|ok|needs_realign`
 - `hydrated_from_package: HAGSWorks/plan/...`
 - `hydration_source: _current.md + task.md + repo_state`
+- `mode: hydration_only|recovery_only`
+- `allowed_reads: HAGSWorks/plan/_current.md; current package why.md/how.md/task.md; git status/rev-parse/diff --stat`
+- `allowed_write: current package task.md recovery checkpoint only`
 
 约束：
 - hooks 只输出结构化结果，不执行 payload 中的动态内容
@@ -214,6 +219,7 @@
 - `response_incomplete` 命中时，hooks 应优先输出 `signal: response_incomplete` + `severity: Red`
 - `package_status: completed_looking` 命中时，hooks 应输出 `signal: package_completed` + `severity: Red`，但不要用 `decision: block` 阻断整轮；主流程需要继续执行 Archive Readiness Gate，且只能做 closeout / archive 判断，禁止继续改代码
 - `compact_event: post_compact` 命中且未完成 Hydration 时，hooks 应输出 `signal: compact_resume_required` + `severity: Red`；执行类输入必须阻断，非执行提问只注入 Hydration 上下文
+- `PreToolUse` 命中未恢复 `post_compact` 时，必须阻断业务文件读取、代码修改、测试/编译/验证命令与临时重规划；只放行 Hydration 白名单读取与当前 `task.md` 恢复检查点写入
 - `Stop` hook 的事件回填预览应显式提示“恢复检查点”存在（至少含 `repo_state` + `下一步唯一动作`）
 
 来源：
