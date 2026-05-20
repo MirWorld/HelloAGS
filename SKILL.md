@@ -116,6 +116,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 | `references/read-paths.md` | 最短读取路径（Read Paths）与停止条件 | 规则太多怕漏读/需要快速进入正确路径时 |
 | `references/checklist-triggers.md` | 触发矩阵：何时用哪个 checklist | 需要触发式检查/防遗漏时 |
 | `references/pre-implementation-checklist.md` | 开工前检查（写代码前 60 秒） | 第一次改代码前 |
+| `references/agent-coding-discipline.md` | Agent 编码执行纪律（最小改动/写前先读/Fail loud） | 执行期边界不清、容易顺手扩写或验证证据不足时 |
 | `references/quickfix-protocol.md` | Quick Fix 快路径（改一个参数等小改动防翻车） | 任务很小但怕暗坑/想最快交付时 |
 | `references/triage-pass.md` | 高信号取证（一次取证收敛事实/缺口） | 信息缺口大/第一次改代码前/连续失败≥2时 |
 | `references/cross-layer-checklist.md` | 跨层一致性检查 | 变更涉及 ≥3 层/改契约/多消费者时 |

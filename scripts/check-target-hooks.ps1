@@ -52,7 +52,7 @@ function Resolve-SkillRoot([string]$explicitSkillRoot) {
 }
 
 function Test-CodexHooksEnabled([string]$configText) {
-  return ($configText -match '(?im)^\s*codex_hooks\s*=\s*true\s*(?:#.*)?$')
+  return ($configText -match '(?im)^\s*hooks\s*=\s*true\s*(?:#.*)?$')
 }
 
 function Test-HookCommandTargetsScript([string]$command, [string]$scriptName) {
@@ -130,9 +130,9 @@ $configExists = Test-Path -LiteralPath $configPath -PathType Leaf
 Add-Check $checks "config_toml_exists" $configExists $configPath
 if ($configExists) {
   $configText = Read-Utf8Text $configPath
-  Add-Check $checks "codex_hooks_enabled" (Test-CodexHooksEnabled $configText) "expect: [features] codex_hooks = true"
+  Add-Check $checks "hooks_enabled" (Test-CodexHooksEnabled $configText) "expect: [features] hooks = true"
 } else {
-  Add-Check $checks "codex_hooks_enabled" $false "missing .codex/config.toml"
+  Add-Check $checks "hooks_enabled" $false "missing .codex/config.toml"
 }
 
 $hooksExists = Test-Path -LiteralPath $hooksPath -PathType Leaf

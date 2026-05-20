@@ -351,6 +351,7 @@ $required = @(
   "references/terminology.md",
   "references/signal-severity.md",
   "references/feature-removal-guard.md",
+  "references/agent-coding-discipline.md",
   "references/codex-upstream-leverage.md",
   "references/lightweight-memory.md",
   "references/contracts.md",
@@ -590,7 +591,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/check-target-hooks.ps1" -needles @(
   "config_toml_exists",
-  "codex_hooks_enabled",
+  "hooks_enabled",
   "hooks_json_exists",
   "hooks_json_valid",
   "hook_{0}_present",
@@ -720,7 +721,7 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/hooks.json
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/hooks/config.toml.snippet" -needles @(
   "[features]",
-  "codex_hooks"
+  "hooks"
 )
 Assert-ContainsAll -repoRoot $repoRoot -relativePath ".github/workflows/validate-skill-pack.yml" -needles @(
   "./scripts/validate-skill-pack.ps1",
@@ -945,7 +946,9 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/triage-pass.md"
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/pre-implementation-checklist.md" -needles @(
   "<!-- CONTRACT: pre-implementation-checklist v1 -->",
   "references/triage-pass.md",
-  "verify_min"
+  "references/agent-coding-discipline.md",
+  "verify_min",
+  "写前先读三问"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quality-gates.md" -needles @(
@@ -959,7 +962,9 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quality-gates.m
   "L2 真实验证",
   "L3 连接验证",
   "L4 数据流验证",
-  "不得声称"
+  "不得声称",
+  "没有验证输出，不能声称通过",
+  "测试应验证意图"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-template.md" -needles @(
@@ -1036,6 +1041,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quickfix-protoc
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/execution-guard.md" -needles @(
+  "references/agent-coding-discipline.md",
+  "surgical_edit",
+  "冲突模式处理",
+  "不平均",
   "Feature Removal（是否允许功能删减）",
   "Feature Removal = 否",
   "feature_removal_approved: yes"
@@ -1139,7 +1148,8 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation.md" -needles @(
   "Stop 只做收尾与提示",
   "Archive Readiness Gate",
-  "不直接迁移 history"
+  "不直接迁移 history",
+  "确定性交给脚本"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/terminology.md" -needles @(
@@ -1155,7 +1165,9 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/contracts.md" -
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/quality-gates.md" -needles @(
   "规格定义",
   "验证维护",
-  "carry_forward_verify"
+  "carry_forward_verify",
+  "没有验证输出，不能声称通过",
+  "测试应验证意图"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/failure-protocol.md" -needles @(
@@ -1164,7 +1176,25 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/failure-protoco
   "可观察反馈信号",
   "禁止继续盲改",
   "调试反馈循环记录格式",
-  "feedback_command"
+  "feedback_command",
+  "Fail loud",
+  "failed_or_skipped"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-budget.md" -needles @(
+  "不硬编码固定 token 数字",
+  "threshold_event: near_autocompact",
+  "Resume Hydration Gate"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/agent-coding-discipline.md" -needles @(
+  "<!-- CONTRACT: agent-coding-discipline v1 -->",
+  "surgical_edit",
+  "写前先读",
+  "冲突显式化",
+  "确定性交给脚本",
+  "没有证据就不能声称通过",
+  "Fail loud"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/command-policy.md" -needles @(

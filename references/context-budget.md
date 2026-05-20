@@ -6,6 +6,7 @@
 - 聊天上下文是**易失缓存**；可恢复进度必须依赖磁盘落盘（方案包/知识库）与代码事实
 - 任何 memory/摘要/自动压缩产物都只能当缓存：与磁盘（why/how/task/active_context）冲突时，以磁盘与代码事实为准
 - 不追求“每步落盘”，只做**触发式检查点（Checkpoint）**
+- 不硬编码固定 token 数字作为协议真值；若外部消费者能提供 `used_tokens / remaining_to_compact`，只把它作为 Yellow/Red 升级信号
 - 落盘必须**事实/推断隔离**（见 `references/context-snapshot.md`），避免把误解固化成事实
 
 ---
@@ -32,6 +33,7 @@
 - 关键规格无法落到可执行验证：成功标准无法映射到验证动作，或无法给出 `verify_min`（最小验证动作）且没有明确的获取路径
 - 同一阻断点复现 ≥2 次
 - 发现“输出不完整/压缩异常”（例如 `response.incomplete`、工具输出被截断），无法确定已完成工作与下一步
+- 外部消费者提示接近自动压缩阈值，或 hooks/sidecar 已写入 `threshold_event: near_autocompact`
 
 动作（必做）：
 - 立刻写一次 `task.md##上下文快照` 的**检查点**（Workset + 下一步唯一动作）
@@ -45,6 +47,7 @@
 - 工具调用非常密集（例如 >25 次）或排查路径分叉过多
 - 会话可能被打断（长排查/跨时段续作/用户明确可能中止）
 - 发现“输出不完整/压缩或续作异常”，导致无法稳定判断当前进度（例如 `response.incomplete`）
+- 官方 `PostCompact` 已发生但尚未完成 Resume Hydration Gate，或 `PreCompact` 后下一步唯一动作仍不清晰
 
 动作（必做）：
 - 先写检查点快照（必须包含：失败证据 + 下一步唯一动作）
@@ -88,4 +91,3 @@
 - **断层恢复协议**负责：断层已发生时，靠磁盘状态重建上下文并继续
 
 断层恢复细则：`references/resume-protocol.md`
-

@@ -187,11 +187,11 @@ codex --version
   - 验收：
     - hooks 文件中包含 `SessionStart` / `Stop` / `UserPromptSubmit` 三个事件入口（结构校验）
 
-- [x] P2.2 提供 `codex_hooks` 最小开关片段（config 模板）
+- [x] P2.2 提供 `hooks` 最小开关片段（config 模板）
   - 改哪里：
     - 新增 `templates/hooks/config.toml.snippet`（合并进 `.codex/config.toml` 或 `~/.codex/config.toml`）
   - 验收：
-    - 仅包含 `[features] codex_hooks=true`（不绑定其它配置）
+    - 仅包含 `[features] hooks=true`（不绑定其它配置）
 
 ### P3（强 Guard：Pending 时禁止跑偏）
 

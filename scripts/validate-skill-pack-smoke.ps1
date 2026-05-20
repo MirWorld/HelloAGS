@@ -455,7 +455,7 @@ try {
   $hooksHealth = Invoke-HooksHealthJson -repoRoot $repoRoot -projectRoot $projectRoot
   Assert-True ($hooksHealth.ok -eq $true) "Hooks health check should pass for copied config.toml + hooks.json templates."
   $healthNames = @($hooksHealth.checks | ForEach-Object { $_.name })
-  Assert-True ($healthNames -contains "codex_hooks_enabled") "Hooks health check should verify codex_hooks_enabled."
+  Assert-True ($healthNames -contains "hooks_enabled") "Hooks health check should verify hooks_enabled."
   Assert-True ($healthNames -contains "hook_PreToolUse_present") "Hooks health check should verify PreToolUse wiring."
   Assert-True ($healthNames -contains "hook_PreCompact_present") "Hooks health check should verify PreCompact wiring."
   Assert-True ($healthNames -contains "hook_PostCompact_present") "Hooks health check should verify PostCompact wiring."
