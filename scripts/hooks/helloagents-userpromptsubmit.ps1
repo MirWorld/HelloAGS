@@ -433,6 +433,103 @@ function Test-RecoveryPrompt([string]$promptTrimmed) {
   return $false
 }
 
+function Test-ExplicitPlanOrWritePrompt([string]$promptTrimmed) {
+  if ([string]::IsNullOrWhiteSpace($promptTrimmed)) {
+    return $false
+  }
+
+  $patterns = @(
+    '^(?i)~(?:plan|design|auto|helloauto|fa|exec|run|execute)\b',
+    '(?i)\b(implement|fix|change|modify|create|generate|write|execute|run|apply)\b',
+    '实现',
+    '修复',
+    '修改',
+    '改代码',
+    '落地',
+    '去做',
+    '按这个做',
+    '按方案做',
+    '开始实现',
+    '生成方案',
+    '方案包',
+    '执行'
+  )
+
+  foreach ($pattern in $patterns) {
+    if ($promptTrimmed -match $pattern) {
+      return $true
+    }
+  }
+
+  return $false
+}
+
+function Test-ConsultationQuestionPrompt([string]$promptTrimmed) {
+  if ([string]::IsNullOrWhiteSpace($promptTrimmed)) {
+    return $false
+  }
+
+  if (Test-RecoveryPrompt -promptTrimmed $promptTrimmed) {
+    return $false
+  }
+
+  if (Test-ExplicitPlanOrWritePrompt -promptTrimmed $promptTrimmed) {
+    return $false
+  }
+
+  $questionPatterns = @(
+    '\?',
+    '？',
+    '为什么',
+    '为啥',
+    '怎么',
+    '如何',
+    '有没有',
+    '是否有',
+    '有无',
+    '能不能',
+    '可不可以',
+    '哪个更',
+    '哪种更',
+    '区别',
+    '对比',
+    '比.*强',
+    '性能.*强',
+    '替代',
+    '解释',
+    '说明'
+  )
+
+  foreach ($pattern in $questionPatterns) {
+    if ($promptTrimmed -match $pattern) {
+      return $true
+    }
+  }
+
+  return $false
+}
+
+function Build-ConsultationOnlyLines(
+  [string]$packagePointer,
+  [string]$turnId
+) {
+  $lines = @(
+    "[HelloAGENTS Guard] 当前用户输入是咨询/追问/选型比较，且没有显式执行动词；本轮必须先回答用户问题。",
+    "mode: consultation_only",
+    "write_scope: no_write",
+    "do_not_create_plan_package: yes",
+    "answer_user_question_first: yes",
+    "forbidden: create_plan_package; advance_current_package; code_changes; verify_commands"
+  )
+  if (-not [string]::IsNullOrWhiteSpace($packagePointer)) {
+    $lines += ("current_package_context_only: {0}" -f $packagePointer)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($turnId)) {
+    $lines += ("current_turn_id: {0}" -f $turnId)
+  }
+  return $lines
+}
+
 function Get-FeatureRemovalApprovalState([string[]]$texts) {
   $state = "no"
   foreach ($text in $texts) {
@@ -734,6 +831,7 @@ try {
   $hasUnresolvedPostCompact = Test-UnresolvedPostCompact -taskText $taskText
   $isExplicitExecutePrompt = Test-ExplicitExecutePrompt -promptTrimmed $promptTrimmed
   $isRecoveryPrompt = Test-RecoveryPrompt -promptTrimmed $promptTrimmed
+  $isConsultationQuestionPrompt = Test-ConsultationQuestionPrompt -promptTrimmed $promptTrimmed
   $shouldInjectFeatureRemovalGuard = Test-FeatureRemovalGuardShouldInject `
     -riskState $effectiveFeatureRemovalRiskState `
     -approvalState $featureRemovalApproval `
@@ -753,7 +851,13 @@ try {
   }
 
   $additionalContextLines = @()
+  if ($isConsultationQuestionPrompt) {
+    $additionalContextLines += @(Build-ConsultationOnlyLines -packagePointer $packagePointer -turnId $turnId)
+  }
   if ($pendingLines.Count -gt 0) {
+    if ($additionalContextLines.Count -gt 0) {
+      $additionalContextLines += ""
+    }
     $additionalContextLines += "[HelloAGENTS Guard] 检测到待用户输入（Pending），本轮必须只处理用户回复，禁止进入执行/重开流程。"
     $additionalContextLines += ("current_package: {0}" -f $packagePointer)
     if (-not [string]::IsNullOrWhiteSpace($turnId)) {
@@ -859,6 +963,11 @@ try {
       } else {
         Write-HookOutputJson -AdditionalContext ($completeLines -join "`n")
       }
+      exit 0
+    }
+
+    if ($isConsultationQuestionPrompt) {
+      Write-HookOutputJson -AdditionalContext (($additionalContextLines) -join "`n")
       exit 0
     }
 

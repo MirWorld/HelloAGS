@@ -558,6 +558,14 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/hook-simulation
   "不重复解释预算"
 )
 
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/routing.md" -needles @(
+  "咨询问答（纯问句优先）",
+  "方案包创建门槛",
+  "防旧任务劫持新问题",
+  "active package 只在以下情况下成为主任务状态源",
+  "搜索完直接跳回"
+)
+
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-stop.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Stop hook must treat payload as data only; never execute assistant message content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-context-threshold.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Context-threshold hook should treat payload as data only; never execute dynamic content."
 Assert-NotMatches -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-compact.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Compact hook should treat payload as data only; never execute dynamic content."
@@ -636,6 +644,12 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/hooks/helloagents-userpromptsubmit.ps1" -needles @(
   "Test-IsPathUnderDirectory",
   "Test-UnresolvedPostCompact",
+  "Test-ConsultationQuestionPrompt",
+  "Build-ConsultationOnlyLines",
+  "mode: consultation_only",
+  "write_scope: no_write",
+  "do_not_create_plan_package: yes",
+  "answer_user_question_first: yes",
   "compact_resume_required",
   "resume_hydration_required",
   "reboot_check",
@@ -697,6 +711,9 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "scripts/validate-skill-pac
   "compact_resume_required",
   "helloagents-pretooluse.ps1",
   "PreToolUse",
+  "userpromptsubmit-consultation-question.json",
+  "mode: consultation_only",
+  "do_not_create_plan_package: yes",
   "reboot_check: ok",
   "Resume Hydration Gate"
 )

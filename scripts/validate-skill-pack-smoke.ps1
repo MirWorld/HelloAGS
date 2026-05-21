@@ -545,6 +545,24 @@ try {
   try { $cleanupDecision = $userCleanupOut.decision } catch { $cleanupDecision = $null }
   Assert-True ([string]::IsNullOrWhiteSpace($cleanupDecision)) "Internal cleanup prompt should not be blocked by feature-removal guard fallback."
 
+  $payloadConsultationQuestion = Join-Path $scratchRoot "userpromptsubmit-consultation-question.json"
+  New-SmokePayload -path $payloadConsultationQuestion -prompt "那没有比这性能强的控件了？" -projectRoot $projectRoot -turnId "turn_demo_prompt_consultation"
+  $userConsultationQuestionOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadConsultationQuestion -projectRoot $projectRoot
+  try { $consultationDecision = $userConsultationQuestionOut.decision } catch { $consultationDecision = $null }
+  $consultationContext = $userConsultationQuestionOut.hookSpecificOutput.additionalContext
+  Assert-True ([string]::IsNullOrWhiteSpace($consultationDecision)) "Consultation question should not be blocked; it should be answered as no_write guidance."
+  Assert-Contains $consultationContext "mode: consultation_only" "Consultation question should inject consultation_only mode."
+  Assert-Contains $consultationContext "write_scope: no_write" "Consultation question should force no_write."
+  Assert-Contains $consultationContext "do_not_create_plan_package: yes" "Consultation question should forbid creating a plan package."
+  Assert-Contains $consultationContext "answer_user_question_first: yes" "Consultation question should force answering the user question first."
+  Assert-Contains $consultationContext "current_package_context_only" "Active package should be downgraded to context-only for consultation questions."
+
+  $payloadPlanExecutePhrase = Join-Path $scratchRoot "userpromptsubmit-plan-execute-phrase.json"
+  New-SmokePayload -path $payloadPlanExecutePhrase -prompt "好，按这个方案实现" -projectRoot $projectRoot -turnId "turn_demo_prompt_execute_phrase"
+  $userPlanExecutePhraseOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $payloadPlanExecutePhrase -projectRoot $projectRoot
+  try { $planExecutePhraseContext = $userPlanExecutePhraseOut.hookSpecificOutput.additionalContext } catch { $planExecutePhraseContext = "" }
+  Assert-True ($planExecutePhraseContext -notmatch "mode: consultation_only") "Explicit implementation phrase should not be downgraded to consultation_only."
+
   $thresholdPayload = Join-Path $scratchRoot "context-threshold.json"
   New-ThresholdPayload -path $thresholdPayload -projectRoot $projectRoot -source "pre_submit" -usedTokens 188000 -threshold 200000 -remainingToCompact 12000
   & pwsh -NoProfile -File (Join-Path $repoRoot "scripts/hooks/helloagents-context-threshold.ps1") -InputFile $thresholdPayload -ProjectRoot $projectRoot | Out-Null
