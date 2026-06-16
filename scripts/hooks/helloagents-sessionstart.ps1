@@ -274,14 +274,14 @@ function Test-PackageCompleted([string]$taskText, [string[]]$pendingLines) {
     $taskListText = $taskListText.Substring(0, $taskLegendMatch.Index)
   }
 
-  $taskMatches = [regex]::Matches($taskListText, '(?m)^\s*-\s*\[(?<state>\s|√|X|-|\?)\]\s+')
+  $taskMatches = [regex]::Matches($taskListText, '(?m)^\s*-\s*\[(?<state>\s|√|✓|X|x|-|\?)\]\s+')
   if ($taskMatches.Count -eq 0) {
     return $false
   }
 
   foreach ($m in $taskMatches) {
     $state = $m.Groups["state"].Value
-    if (($state -ne "√") -and ($state -ne "-")) {
+    if (($state -ne "√") -and ($state -ne "✓") -and ($state -ne "-")) {
       return $false
     }
   }

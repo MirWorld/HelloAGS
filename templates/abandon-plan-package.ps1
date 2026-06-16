@@ -310,8 +310,8 @@ function Add-HistoryIndexEntry(
   $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss zzz"
   $entry = @"
 
-- $timestamp | `$packageName` | abandoned_unexecuted | $historyRelative
-  - source: `$sourceRelative`
+- $timestamp | ``$packageName`` | abandoned_unexecuted | $historyRelative
+  - source: $sourceRelative
   - archive_intent: abandoned_unexecuted
   - verify: not_run_user_abandoned
 "@

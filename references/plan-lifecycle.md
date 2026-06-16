@@ -24,6 +24,15 @@ archive_script: HAGSWorks/scripts/archive-plan-package.ps1
 - `[-]` 已跳过（需备注原因）
 - `[?]` 待确认
 
+解析兼容：
+- `[√]` / `[✓]` -> done
+- `[X]` / `[x]` -> failed
+- `[-]` -> skipped
+- `[ ]` -> pending
+- `[?]` -> unconfirmed
+
+写入时仍优先使用 canonical 符号 `[√]` / `[X]`；解析时必须按上述 Unicode 字符显式映射，不得依赖大小写折叠或 Markdown checkbox 默认语义。
+
 ---
 
 ## 2) 创建新方案包
@@ -70,6 +79,7 @@ archive_script: HAGSWorks/scripts/archive-plan-package.ps1
 3. 更新索引：追加到 `HAGSWorks/history/index.md`（包含时间戳、功能标识、类型、状态、链接）
    - 推荐同时补“轻量检索元数据”（见 `templates/history-index-template.md` / `references/lightweight-memory.md`）：`tags`、`touched_files`、`decisions`、`verify`、`signals`
    - 元数据只写高价值事实；没有命中可跳过，不要复制方案包正文
+   - 字段拆分契约固定为：`tags/touched_files` 按英文逗号 `,`；`decisions` 优先按中文分号 `；`，兼容英文 `;`；`verify` 按英文 `;`，末尾括号注释进入 `result_summary`
 4. （推荐默认）清空当前方案包指针：将 `HAGSWorks/plan/_current.md` 的 `current_package` 置空（避免断层恢复误选已归档包）
 
 ---

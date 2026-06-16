@@ -67,6 +67,13 @@
 - `verify`: 最小验证命令与结果
 - `signals`: 命中的结构信号，例如 `response_incomplete`、`near_autocompact`、`pre_compact`
 
+字段拆分规则：
+
+- `tags` / `touched_files`: 按英文逗号 `,` 拆分；每项 trim；去除外层方括号、反引号和引号。
+- `decisions`: 优先按中文分号 `；` 拆分；若没有中文分号，兼容英文分号 `;`；每项 trim；去除外层方括号、反引号和引号。
+- `verify`: 仅按英文分号 `;` 拆分；每项 trim；去除外层反引号和引号。
+- `verify` 每项若末尾存在括号注释 `(...)` 或 `（...）`，括号前进入 `command`，括号内容进入 `result_summary`；只识别末尾注释，不解析命令中间的括号。
+
 约束：
 
 - 元数据是索引，不是正文；不要复制整段方案包内容。

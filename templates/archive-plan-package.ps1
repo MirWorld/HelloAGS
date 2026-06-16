@@ -178,8 +178,8 @@ function Add-HistoryIndexEntry(
   $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
   $entry = @"
 
-- $timestamp | `$packageName` | archived | $historyRelative
-  - source: `$sourceRelative`
+- $timestamp | ``$packageName`` | archived | $historyRelative
+  - source: $sourceRelative
   - verify: validate-plan-package.ps1 -Mode archive passed
 "@
   Add-Content -LiteralPath $indexPath -Value $entry -Encoding utf8

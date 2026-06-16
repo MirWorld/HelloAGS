@@ -44,6 +44,41 @@ function Assert-NotContains([string]$text, [string]$needle, [string]$message) {
   }
 }
 
+function Split-HistoryCsvField([string]$value) {
+  $trimmed = $value.Trim().Trim("[", "]")
+  return @($trimmed -split "," | ForEach-Object { $_.Trim().Trim([char]0x60, '"', "'") } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+}
+
+function Split-HistoryDecisionField([string]$value) {
+  $trimmed = $value.Trim().Trim("[", "]")
+  $separator = if ($trimmed.Contains("；")) { "；" } else { ";" }
+  return @($trimmed -split [regex]::Escape($separator) | ForEach-Object { $_.Trim().Trim([char]0x60, '"', "'") } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+}
+
+function Split-HistoryVerifyField([string]$value) {
+  $items = @()
+  foreach ($part in ($value -split ";")) {
+    $item = $part.Trim().Trim([char]0x60, '"', "'")
+    if ([string]::IsNullOrWhiteSpace($item)) {
+      continue
+    }
+
+    $command = $item
+    $result = ""
+    $m = [regex]::Match($item, '^(?<command>.+?)\s*(?:\((?<result>[^()]*)\)|（(?<result>[^（）]*)）)\s*$')
+    if ($m.Success) {
+      $command = $m.Groups["command"].Value.Trim()
+      $result = $m.Groups["result"].Value.Trim()
+    }
+
+    $items += [pscustomobject]@{
+      command = $command
+      result_summary = $result
+    }
+  }
+  return @($items)
+}
+
 function Invoke-HookJson([string]$scriptPath, [string]$inputFile, [string]$projectRoot, [switch]$DryRun) {
   $args = @(
     "-NoProfile",
@@ -895,6 +930,67 @@ try {
   $validatorArchiveReady = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "archive" -package $packageRel
   Assert-True ($validatorArchiveReady.ok) "Archive mode should pass only after tasks are terminal, Pending is empty, progress is final, Review is recorded, and status legend lines are ignored."
 
+  $archiveUnicodeDoneTask = @"
+# 任务清单: smoke
+
+- [✓] 1.0 Unicode done 状态
+
+## 上下文快照
+
+### Repo 状态（复现/防漂移，执行域必填）
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: final
+
+### 待用户输入（Pending）
+
+### 下一步唯一动作（可执行）
+- 下一步唯一动作: `执行 Archive Readiness Gate` 预期: `[✓]` 被识别为完成态
+
+## Review 记录
+- Review: Unicode done 状态兼容性已检查
+- 复测: `pwsh -NoProfile -Command "Write-Output smoke"` 结果: 通过
+"@
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $archiveUnicodeDoneTask
+  $validatorArchiveUnicodeDone = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "archive" -package $packageRel
+  Assert-True ($validatorArchiveUnicodeDone.ok) "Archive mode should treat [✓] as a completed task state."
+
+  $unicodeDoneSessionOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-sessionstart.ps1") -inputFile (Join-Path $repoRoot "templates/hooks/sessionstart-hook-fixture.json") -projectRoot $projectRoot
+  Assert-Contains $unicodeDoneSessionOut.hookSpecificOutput.additionalContext "package_status: completed_looking" "SessionStart should treat [✓] as completed-looking."
+
+  $unicodeDonePayload = Join-Path $scratchRoot "userpromptsubmit-unicode-done.json"
+  New-SmokePayload -path $unicodeDonePayload -prompt "~exec" -projectRoot $projectRoot -turnId "turn_demo_prompt_unicode_done"
+  $unicodeDoneUserOut = Invoke-HookJson -scriptPath (Join-Path $repoRoot "scripts/hooks/helloagents-userpromptsubmit.ps1") -inputFile $unicodeDonePayload -projectRoot $projectRoot
+  Assert-Contains $unicodeDoneUserOut.hookSpecificOutput.additionalContext "package_status: completed_looking" "UserPromptSubmit should treat [✓] as completed-looking."
+
+  $archiveLowercaseFailedTask = @"
+# 任务清单: smoke
+
+- [x] 1.0 lowercase failed 状态
+
+## 上下文快照
+
+### Repo 状态（复现/防漂移，执行域必填）
+- [SRC:TOOL] repo_state: branch=smoke head=smoke dirty=false diffstat=none
+
+### 决策（做了什么选择 + 为什么）
+- [SRC:CODE|TOOL] progress_phase: final
+
+### 待用户输入（Pending）
+
+### 下一步唯一动作（可执行）
+- 下一步唯一动作: `执行 Archive Readiness Gate` 预期: `[x]` 被识别为失败态并阻断归档
+
+## Review 记录
+- Review: lowercase failed 状态兼容性已检查
+- 复测: `pwsh -NoProfile -Command "Write-Output smoke"` 结果: 通过
+"@
+  Set-SmokeTaskText -projectRoot $projectRoot -packageRel $packageRel -taskText $archiveLowercaseFailedTask
+  $validatorArchiveLowercaseFailed = Invoke-PlanValidatorJson -projectRoot $projectRoot -mode "archive" -package $packageRel
+  Assert-True (-not $validatorArchiveLowercaseFailed.ok) "Archive mode should treat [x] as a failed task state."
+  Assert-Contains (($validatorArchiveLowercaseFailed.errors -join "`n")) "[X]/[x]" "Archive mode should explain failed-state compatibility."
+
   $archiveSkippedNoReasonTask = @"
 # 任务清单: smoke
 
@@ -1087,7 +1183,22 @@ carry_forward_verify: 无
   Assert-NotContains $pointerAfterArchive "202604011200_archive_ready" "Archive script should clear _current.md when it pointed to the archived package."
   $historyIndexAfterArchive = Read-Utf8Text -path (Join-Path $projectRoot "HAGSWorks/history/index.md")
   Assert-Contains $historyIndexAfterArchive "202604011200_archive_ready" "Archive script should append history/index.md."
+  Assert-Contains $historyIndexAfterArchive '| `202604011200_archive_ready` | archived |' "Archive index entry should interpolate and backtick-wrap the package name."
+  Assert-Contains $historyIndexAfterArchive "source: HAGSWorks/plan/202604011200_archive_ready/" "Archive index entry should interpolate the source package path."
+  Assert-NotContains $historyIndexAfterArchive '$packageName' "Archive index entry should not keep the packageName variable literal."
+  Assert-NotContains $historyIndexAfterArchive '$sourceRelative' "Archive index entry should not keep the sourceRelative variable literal."
   Assert-Contains $historyIndexAfterArchive "validate-plan-package.ps1 -Mode archive" "Archive index entry should include validation evidence."
+
+  $parsedTags = @(Split-HistoryCsvField "[hooks, resume, validation]")
+  Assert-True (($parsedTags.Count -eq 3) -and ($parsedTags[0] -eq "hooks") -and ($parsedTags[2] -eq "validation")) "History tags should split by comma."
+  $parsedTouchedFiles = @(Split-HistoryCsvField '[`references/lightweight-memory.md`, `templates/history-index-template.md`]')
+  Assert-True (($parsedTouchedFiles.Count -eq 2) -and ($parsedTouchedFiles[0] -eq "references/lightweight-memory.md")) "History touched_files should split by comma and strip backticks."
+  $parsedDecisions = @(Split-HistoryDecisionField "overview 只做单文件、只读；按 qualified_name 去重；缺失文件沿用路径校验错误")
+  Assert-True (($parsedDecisions.Count -eq 3) -and ($parsedDecisions[1] -eq "按 qualified_name 去重")) "History decisions should prefer Chinese semicolon splitting."
+  $parsedDecisionFallback = @(Split-HistoryDecisionField "保留兼容; 不新增依赖")
+  Assert-True (($parsedDecisionFallback.Count -eq 2) -and ($parsedDecisionFallback[1] -eq "不新增依赖")) "History decisions should fallback to ASCII semicolon when Chinese semicolon is absent."
+  $parsedVerify = @(Split-HistoryVerifyField "cargo test delphi_index_core（Delphi core tests passed）; cargo check; cargo fmt --check")
+  Assert-True (($parsedVerify.Count -eq 3) -and ($parsedVerify[0].command -eq "cargo test delphi_index_core") -and ($parsedVerify[0].result_summary -eq "Delphi core tests passed")) "History verify should split by ASCII semicolon and move trailing parenthetical text into result_summary."
 
   $abandonRel = New-UnexecutedPackage -projectRoot $projectRoot -packageName "202604011210_abandon_unexecuted"
   $abandonOut = Invoke-AbandonPlanPackageJson -projectRoot $projectRoot -package $abandonRel

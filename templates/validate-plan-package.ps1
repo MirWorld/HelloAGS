@@ -354,14 +354,14 @@ foreach ($pkg in $packages) {
       if ($taskLegendMatch.Success) {
         $taskListText = $taskListText.Substring(0, $taskLegendMatch.Index)
       }
-      $taskItemAnyPattern = '(?m)^\s*-\s*\[(?:\s|√|X|-|\?)\]\s+'
+      $taskItemAnyPattern = '(?m)^\s*-\s*\[(?:\s|√|✓|X|x|-|\?)\]\s+'
       $taskItemOpenPattern = '(?m)^\s*-\s*\[\s\]\s+'
-      $taskItemFailedPattern = '(?m)^\s*-\s*\[X\]\s+'
+      $taskItemFailedPattern = '(?m)^\s*-\s*\[(?:X|x)\]\s+'
       $taskItemConfirmPattern = '(?m)^\s*-\s*\[\?\]\s+'
       $taskItemSkippedPattern = '(?m)^\s*-\s*\[-\]\s+'
 
       if ($taskListText -notmatch $taskItemAnyPattern) {
-        Add-Error "package '${pkgName}' task.md has no task items (- [ ]/[√]/[X]/[-]/[?])"
+        Add-Error "package '${pkgName}' task.md has no task items (- [ ]/[√]/[✓]/[X]/[x]/[-]/[?])"
       }
 
       if ($Mode -eq "exec") {
@@ -375,7 +375,7 @@ foreach ($pkg in $packages) {
           Add-Error "package '${pkgName}' task.md still has pending tasks (- [ ]) (archive mode requires all tasks to be terminal). Keep the package under HAGSWorks/plan and continue from _current.md."
         }
         if ($taskListText -match $taskItemFailedPattern) {
-          Add-Error "package '${pkgName}' task.md still has failed tasks (- [X]) (archive mode requires failures to be resolved or explicitly converted to skipped with a reason)."
+          Add-Error "package '${pkgName}' task.md still has failed tasks (- [X]/[x]) (archive mode requires failures to be resolved or explicitly converted to skipped with a reason)."
         }
         if ($taskListText -match $taskItemConfirmPattern) {
           Add-Error "package '${pkgName}' task.md still has confirmation tasks (- [?]) (archive mode requires all confirmations to be closed or left as Pending)."

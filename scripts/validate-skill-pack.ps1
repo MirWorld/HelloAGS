@@ -415,11 +415,25 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/current-plan-poi
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/history-index-template.md" -needles @(
   "## 轻量检索元数据（按需）",
+  "### 字段拆分规则",
   '`tags`',
   '`touched_files`',
   '`decisions`',
   '`verify`',
-  '`signals`'
+  '`signals`',
+  '按英文逗号 `,`',
+  '优先按中文分号 `；`',
+  '兼容英文分号 `;`',
+  '仅按英文分号 `;`',
+  "result_summary"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/lightweight-memory.md" -needles @(
+  "字段拆分规则",
+  '`tags` / `touched_files`',
+  '`decisions`',
+  '`verify`',
+  "result_summary"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/workspace-bootstrap-manifest.json" -needles @(
@@ -1099,7 +1113,30 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/validate-plan-pa
   "任务状态符号",
   "skipped task without",
   "design_debt",
-  "revisit_trigger"
+  "revisit_trigger",
+  "[√]/[✓]",
+  "[X]/[x]",
+  "√|✓|X|x"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/plan-lifecycle.md" -needles @(
+  '`[√]` / `[✓]` -> done',
+  '`[X]` / `[x]` -> failed',
+  '`tags`、`touched_files`、`decisions`、`verify`、`signals`',
+  "字段拆分契约固定为",
+  "result_summary"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-template.md" -needles @(
+  "解析兼容",
+  '[✓]` 等同 `[√]',
+  '[x]` 等同 `[X]'
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/plan-task-quickfix-template.md" -needles @(
+  "解析兼容",
+  '[✓]` 等同 `[√]',
+  '[x]` 等同 `[X]'
 )
 
 Assert-NotMatches -repoRoot $repoRoot -relativePath "templates/archive-plan-package.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Archive script should only validate and move local plan-package files; never execute dynamic content."
@@ -1120,7 +1157,9 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/archive-plan-pac
   "history root must resolve to HAGSWorks/history",
   "archive failed after move and rollback was incomplete",
   "Restore-TextFile",
-  "Invoke-ArchiveRollback"
+  "Invoke-ArchiveRollback",
+  '``$packageName``',
+  'source: $sourceRelative'
 )
 
 Assert-NotMatches -repoRoot $repoRoot -relativePath "templates/abandon-plan-package.ps1" -pattern 'Invoke-Expression|iex\b|Start-Process|Invoke-Command' -hint "Abandon cleanup script should only classify and move local plan-package files; never execute dynamic content."
@@ -1133,7 +1172,9 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/abandon-plan-pac
   "package has execution evidence",
   "abandoned cleanup failed after move and rollback was incomplete",
   "HAGSWorks/plan",
-  "HAGSWorks/history"
+  "HAGSWorks/history",
+  '``$packageName``',
+  'source: $sourceRelative'
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/output-format.md" -needles @(
