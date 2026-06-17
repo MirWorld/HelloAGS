@@ -33,6 +33,11 @@
 - 直接调用方 / 导出入口 / 共享工具中与本次改动相关的最小片段。
 - 是否已有相似实现、类型、错误码、配置项或测试入口可复用。
 
+Delphi/Pascal 任务的额外顺序：
+- 若 Delphi 语义工具可用，先查 `delphi/getIndexStatus`；`missing` 用 `delphi/indexWorkspace`，`stale` 用 `delphi/refreshIndex`，失败或不可用时记录降级原因。
+- 写前证据优先级为 `delphi/getSymbolsOverview` -> `delphi/findDefinition` -> `delphi/findReferences` -> `delphi/impactAnalysis` -> 少量精读；`rg` 只作兜底或补充确认。
+- `partial`、`warnings`、`risks` 必须显式记录；索引状态、overview 和 hooks 提醒都不是真值，不能替代代码事实、方案包状态或验证证据。
+
 停止条件：
 - 已能解释“为什么改这里”。
 - 已能说明“为什么不需要改相邻模块”。

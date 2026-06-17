@@ -1255,6 +1255,65 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/agent-coding-di
   "Fail loud"
 )
 
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
+  "Delphi 语义导航",
+  "delphi/getIndexStatus",
+  "delphi/getSymbolsOverview",
+  "delphi/findDefinition",
+  "delphi/findReferences",
+  "delphi/impactAnalysis",
+  'rg` 仅作兜底'
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "analyze/SKILL.md" -needles @(
+  "Delphi/Pascal 持久索引语义导航",
+  "delphi/getIndexStatus",
+  "delphi/indexWorkspace",
+  "delphi/refreshIndex",
+  "delphi/getSymbolsOverview",
+  "delphi/findDefinition",
+  "delphi/findReferences",
+  "delphi/impactAnalysis",
+  '`partial` 只适用于探索性定位或低风险局部修改',
+  '涉及 rename、签名变更、公共入口变更或跨单元影响面判断时，必须优先刷新到 `ready`',
+  '不得把 `partial` 当完整影响面真值',
+  'rg` 保留为兜底',
+  "hooks 只允许提醒",
+  "不是真值",
+  "不能替代符号和影响面证据"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/agent-coding-discipline.md" -needles @(
+  "Delphi/Pascal 任务的额外顺序",
+  "delphi/getIndexStatus",
+  "delphi/indexWorkspace",
+  "delphi/refreshIndex",
+  "delphi/getSymbolsOverview",
+  "delphi/findDefinition",
+  "delphi/findReferences",
+  "delphi/impactAnalysis",
+  'rg` 只作兜底',
+  "hooks 提醒都不是真值"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/pre-implementation-checklist.md" -needles @(
+  "Delphi/Pascal 任务若语义工具可用",
+  "delphi/getIndexStatus",
+  "delphi/indexWorkspace",
+  "delphi/refreshIndex",
+  "missing/stale/failed",
+  "delphi/getSymbolsOverview",
+  "delphi/findDefinition",
+  "delphi/findReferences",
+  "delphi/impactAnalysis",
+  'rg` 兜底',
+  "索引状态",
+  "missing/stale/failed",
+  "生命周期处理",
+  "符号 overview",
+  "影响面证据"
+)
+
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/command-policy.md" -needles @(
   "CLI 优先",
   "permission profiles",

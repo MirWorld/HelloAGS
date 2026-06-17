@@ -16,6 +16,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 - **输出语言**：简体中文（代码标识符/API/术语除外）
 - **增量回答（避免重复）**：默认只输出本轮“新增结论/新增动作”，不复述已解决事项；如必须引用旧结论，只用 1 句话并附文件/章节指针。仅在以下情况允许回顾：当前问题依赖旧结论或会改变边界/写入范围；用户明确要求复盘/总结/报告；安全/EHRB 需要再次确认；进入 G6“完成类输出”（模板要求）。细则：`references/response-policy.md`
 - **渐进式加载**：只读你当前阶段真正需要的文件；先 `rg` 定位，再 `Get-Content` 小范围读取，避免“整库灌上下文”
+- **Delphi 语义导航**：Delphi/Pascal 任务若可用 CodexMonitor Delphi 工具，按 `analyze/SKILL.md` 的 `delphi/getIndexStatus` → `delphi/getSymbolsOverview` → `delphi/findDefinition` → `delphi/findReferences` → `delphi/impactAnalysis` 流程先取证，`rg` 仅作兜底
 - **PowerShell 约束**：在 Windows/PowerShell 下执行命令时，按需读取 `references/powershell.md` 避免语法与编码坑
 - **命令分级**：`~plan`（规划域）只允许只读命令；禁止有副作用命令（定义见 `references/command-policy.md`）
 - **版本控制写操作（Git）**：除非用户明确要求，否则禁止执行 `git add/commit/push/merge/rebase/reset/tag` 等写操作；只读命令（如 `git status/diff/log`）仅用于取证（细则见 `references/command-policy.md`）
