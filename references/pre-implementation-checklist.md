@@ -25,7 +25,7 @@
 
 - **命令矩阵已收敛（如适用）**：若已能明确技术栈但项目命令/规范不完整：按 `references/stack-detection.md` 在仓库内定位真实可用入口（脚本/CI/README）；仍无法确认则写 `unknown` 并向用户索取命令；允许写入时固化到 `HAGSWorks/project.md#项目能力画像`（避免下次继续猜）
 - **影响面已圈定**：预计改哪些模块/文件？能否收敛到更小范围（避免“顺手扩大”）
-- **复用检索已做**：常规仓库用 `rg` 搜索相似实现/类型/错误码/字段名；Delphi/Pascal 任务若语义工具可用，先查 `delphi/getIndexStatus`，`missing` 先 `delphi/indexWorkspace`、`stale` 先 `delphi/refreshIndex`、`failed/unavailable` 记录原因并用 `rg` 兜底，再按 `delphi/getSymbolsOverview`、`delphi/findDefinition`、`delphi/findReferences`、`delphi/impactAnalysis` 圈定符号和影响面；优先复用而不是新造
+- **复用检索已做**：常规仓库用 `rg` 搜索相似实现/类型/错误码/字段名；Delphi/Pascal 任务若语义工具可用，先查 `delphi/getIndexStatus`，`missing` 先 `delphi/indexWorkspace`、`stale` 先 `delphi/refreshIndex`、`failed/unavailable` 记录原因并用 `rg` 兜底，再按 `delphi/getSymbolsOverview`、`delphi/findDefinition`、`delphi/findReferences`、`delphi/impactAnalysis` 圈定符号和影响面；按 `references/delphi-evidence-gate.md` 区分真实工具调用与文本搜索 fallback；优先复用而不是新造
 - **边界与依赖明确**：落点与依赖方向是否正确？是否有跨层 import 风险？
 - **风险与回滚**：是否触发 EHRB？是否需要兼容/降级/回滚策略？
 - **落盘**：关键决策/约束/下一步唯一动作写入 `task.md##上下文快照`（事实/推断隔离 + 来源标签）
@@ -37,4 +37,4 @@
 1. **缺成功标准/边界/约束**：用 1–3 个高信息增益问题追问；或将相关任务标记为 `[?]` 暂停推进
 2. **缺验证方式**：在 `task.md` 补最小可复现验证步骤/脚本（必须可重复）
 3. **缺边界/复用结论**：在 `how.md` 补齐“边界与依赖 / 复用与去重策略 / 重构范围与不变量”
-4. **缺写前先读证据**：常规任务先 `rg` 定位并读取最小相关片段；Delphi/Pascal 任务优先补索引状态、`missing/stale/failed` 生命周期处理、符号 overview、定义、引用和影响面证据；仍无法解释调用关系时，禁止直接写代码
+4. **缺写前先读证据**：常规任务先 `rg` 定位并读取最小相关片段；Delphi/Pascal 任务优先补索引状态、`missing/stale/failed` 生命周期处理、符号 overview、定义、引用和影响面证据；若没有真实 `delphi.*` tool call 或 `item/tool/call namespace=delphi` 证据，必须标注“文本搜索 fallback”；仍无法解释调用关系时，禁止直接写代码

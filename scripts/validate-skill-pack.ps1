@@ -352,6 +352,7 @@ $required = @(
   "references/signal-severity.md",
   "references/feature-removal-guard.md",
   "references/agent-coding-discipline.md",
+  "references/delphi-evidence-gate.md",
   "references/codex-upstream-leverage.md",
   "references/lightweight-memory.md",
   "references/contracts.md",
@@ -1262,7 +1263,11 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
   "delphi/findDefinition",
   "delphi/findReferences",
   "delphi/impactAnalysis",
-  'rg` 仅作兜底'
+  'rg` 仅作兜底',
+  '真实 `delphi.*` tool call',
+  "item/tool/call namespace=delphi",
+  "文本搜索 fallback",
+  "references/delphi-evidence-gate.md"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "analyze/SKILL.md" -needles @(
@@ -1278,9 +1283,24 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "analyze/SKILL.md" -needles
   '涉及 rename、签名变更、公共入口变更或跨单元影响面判断时，必须优先刷新到 `ready`',
   '不得把 `partial` 当完整影响面真值',
   'rg` 保留为兜底',
+  "dynamicTools",
+  "item/tool/call namespace=delphi",
+  "文本搜索 fallback",
   "hooks 只允许提醒",
   "不是真值",
   "不能替代符号和影响面证据"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/delphi-evidence-gate.md" -needles @(
+  "<!-- CONTRACT: delphi-evidence-gate v1 -->",
+  "Delphi 工具调用证据门禁",
+  "真实调用证据",
+  "dynamicTools",
+  "item/tool/call namespace=delphi",
+  "文本搜索 fallback",
+  'rg` / `Get-Content',
+  "不得说",
+  '禁止把 `dynamicTools` 注入'
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/agent-coding-discipline.md" -needles @(
@@ -1293,7 +1313,12 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/agent-coding-di
   "delphi/findReferences",
   "delphi/impactAnalysis",
   'rg` 只作兜底',
-  "hooks 提醒都不是真值"
+  "hooks 提醒都不是真值",
+  "references/delphi-evidence-gate.md",
+  '真实 `delphi.*` tool call',
+  "item/tool/call namespace=delphi",
+  "dynamicTools",
+  "文本搜索 fallback"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/pre-implementation-checklist.md" -needles @(
@@ -1311,7 +1336,10 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/pre-implementat
   "missing/stale/failed",
   "生命周期处理",
   "符号 overview",
-  "影响面证据"
+  "影响面证据",
+  "references/delphi-evidence-gate.md",
+  "item/tool/call namespace=delphi",
+  "文本搜索 fallback"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/command-policy.md" -needles @(

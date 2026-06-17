@@ -483,6 +483,12 @@ try {
     Assert-True (-not [string]::IsNullOrWhiteSpace((Read-Utf8Text -path $targetPath))) ("Generated file is empty: {0}" -f $entry.target)
   }
 
+  $delphiGate = Read-Utf8Text -path (Join-Path $repoRoot "references/delphi-evidence-gate.md")
+  Assert-Contains $delphiGate '真实 `delphi.*` tool call' "Delphi evidence gate should require real delphi tool-call evidence."
+  Assert-Contains $delphiGate "item/tool/call namespace=delphi" "Delphi evidence gate should recognize CodexMonitor tool-call provenance."
+  Assert-Contains $delphiGate "文本搜索 fallback" "Delphi evidence gate should force explicit text-search fallback wording."
+  Assert-Contains $delphiGate '禁止把 `dynamicTools` 注入' "Delphi evidence gate should reject dynamicTools injection as usage evidence."
+
   $codexDir = Join-Path $projectRoot ".codex"
   New-Item -ItemType Directory -Path $codexDir -Force | Out-Null
   Write-Utf8Text -path (Join-Path $codexDir "config.toml") -text (Read-Utf8Text -path (Join-Path $repoRoot "templates/hooks/config.toml.snippet"))

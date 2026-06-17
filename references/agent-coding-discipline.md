@@ -34,9 +34,11 @@
 - 是否已有相似实现、类型、错误码、配置项或测试入口可复用。
 
 Delphi/Pascal 任务的额外顺序：
-- 若 Delphi 语义工具可用，先查 `delphi/getIndexStatus`；`missing` 用 `delphi/indexWorkspace`，`stale` 用 `delphi/refreshIndex`，失败或不可用时记录降级原因。
+- 若 Delphi 语义工具可用，先查 `delphi/getIndexStatus`；`missing` 用 `delphi/indexWorkspace`，`stale` 用 `delphi/refreshIndex`，失败或不可用时记录降级原因；证据门禁见 `references/delphi-evidence-gate.md`。
 - 写前证据优先级为 `delphi/getSymbolsOverview` -> `delphi/findDefinition` -> `delphi/findReferences` -> `delphi/impactAnalysis` -> 少量精读；`rg` 只作兜底或补充确认。
 - `partial`、`warnings`、`risks` 必须显式记录；索引状态、overview 和 hooks 提醒都不是真值，不能替代代码事实、方案包状态或验证证据。
+- 只有真实 `delphi.*` tool call 或 `item/tool/call namespace=delphi` 证据，才能声明已使用 Delphi 语义工具；`dynamicTools` 注入、工具列表可见、索引 ready、代码里有 executor 都只是准备证据。
+- 如果实际 tool calls 只有 `rg` / `Get-Content` / shell 读取，必须明确写“文本搜索 fallback”，不得把 fallback 说成语义查询。
 
 停止条件：
 - 已能解释“为什么改这里”。

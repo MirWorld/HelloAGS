@@ -199,13 +199,14 @@ next_unique_action: "等待用户补充追问答案/以现有需求继续/取消
 
 #### Delphi/Pascal 持久索引语义导航（触发式）
 
-当仓库或任务明显涉及 Delphi/Pascal（如 `.pas/.dpr/.dfm/.fmx/.lfm/.inc`、窗体事件、单元/方法引用）且 Delphi 语义工具可用时，阶段B优先按以下顺序取证：
+当仓库或任务明显涉及 Delphi/Pascal（如 `.pas/.dpr/.dfm/.fmx/.lfm/.inc`、窗体事件、单元/方法引用）时，阶段B优先尝试 Delphi 语义工具；证据门禁见 `../references/delphi-evidence-gate.md`。`dynamicTools` 注入、索引 ready、hooks 提醒或代码里有 executor 只算准备证据，不能证明本轮已调用工具。
 
 1. 先查 `delphi/getIndexStatus`，记录 `status`、`partial`、`warnings`、`risks`；`missing` 先 `delphi/indexWorkspace`，`stale` 先 `delphi/refreshIndex`，`failed/unavailable` 记录原因后降级。
 2. 索引 `ready` 后，先 `delphi/getSymbolsOverview` 获取文件/模块符号概览，再用 `delphi/findDefinition`、`delphi/findReferences`、`delphi/impactAnalysis` 圈定定义、引用与影响面；`partial` 只适用于探索性定位或低风险局部修改。
 3. 涉及 rename、签名变更、公共入口变更或跨单元影响面判断时，必须优先刷新到 `ready`；无法达到 `ready` 时，记录降级原因、`warnings`/`risks` 和验证补偿，不得把 `partial` 当完整影响面真值。
 4. 最后只读取必要代码片段进入方案或 patch；`rg` 保留为兜底，用于工具不可用、非 Delphi 资源、字符串/配置/日志确认，不能替代符号和影响面证据。
-5. hooks 只允许提醒“先查 index status / references / impact”，不是真值，不替代方案包状态、代码事实或验证证据。
+5. 只有真实 `delphi.*` tool call 或 CodexMonitor `item/tool/call namespace=delphi` 证据，才能在输出中声明“已使用 Delphi 语义工具”；如果实际只看到 `rg` / `Get-Content` / shell 读取，必须写“未观察到 Delphi 语义工具调用，已降级到文本搜索 fallback”。
+6. hooks 只允许提醒“先查 index status / references / impact”，不是真值，不替代方案包状态、代码事实或验证证据。
 
 ---
 
