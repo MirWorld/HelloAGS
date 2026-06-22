@@ -38,6 +38,11 @@
 - shell `rg` / `Get-Content` / `cat` 只在原生工具不可用、失败、或无法表达查询/读取时作为 fallback only；必须记录降级原因。
 - 同一查询或同一读取范围不得在原生工具成功后再用 shell 重复跑；确需复查时先写明 fallback/验证理由。
 
+Git 状态取证顺序：
+- 若运行时暴露 `git.status`、`git.diff_stat`、`git.head`，仓库状态、diffstat、HEAD 等 repo_state 先用这些原生 Git 只读工具。
+- shell `git status` / `git diff --stat` / `git rev-parse --short HEAD` / `git log` / `git show` / `git ls-files` 只在 `git.*` 工具不可用、失败、或无法表达查询时作为 fallback only；必须记录降级原因。
+- 同一 Git 状态查询不得在原生工具成功后再用 shell 重复跑；`git.*` 不替代搜索/读取、构建、测试或安全门禁，也不提供 Git 写操作。
+
 Delphi/Pascal 任务的额外顺序：
 - 仅在 Delphi/Pascal 项目或任务中触发；若 Delphi 语义工具可用，先查 `delphi/getIndexStatus`；`missing` 用 `delphi/indexWorkspace`，`stale` 用 `delphi/refreshIndex`，失败或不可用时记录降级原因；证据门禁见 `references/delphi-evidence-gate.md`。
 - 写前证据优先级为 `delphi/getSymbolsOverview` -> `delphi/findDefinition` -> `delphi/findReferences` -> `delphi/impactAnalysis` -> 少量精读；`rg` 只作兜底或补充确认。

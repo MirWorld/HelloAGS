@@ -152,11 +152,13 @@
 - 下一步唯一动作: `…` 预期: …
 ```
 
-`repo_state` 推荐采集（只读命令；任意顺序均可）：
-- `branch`：`git rev-parse --abbrev-ref HEAD`
-- `head`：`git rev-parse --short HEAD`
-- `dirty`：`git status --porcelain`（非空=dirty）
-- `diffstat`：`git diff --stat`
+`repo_state` 推荐采集（native_git_policy；任意顺序均可）：
+- 若运行时暴露 `git.status`、`git.diff_stat`、`git.head`，优先用原生 Git 只读工具采集 `branch/head/dirty/diffstat`。
+- shell Git 只读命令仅在 `git.*` 工具不可用、失败或无法表达查询时 fallback；同一 Git 状态查询不得重复跑。
+- `branch` shell fallback：`git rev-parse --abbrev-ref HEAD`
+- `head` shell fallback：`git rev-parse --short HEAD`
+- `dirty` shell fallback：`git status --porcelain`（非空=dirty）
+- `diffstat` shell fallback：`git diff --stat`
 
 若不是 git 仓库或命令不可用：允许省略 `repo_state`，或在“待确认/假设”区标注 `[SRC:INFER][置信度: 中]` 并说明原因（不要编造）。
 

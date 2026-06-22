@@ -16,6 +16,7 @@ description: 用于处理软件开发/维护类请求（常见说法包括但不
 - **输出语言**：简体中文（代码标识符/API/术语除外）
 - **增量回答（避免重复）**：默认只输出本轮“新增结论/新增动作”，不复述已解决事项；如必须引用旧结论，只用 1 句话并附文件/章节指针。仅在以下情况允许回顾：当前问题依赖旧结论或会改变边界/写入范围；用户明确要求复盘/总结/报告；安全/EHRB 需要再次确认；进入 G6“完成类输出”（模板要求）。细则：`references/response-policy.md`
 - **原生搜索/读取优先（native_search_read_policy）**：只读你当前阶段真正需要的文件；若运行时暴露 `fastgrep.*`、`workspace.read_context/read_slice` 等原生搜索/读取工具，先用原生工具定位与读取；shell `rg` / `Get-Content` / `cat` 只在工具不可用、失败、或表达不了查询/读取时作为 fallback only，且同一查询/同一读取范围不得同时用原生工具和 shell 重复跑；降级时必须说明原因，避免“整库灌上下文”
+- **原生 Git 只读状态优先（native_git_policy）**：获取仓库状态、diffstat、HEAD 等只读 Git 状态时，若运行时暴露 `git.status`、`git.diff_stat`、`git.head`，先用原生 Git 工具；shell `git status` / `git diff --stat` / `git rev-parse --short HEAD` / `git log` / `git show` / `git ls-files` 只在工具不可用、失败、或表达不了查询时作为 fallback only，且同一 Git 状态查询不得重复跑；`git.*` 不替代搜索/读取、构建、测试或安全门禁，也不提供 Git 写操作
 - **Delphi 语义导航**：仅在 Delphi/Pascal 项目或任务触发；若可用 CodexMonitor Delphi 工具，按 `analyze/SKILL.md` 的 `delphi/getIndexStatus` → `delphi/getSymbolsOverview` → `delphi/findDefinition` → `delphi/findReferences` → `delphi/impactAnalysis` 流程先取证，`rg` 仅作兜底；只有真实 `delphi.*` tool call 或 `item/tool/call namespace=delphi` 证据才能声明“已使用 Delphi 语义工具”，否则必须按 `references/delphi-evidence-gate.md` 标注“文本搜索 fallback”
 - **PowerShell 约束**：在 Windows/PowerShell 下执行命令时，按需读取 `references/powershell.md` 避免语法与编码坑
 - **命令分级**：`~plan`（规划域）只允许只读命令；禁止有副作用命令（定义见 `references/command-policy.md`）

@@ -17,8 +17,8 @@
 
 常见示例：
 - shell 搜索/浏览 fallback：`rg`、`Get-ChildItem`、`Get-Content`、`cat`、`type`、`sed`（只读命令本身允许；若存在原生搜索/读取工具，它们不是 preferred path）
-- Git 只读：`git status`、`git diff --stat`、`git log`
-- Git 只读（更多）：`git show`、`git ls-files`
+- 原生 Git 只读状态工具（native_git_policy；若运行时暴露则为 preferred path）：`git.status`、`git.diff_stat`、`git.head`
+- shell Git 只读 fallback：`git status`、`git diff --stat`、`git rev-parse --short HEAD`、`git log`、`git show`、`git ls-files`（只读命令本身允许；若存在原生 Git 工具，它们不是 preferred path）
 - 环境探测：`<tool> --version`、`<tool> --help`
 
 并行建议（推荐默认）：
@@ -43,6 +43,7 @@
 - **规划域（~plan / 方案设计阶段）**：只允许只读命令；禁止有副作用命令（需要验证则写入 `task.md##上下文快照` 的“下一步唯一动作”，等切到执行域再跑）
 - **执行域（~exec / 开发实施阶段）**：允许执行门禁/验证/构建/测试，但必须遵循 `references/quality-gates.md` 与失败协议
 - **原生搜索/读取优先（native_search_read_policy / shell_fallback_only）**：当运行时暴露 `fastgrep.*`、`workspace.read_context/read_slice` 等原生工具时，搜索、列文件、路径搜索和读取片段优先使用原生工具；shell `rg` / `Get-Content` / `cat` / `type` / `sed` 只在原生工具不可用、失败、或无法表达查询/读取时作为 fallback only；同一查询或同一读取范围不得在原生工具成功后再用 shell 重复跑，除非先记录明确 fallback/验证原因
+- **原生 Git 只读状态优先（native_git_policy）**：当运行时暴露 `git.status`、`git.diff_stat`、`git.head` 时，仓库状态、diffstat、HEAD 等 repo_state 取证优先使用原生 Git 工具；shell `git status` / `git diff --stat` / `git rev-parse --short HEAD` / `git log` / `git show` / `git ls-files` 只在原生 Git 工具不可用、失败、或无法表达查询时作为 fallback only；同一 Git 状态查询不得在原生工具成功后再用 shell 重复跑；`git.*` 只覆盖只读状态工具，不替代搜索/读取、构建/测试/安全门禁，也不提供 Git 写操作
 - **CLI 优先（本地内循环）**：当仓库已有等价 CLI/脚本/CI/README 命令时，优先使用该本地入口；只有本地没有入口、需要企业外部系统数据、或需要集中认证/审计时，才使用 MCP/外部集成，并按 `references/external-knowledge.md` 记录来源与验证方式
 - **permission profiles（Codex 0.130.0+）**：优先用显式 permission profiles 表达 sandbox / cwd / trust flow；`request_permissions` 继续作为运行时最小额外权限申请手段，但不要把 `--full-auto` 当成默认协议口径
 - **版本控制写操作（Git）**：无论是否在执行域，除非用户明确要求，否则不执行 `git add/commit/push/merge/rebase/reset/tag`；若用户要求，先确认目标分支/远端/提交信息规范，并检查是否包含敏感信息

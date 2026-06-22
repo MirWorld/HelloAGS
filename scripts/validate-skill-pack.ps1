@@ -1265,6 +1265,17 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
   "仅在 Delphi/Pascal 项目或任务触发"
 )
 
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
+  "native_git_policy",
+  "git.status",
+  "git.diff_stat",
+  "git.head",
+  "fallback only",
+  "同一 Git 状态查询不得",
+  "不替代搜索/读取",
+  "不提供 Git 写操作"
+)
+
 Assert-NotContainsAny -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
   '先 `rg` 定位，再 `Get-Content`'
 )
@@ -1287,10 +1298,31 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/agent-coding-di
   "同一查询或同一读取范围不得"
 )
 
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/agent-coding-discipline.md" -needles @(
+  "Git 状态取证顺序",
+  "git.status",
+  "git.diff_stat",
+  "git.head",
+  "fallback only",
+  "同一 Git 状态查询不得",
+  "不替代搜索/读取",
+  "不提供 Git 写操作"
+)
+
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/pre-implementation-checklist.md" -needles @(
   "原生搜索/读取工具",
   "fallback",
   "同一查询不得重复跑"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/pre-implementation-checklist.md" -needles @(
+  "Git 状态取证已收敛",
+  "git.status",
+  "git.diff_stat",
+  "git.head",
+  'shell `git status`',
+  "仅在工具不可用、失败或无法表达查询时 fallback",
+  "同一 Git 状态查询不得重复跑"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-budget.md" -needles @(
@@ -1315,9 +1347,39 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/command-policy.
   "同一查询或同一读取范围不得"
 )
 
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/command-policy.md" -needles @(
+  "native_git_policy",
+  "git.status",
+  "git.diff_stat",
+  "git.head",
+  "shell Git 只读 fallback",
+  "fallback only",
+  "同一 Git 状态查询不得",
+  "只覆盖只读状态工具",
+  "不提供 Git 写操作"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-snapshot.md" -needles @(
+  "native_git_policy",
+  "git.status",
+  "git.diff_stat",
+  "git.head",
+  "shell Git 只读命令仅在",
+  "同一 Git 状态查询不得重复跑"
+)
+
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/active-context.md" -needles @(
   "优先原生搜索/读取工具",
   '原生工具不可用或失败时再用 `rg` fallback'
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "HAGSWorks/active_context.md" -needles @(
+  "HelloAGENTS Native Git Readonly Policy",
+  "native_git_policy",
+  "git.status",
+  "git.diff_stat",
+  "git.head",
+  "不提供写操作"
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/SKILL.md" -needles @(
