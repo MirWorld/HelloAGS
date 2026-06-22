@@ -197,9 +197,19 @@ next_unique_action: "等待用户补充追问答案/以现有需求继续/取消
 输出物: 项目上下文信息（技术栈、模块结构、质量问题、技术约束）供P2方案设计使用
 ```
 
+#### 通用原生搜索/读取优先（触发式）
+
+阶段B需要定位代码、读取片段、清点相似实现或调用点时，优先走 `native_search_read_policy`：
+
+1. 若运行时暴露原生搜索/读取工具，先用 `fastgrep.search`、`fastgrep.files_with_matches`、`fastgrep.list_files`、`fastgrep.path_search` 和 `workspace.read_context/read_slice` 等工具完成定位与最小读取。
+2. shell `rg` / `Get-Content` / `cat` 只在原生工具不可用、调用失败、或无法表达该查询/读取时作为 fallback only；降级原因必须写入输出或 `task.md##上下文快照`。
+3. 禁止同一查询或同一读取范围在原生工具成功后再用 shell 重复跑；若确需复查，必须先说明 fallback/验证原因。
+4. 原生搜索/读取工具只能证明“定位/读取”证据，不能替代测试、构建、Review、方案包状态或代码事实。
+5. Delphi/Pascal 项目或任务仍优先使用下方 Delphi 语义工具流程；通用 `fastgrep/workspace` 不能替代 `delphi.*` 定义、引用和影响面证据。
+
 #### Delphi/Pascal 持久索引语义导航（触发式）
 
-当仓库或任务明显涉及 Delphi/Pascal（如 `.pas/.dpr/.dfm/.fmx/.lfm/.inc`、窗体事件、单元/方法引用）时，阶段B优先尝试 Delphi 语义工具；证据门禁见 `../references/delphi-evidence-gate.md`。`dynamicTools` 注入、索引 ready、hooks 提醒或代码里有 executor 只算准备证据，不能证明本轮已调用工具。
+仅当仓库或任务明显涉及 Delphi/Pascal（如 `.pas/.dpr/.dfm/.fmx/.lfm/.inc`、窗体事件、单元/方法引用）时，阶段B优先尝试 Delphi 语义工具；证据门禁见 `../references/delphi-evidence-gate.md`。`dynamicTools` 注入、索引 ready、hooks 提醒或代码里有 executor 只算准备证据，不能证明本轮已调用工具。
 
 1. 先查 `delphi/getIndexStatus`，记录 `status`、`partial`、`warnings`、`risks`；`missing` 先 `delphi/indexWorkspace`，`stale` 先 `delphi/refreshIndex`，`failed/unavailable` 记录原因后降级。
 2. 索引 `ready` 后，先 `delphi/getSymbolsOverview` 获取文件/模块符号概览，再用 `delphi/findDefinition`、`delphi/findReferences`、`delphi/impactAnalysis` 圈定定义、引用与影响面；`partial` 只适用于探索性定位或低风险局部修改。

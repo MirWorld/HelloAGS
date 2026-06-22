@@ -33,8 +33,13 @@
 - 直接调用方 / 导出入口 / 共享工具中与本次改动相关的最小片段。
 - 是否已有相似实现、类型、错误码、配置项或测试入口可复用。
 
+通用取证顺序：
+- 若运行时暴露原生搜索/读取工具，先用 `fastgrep.*`、`workspace.read_context/read_slice` 等 native tools 做定位、相似实现检索和最小片段读取。
+- shell `rg` / `Get-Content` / `cat` 只在原生工具不可用、失败、或无法表达查询/读取时作为 fallback only；必须记录降级原因。
+- 同一查询或同一读取范围不得在原生工具成功后再用 shell 重复跑；确需复查时先写明 fallback/验证理由。
+
 Delphi/Pascal 任务的额外顺序：
-- 若 Delphi 语义工具可用，先查 `delphi/getIndexStatus`；`missing` 用 `delphi/indexWorkspace`，`stale` 用 `delphi/refreshIndex`，失败或不可用时记录降级原因；证据门禁见 `references/delphi-evidence-gate.md`。
+- 仅在 Delphi/Pascal 项目或任务中触发；若 Delphi 语义工具可用，先查 `delphi/getIndexStatus`；`missing` 用 `delphi/indexWorkspace`，`stale` 用 `delphi/refreshIndex`，失败或不可用时记录降级原因；证据门禁见 `references/delphi-evidence-gate.md`。
 - 写前证据优先级为 `delphi/getSymbolsOverview` -> `delphi/findDefinition` -> `delphi/findReferences` -> `delphi/impactAnalysis` -> 少量精读；`rg` 只作兜底或补充确认。
 - `partial`、`warnings`、`risks` 必须显式记录；索引状态、overview 和 hooks 提醒都不是真值，不能替代代码事实、方案包状态或验证证据。
 - 只有真实 `delphi.*` tool call 或 `item/tool/call namespace=delphi` 证据，才能声明已使用 Delphi 语义工具；`dynamicTools` 注入、工具列表可见、索引 ready、代码里有 executor 都只是准备证据。

@@ -1257,6 +1257,75 @@ Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/agent-coding-di
 )
 
 Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
+  "native_search_read_policy",
+  "fastgrep.*",
+  "workspace.read_context/read_slice",
+  "fallback only",
+  "同一查询/同一读取范围不得",
+  "仅在 Delphi/Pascal 项目或任务触发"
+)
+
+Assert-NotContainsAny -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
+  '先 `rg` 定位，再 `Get-Content`'
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "analyze/SKILL.md" -needles @(
+  "通用原生搜索/读取优先",
+  "native_search_read_policy",
+  "fastgrep.search",
+  "workspace.read_context/read_slice",
+  "fallback only",
+  "同一查询或同一读取范围",
+  '不能替代 `delphi.*`'
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/agent-coding-discipline.md" -needles @(
+  "通用取证顺序",
+  "fastgrep.*",
+  "workspace.read_context/read_slice",
+  "fallback only",
+  "同一查询或同一读取范围不得"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/pre-implementation-checklist.md" -needles @(
+  "原生搜索/读取工具",
+  "fallback",
+  "同一查询不得重复跑"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/context-budget.md" -needles @(
+  "优先原生搜索/读取工具",
+  'shell `rg` / `Get-Content` / `cat` 仅在不可用、失败或无法表达时 fallback'
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/code-reuse-checklist.md" -needles @(
+  "优先用原生搜索/读取工具",
+  'shell `rg` 仅在原生工具不可用'
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/cross-layer-checklist.md" -needles @(
+  "优先用原生搜索工具查调用点",
+  'shell `rg` 仅在原生工具不可用'
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/command-policy.md" -needles @(
+  "native_search_read_policy",
+  "shell_fallback_only",
+  "fallback only",
+  "同一查询或同一读取范围不得"
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "references/active-context.md" -needles @(
+  "优先原生搜索/读取工具",
+  '原生工具不可用或失败时再用 `rg` fallback'
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "templates/SKILL.md" -needles @(
+  "先用原生搜索/读取工具或目录浏览",
+  '原生工具不可用时再用 `rg` fallback'
+)
+
+Assert-ContainsAll -repoRoot $repoRoot -relativePath "SKILL.md" -needles @(
   "Delphi 语义导航",
   "delphi/getIndexStatus",
   "delphi/getSymbolsOverview",

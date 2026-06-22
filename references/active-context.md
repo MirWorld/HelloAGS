@@ -96,7 +96,7 @@ active_context 建议严格按以下结构组织（模板见 `templates/active-c
 校验清单：
 - Public APIs 是否 **每条都有** `[SRC:CODE] path symbol`（行号可选）
 - `path` 是否存在
-- `symbol` 是否能在指向文件中命中（可 `rg` 命中）
+- `symbol` 是否能在指向文件中命中（优先原生搜索/读取工具；不可用时可 `rg` 命中）
 - 若填写了行号：行号必须在文件范围内（不要求“附近命中”）
 
 ### 6.2 严格校验（strict，可选增强）
@@ -110,7 +110,7 @@ active_context 建议严格按以下结构组织（模板见 `templates/active-c
 - `symbol` 必须在行号附近命中（否则视为漂移）
 
 漂移处理：
-- 优先 `rg` 搜索 symbol，定位新位置并更新行号
+- 优先用原生搜索/读取工具搜索 symbol，定位新位置并更新行号；原生工具不可用或失败时再用 `rg` fallback
 - 若 API 已删除/改名：更新 active_context（删旧、补新），并在 “Known Gaps / Risks” 记录一次破坏性变化（如适用）
 
 ### 6.3 优先级（必须修 vs 允许欠账）
@@ -121,4 +121,3 @@ active_context 建议严格按以下结构组织（模板见 `templates/active-c
 - **允许欠账（必须落盘）**：仅涉及内部实现细节、且不影响 Public Surface 时，可暂时不更新细节；但必须在 `## Known Gaps / Risks` 写明缺口，并在 `## Next` 给出“下一步唯一动作”用于补齐
 
 可选工具：`HAGSWorks/scripts/validate-active-context.ps1`（支持 `-Mode loose|strict`；如项目启用）。
-
